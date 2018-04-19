@@ -28,22 +28,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	// Remove some circular refs
-	for _, pkg := range pkgs {
-		for _, file := range pkg.Files {
-			ast.Inspect(file, func(node ast.Node) bool {
-				switch n := node.(type) {
-				case *ast.Ident:
-					if n.Obj != nil {
-						n.Obj.Decl = nil
-					}
-				}
-				return true
-			})
-			file.Scope = nil
-		}
-	}
-	jsonable := interfaceToJsonable(map[string]interface{}{"packages": pkgs})
+	jsonable := astToJsonable(fileSet, pkgs)
 	byts, err := json.MarshalIndent(jsonable, "", " ")
 	if err != nil {
 		return err
@@ -52,14 +37,42 @@ func run() error {
 	return err
 }
 
-func interfaceToJsonable(iface interface{}) interface{} {
+func astToJsonable(fileSet *token.FileSet, pkgs map[string]*ast.Package) interface{} {
+	// Load up object decl refs and replace with ref map
+	ctx := &jsonableCtx{refPtrs: map[interface{}]struct{}{}}
+	for _, pkg := range pkgs {
+		for _, file := range pkg.Files {
+			ast.Inspect(file, func(node ast.Node) bool {
+				switch n := node.(type) {
+				case *ast.Ident:
+					if n.Obj != nil && n.Obj.Decl != nil && reflect.TypeOf(n.Obj.Decl).Kind() == reflect.Ptr {
+						ctx.refPtrs[n.Obj.Decl] = struct{}{}
+						n.Obj.Decl = map[string]interface{}{"_ref": reflect.ValueOf(n.Obj.Decl).Pointer()}
+					}
+				}
+				return true
+			})
+		}
+	}
+	return ctx.interfaceToJsonable(map[string]interface{}{"packages": pkgs})
+}
+
+type jsonableCtx struct {
+	refPtrs map[interface{}]struct{}
+}
+
+func (c *jsonableCtx) interfaceToJsonable(iface interface{}) interface{} {
 	if iface == nil {
 		return nil
 	}
 	// Grab the val and type
 	reflectVal := reflect.ValueOf(iface)
 	reflectType := reflectVal.Type()
+	var refUintPtr uintptr
 	if reflectType.Kind() == reflect.Ptr {
+		if _, ok := c.refPtrs[iface]; ok {
+			refUintPtr = reflectVal.Pointer()
+		}
 		reflectType = reflectType.Elem()
 		reflectVal = reflectVal.Elem()
 	}
@@ -67,13 +80,13 @@ func interfaceToJsonable(iface interface{}) interface{} {
 	case reflect.Array, reflect.Slice:
 		ret := make([]interface{}, reflectVal.Len())
 		for i := 0; i < len(ret); i++ {
-			ret[i] = interfaceToJsonable(reflectVal.Index(i).Interface())
+			ret[i] = c.interfaceToJsonable(reflectVal.Index(i).Interface())
 		}
 		return ret
 	case reflect.Map:
 		ret := map[string]interface{}{}
 		for _, keyVal := range reflectVal.MapKeys() {
-			ret[fmt.Sprintf("%v", keyVal.Interface())] = interfaceToJsonable(reflectVal.MapIndex(keyVal).Interface())
+			ret[fmt.Sprintf("%v", keyVal.Interface())] = c.interfaceToJsonable(reflectVal.MapIndex(keyVal).Interface())
 		}
 		return ret
 	case reflect.Struct:
@@ -81,20 +94,27 @@ func interfaceToJsonable(iface interface{}) interface{} {
 			return iface
 		}
 		ret := map[string]interface{}{"_type": reflectType.Name()}
+		if refUintPtr > 0 {
+			ret["_ptr"] = refUintPtr
+		}
 		// Put all fields into the map
 		for i := 0; i < reflectType.NumField(); i++ {
 			fieldVal := reflectVal.Field(i)
 			if !fieldVal.IsValid() {
 				continue
 			}
+			// Ignore nil struct/iface field vals
+			if (fieldVal.Kind() == reflect.Ptr || fieldVal.Kind() == reflect.Interface) && fieldVal.IsNil() {
+				continue
+			}
 			fieldName := reflectType.Field(i).Name
 			fieldName = strings.ToLower(fieldName[:1]) + fieldName[1:]
 			val := fieldVal.Interface()
 			if val != nil {
-				val = interfaceToJsonable(val)
+				val = c.interfaceToJsonable(val)
 			}
 			if val != nil {
-				ret[fieldName] = interfaceToJsonable(val)
+				ret[fieldName] = val
 			}
 		}
 		return ret
