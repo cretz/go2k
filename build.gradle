@@ -1,0 +1,28 @@
+buildscript {
+    ext.kotlin_version = '1.2.40'
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+allprojects {
+    apply plugin: 'java'
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    repositories {
+        mavenCentral()
+    }
+}
+project(':compiler') {
+    apply plugin: 'kotlin'
+
+    dependencies {
+        compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+        compile 'org.jetbrains.kotlin:kotlin-reflect'
+    }
+}
