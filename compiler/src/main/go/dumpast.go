@@ -29,7 +29,7 @@ func run() error {
 		return err
 	}
 	jsonable := astToJsonable(fileSet, pkgs)
-	byts, err := json.MarshalIndent(jsonable, "", " ")
+	byts, err := json.MarshalIndent(jsonable, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,10 @@ func astToJsonable(fileSet *token.FileSet, pkgs map[string]*ast.Package) interfa
 				case *ast.Ident:
 					if n.Obj != nil && n.Obj.Decl != nil && reflect.TypeOf(n.Obj.Decl).Kind() == reflect.Ptr {
 						ctx.refPtrs[n.Obj.Decl] = struct{}{}
-						n.Obj.Decl = map[string]interface{}{"_ref": reflect.ValueOf(n.Obj.Decl).Pointer()}
+						n.Obj.Decl = map[string]interface{}{
+							"_type": "Ref",
+							"_ref":  fmt.Sprint(reflect.ValueOf(n.Obj.Decl).Pointer()),
+						}
 					}
 				}
 				return true
@@ -95,7 +98,7 @@ func (c *jsonableCtx) interfaceToJsonable(iface interface{}) interface{} {
 		}
 		ret := map[string]interface{}{"_type": reflectType.Name()}
 		if refUintPtr > 0 {
-			ret["_ptr"] = refUintPtr
+			ret["_ptr"] = fmt.Sprint(refUintPtr)
 		}
 		// Put all fields into the map
 		for i := 0; i < reflectType.NumField(); i++ {

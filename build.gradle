@@ -21,8 +21,28 @@ allprojects {
 project(':compiler') {
     apply plugin: 'kotlin'
 
+    repositories {
+        // Needed for Moshi snapshots
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    }
+
     dependencies {
         compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
         compile 'org.jetbrains.kotlin:kotlin-reflect'
+        compile 'com.squareup:kotlinpoet:0.7.0'
+        compile 'com.squareup.moshi:moshi:1.6.0-SNAPSHOT'
+        compile 'com.squareup.moshi:moshi-kotlin:1.6.0-SNAPSHOT'
+        testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.1.0'
+    }
+
+    test {
+        useJUnitPlatform()
+        testLogging {
+            outputs.upToDateWhen { false }
+            showStandardStreams = true
+            exceptionFormat = 'full'
+            events 'passed', 'skipped', 'failed'
+        }
     }
 }

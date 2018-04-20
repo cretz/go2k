@@ -1,5 +1,7 @@
 package go2k.compile
 
+import java.math.BigInteger
+
 sealed class Node {
     data class Comment(
         val slash: Int,
@@ -20,7 +22,7 @@ sealed class Node {
 
     data class FieldList(
         val opening: Int,
-        val lit: List<Field>,
+        val list: List<Field>,
         val closing: Int
     ) : Node()
 
@@ -47,7 +49,7 @@ sealed class Node {
 
     data class Package(
         val name: String,
-        val scope: Scope,
+        val scope: Scope?,
         val imports: Map<String, Node.Object>,
         val files: Map<String, File>
     ) : Node()
@@ -59,11 +61,13 @@ sealed class Node {
 
     sealed class Decl : Node() {
         data class BadDecl(
+            val _ptr: BigInteger?,
             val from: Int,
             val to: Int
         ) : Decl()
 
         data class FuncDecl(
+            val _ptr: BigInteger?,
             val doc: CommentGroup?,
             val recv: FieldList?,
             val name: Expr.Ident,
@@ -72,12 +76,17 @@ sealed class Node {
         ) : Decl()
 
         data class GenDecl(
+            val _ptr: BigInteger?,
             val doc: CommentGroup?,
             val tokPos: Int,
             val tok: Token,
             val lparen: Int,
             val specs: List<Spec>,
             val rparen: Int
+        ) : Decl()
+
+        data class Ref(
+            val _ref: BigInteger
         ) : Decl()
     }
 
@@ -232,7 +241,7 @@ sealed class Node {
 
         data class TypeSpec(
             val doc: CommentGroup?,
-            val name: String,
+            val name: Expr.Ident,
             val assign: Int,
             val type: Expr,
             val comment: CommentGroup?
@@ -320,7 +329,7 @@ sealed class Node {
         data class IfStmt(
             val `if`: Int,
             val init: Stmt?,
-            val conf: Expr,
+            val cond: Expr,
             val body: BlockStmt,
             val `else`: Stmt?
         ) : Stmt()
@@ -384,13 +393,16 @@ sealed class Node {
         EOF(),
         COMMENT(),
 
+        IGNORE_LITERAL_BEG(),
         IDENT(),
         INT(),
         FLOAT(),
         IMAG(),
         CHAR(),
         STRING(),
+        IGNORE_LITERAL_END(),
 
+        IGNORE_OPERATOR_BEG(),
         ADD("+"),
         SUB("-"),
         MUL("*"),
@@ -446,7 +458,9 @@ sealed class Node {
         RBRACE("}"),
         SEMICOLON(";"),
         COLON(":"),
+        IGNORE_OPERATOR_END(),
 
+        IGNORE_KEYWORD_BEG(),
         BREAK("break"),
         CASE(),
         CHAN(),
@@ -476,5 +490,6 @@ sealed class Node {
         SWITCH(),
         TYPE(),
         VAR(),
+        IGNORE_KEYWORD_END(),
     }
 }
