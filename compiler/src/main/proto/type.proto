@@ -1,0 +1,127 @@
+syntax = "proto3";
+package pb;
+
+message ConstantValue {
+  oneof value {
+    string unknown = 1;
+    bool bool = 2;
+    string string = 3;
+    string int = 4;
+    double float = 5;
+    string complex = 6;
+  }
+}
+
+message TypeInfo {
+  string package = 1;
+  string name = 2;
+  oneof type {
+    TypeArray type_array = 3;
+    TypeBasic type_basic = 4;
+    bool type_builtin = 5;
+    TypeChan type_chan = 6;
+    TypeConst type_const = 7;
+    TypeSignature type_func = 8;
+    TypeInterface type_interface = 9;
+    TypeInfo type_label = 10;
+    TypeMap type_map = 11;
+    TypeInfo type_name = 12;
+    TypeNamed type_named = 13;
+    TypeInfo type_nil = 14;
+    bool type_package = 15;
+    TypePointer type_pointer = 16;
+    TypeSignature type_signature = 17;
+    TypeSlice type_slice = 18;
+    TypeStruct type_struct = 19;
+    TypeTuple type_tuple = 20;
+    TypeInfo type_var = 21;
+  }
+}
+
+message TypeArray {
+  TypeInfo elem = 1;
+  int64 len = 2;
+}
+
+message TypeBasic {
+  int32 flags = 1;
+  Kind kind = 2;
+  
+  enum Kind {
+    INVALID = 0;
+    BOOL = 1;
+    INT = 2;
+    INT_8 = 3;
+    INT_16 = 4;
+    INT_32 = 5;
+    INT_64 = 6;
+    UINT = 7;
+    UINT_8 = 8;
+    UINT_16 = 9;
+    UINT_32 = 10;
+    UINT_64 = 11;
+    UINT_PTR = 12;
+    FLOAT_32 = 13;
+    FLOAT_64 = 14;
+    COMPLEX_64 = 15;
+    COMPLEX_128 = 16;
+    STRING = 17;
+    UNSAFE_POINTER = 18;
+    UNTYPED_BOOL = 19;
+    UNTYPED_INT = 20;
+    UNTYPED_RUNE = 21;
+    UNTYPED_FLOAT = 22;
+    UNTYPED_COMPLEX = 23;
+    UNTYPED_STRING = 24;
+    UNTYPED_NIL = 25;
+  }
+}
+
+message TypeChan {
+  TypeInfo elem = 1;
+  bool send_dir = 2;
+  bool recv_dir = 3;
+}
+
+message TypeConst {
+  TypeInfo type = 1;
+  ConstantValue value = 2;
+}
+
+message TypeInterface {
+  repeated TypeInfo explicit_methods = 1;
+  repeated TypeInfo embedded = 2;
+}
+
+message TypeMap {
+  TypeInfo elem = 1;
+  TypeInfo key = 2;
+}
+
+message TypeNamed {
+  TypeInfo type_name = 1;
+  TypeInfo type = 2;
+  repeated TypeInfo methods = 3;
+}
+
+message TypePointer {
+  TypeInfo elem = 1;
+}
+
+message TypeSignature {
+  TypeInfo recv = 1;
+  repeated TypeInfo params = 2;
+  repeated TypeInfo results = 3;
+}
+
+message TypeSlice {
+  TypeInfo elem = 1;
+}
+
+message TypeStruct {
+  repeated TypeInfo fields = 1;
+}
+
+message TypeTuple {
+  repeated TypeInfo vars = 1;
+}

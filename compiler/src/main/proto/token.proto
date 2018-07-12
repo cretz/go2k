@@ -1,0 +1,101 @@
+syntax = "proto3";
+package pb;
+
+enum Token {
+  ILLEGAL = 0;
+	EOF = 1;
+	COMMENT = 2;
+
+	IDENT = 4;
+	INT = 5;
+	FLOAT = 6;
+	IMAG = 7;
+	CHAR = 8;
+  STRING  = 9;
+  
+	ADD = 12;
+	SUB = 13;
+	MUL = 14;
+	QUO = 15;
+	REM = 16;
+
+	AND = 17;
+	OR = 18;
+	XOR = 19;
+	SHL = 20;
+	SHR = 21;
+	AND_NOT = 22;
+
+	ADD_ASSIGN = 23;
+	SUB_ASSIGN = 24;
+	MUL_ASSIGN = 25;
+	QUO_ASSIGN = 26;
+	REM_ASSIGN = 27;
+
+	AND_ASSIGN = 28;
+	OR_ASSIGN = 29;
+	XOR_ASSIGN = 30;
+	SHL_ASSIGN = 31;
+	SHR_ASSIGN = 32;
+	AND_NOT_ASSIGN = 33;
+
+	LAND = 34;
+	LOR = 35;
+	ARROW = 36;
+	INC = 37;
+	DEC = 38;
+
+	EQL = 39;
+	LSS = 40;
+	GTR = 41;
+	ASSIGN = 42;
+	NOT = 43;
+
+	NEQ = 44;
+	LEQ = 45;
+	GEQ = 46;
+	DEFINE = 47;
+	ELLIPSIS = 48;
+
+	LPAREN = 49;
+	LBRACK = 50;
+	LBRACE = 51;
+	COMMA = 52;
+	PERIOD = 53;
+
+	RPAREN = 54;
+	RBRACK = 55;
+	RBRACE = 56;
+	SEMICOLON = 57;
+  COLON = 58;
+  
+	BREAK = 61;
+	CASE = 62;
+	CHAN = 63;
+	CONST = 64;
+	CONTINUE = 65;
+
+	DEFAULT = 66;
+	DEFER = 67;
+	ELSE = 68;
+	FALLTHROUGH = 69;
+	FOR = 70;
+
+	FUNC = 71;
+	GO = 72;
+	GOTO = 73;
+	IF = 74;
+	IMPORT = 75;
+
+	INTERFACE = 76;
+	MAP = 77;
+	PACKAGE = 78;
+	RANGE = 79;
+	RETURN = 80;
+
+	SELECT = 81;
+	STRUCT = 82;
+	SWITCH = 83;
+	TYPE = 84;
+	VAR = 85;
+}
