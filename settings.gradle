@@ -1,2 +1,4 @@
 rootProject.name = 'go2k'
-include 'compiler'
+include ':compiler',
+        ':runtime:runtime-common',
+        ':runtime:runtime-jvm'

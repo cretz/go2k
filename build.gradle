@@ -31,9 +31,10 @@ project(':compiler') {
     dependencies {
         compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
         compile 'org.jetbrains.kotlin:kotlin-reflect'
-        compile 'com.squareup:kotlinpoet:0.7.0'
-        compile 'com.github.cretz.pbandk:pbandk-runtime-jvm:0.1.0'
+        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.1.0'
+        compile 'com.github.cretz.pbandk:pbandk-runtime-jvm:0.2.0'
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
+        testImplementation 'org.junit.jupiter:junit-jupiter-params:5.1.0'
         testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.1.0'
     }
 
@@ -48,6 +49,7 @@ project(':compiler') {
     }
 
     compileJava.enabled = false
+    compileTestJava.enabled = false
 
     protobuf {
         generatedFilesBaseDir = "$projectDir/src"
@@ -74,6 +76,41 @@ project(':compiler') {
                     path = System.getenv('PROTOC_KOTLIN')
                 }
             }
+        }
+    }
+}
+
+project(':runtime:runtime-common') {
+    apply plugin: 'kotlin-platform-common'
+    dependencies {
+        compile "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
+        testCompile "org.jetbrains.kotlin:kotlin-test-annotations-common:$kotlin_version"
+        testCompile "org.jetbrains.kotlin:kotlin-test-common:$kotlin_version"
+    }
+}
+
+project(':runtime:runtime-jvm') {
+    apply plugin: 'kotlin-platform-jvm'
+    sourceCompatibility = '1.6'
+    compileKotlin {
+        kotlinOptions.jvmTarget = '1.6'
+    }
+    compileTestKotlin {
+        kotlinOptions.jvmTarget = '1.6'
+    }
+    dependencies {
+        expectedBy project(':runtime:runtime-common')
+        compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+        testCompile 'junit:junit:4.12'
+        testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+        testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
+    }
+    test {
+        testLogging {
+            outputs.upToDateWhen {false}
+            showStandardStreams = true
+            exceptionFormat = 'full'
+            events 'passed', 'skipped', 'failed'
         }
     }
 }

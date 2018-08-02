@@ -3,7 +3,6 @@ package pb;
 
 import "token.proto";
 import "type.proto";
-import "google/protobuf/any.proto";
 
 message Comment {
   int32 slash = 1;
@@ -17,7 +16,7 @@ message CommentGroup {
 message Field {
   CommentGroup doc = 1;
   repeated Ident names = 2;
-  google.protobuf.Any type = 3;
+  Expr type = 3;
   BasicLit tag = 4;
   CommentGroup comment = 5;
 }
@@ -26,6 +25,33 @@ message FieldList {
   int32 opening = 1;
   repeated Field list = 2;
   int32 closing = 3;
+}
+
+message Expr {
+  oneof expr {
+    BadExpr bad_expr = 1;
+    Ident ident = 2;
+    Ellipsis ellipsis = 3;
+    BasicLit basic_lit = 4;
+    FuncLit func_lit = 5;
+    CompositeLit composite_lit = 6;
+    ParenExpr paren_expr = 7;
+    SelectorExpr selector_expr = 8;
+    IndexExpr index_expr = 9;
+    SliceExpr slice_expr = 10;
+    TypeAssertExpr type_assert_expr = 11;
+    CallExpr call_expr = 12;
+    StarExpr star_expr = 13;
+    UnaryExpr unary_expr = 14;
+    BinaryExpr binary_expr = 15;
+    KeyValueExpr key_value_expr = 16;
+    ArrayType array_type = 17;
+    StructType struct_type = 18;
+    FuncType func_type = 19;
+    InterfaceType interface_type = 20;
+    MapType map_type = 21;
+    ChanType chan_type = 22;
+  }
 }
 
 message BadExpr {
@@ -43,7 +69,7 @@ message Ident {
 
 message Ellipsis {
   int32 ellipsis = 1;
-  google.protobuf.Any elt = 2;
+  Expr elt = 2;
   TypeInfo type_info = 3;
 }
 
@@ -61,57 +87,57 @@ message FuncLit {
 }
 
 message CompositeLit {
-  google.protobuf.Any type = 1;
+  Expr type = 1;
   int32 lbrace = 2;
-  repeated google.protobuf.Any elts = 3;
+  repeated Expr elts = 3;
   int32 rbrace = 4;
   TypeInfo type_info = 5;
 }
 
 message ParenExpr {
   int32 lparen = 1;
-  google.protobuf.Any x = 2;
+  Expr x = 2;
   int32 rparen = 3;
   TypeInfo type_info = 4;
 }
 
 message SelectorExpr {
-  google.protobuf.Any x = 1;
+  Expr x = 1;
   Ident sel = 2;
   TypeInfo type_info = 3;
 }
 
 message IndexExpr {
-  google.protobuf.Any x = 1;
+  Expr x = 1;
   int32 lbrack = 2;
-  google.protobuf.Any index = 3;
+  Expr index = 3;
   int32 rbrack = 4;
   TypeInfo type_info = 5;
 }
 
 message SliceExpr {
-  google.protobuf.Any x = 1;
+  Expr x = 1;
   int32 lbrack = 2;
-  google.protobuf.Any low = 3;
-  google.protobuf.Any high = 4;
-  google.protobuf.Any max = 5;
+  Expr low = 3;
+  Expr high = 4;
+  Expr max = 5;
   bool slice3 = 6;
   int32 rbrack = 7;
   TypeInfo type_info = 8;
 }
 
 message TypeAssertExpr {
-  google.protobuf.Any x = 1;
+  Expr x = 1;
   int32 lparen = 2;
-  google.protobuf.Any type = 3;
+  Expr type = 3;
   int32 rparen = 4;
   TypeInfo type_info = 5;
 }
 
 message CallExpr {
-  google.protobuf.Any fun = 1;
+  Expr fun = 1;
   int32 lparen = 2;
-  repeated google.protobuf.Any args = 3;
+  repeated Expr args = 3;
   int32 ellipsis = 4;
   int32 rparen = 5;
   TypeInfo type_info = 6;
@@ -119,36 +145,36 @@ message CallExpr {
 
 message StarExpr {
   int32 star = 1;
-  google.protobuf.Any x = 2;
+  Expr x = 2;
   TypeInfo type_info = 3;
 }
 
 message UnaryExpr {
   int32 op_pos = 1;
   Token op = 2;
-  google.protobuf.Any x = 3;
+  Expr x = 3;
   TypeInfo type_info = 4;
 }
 
 message BinaryExpr {
-  google.protobuf.Any x = 1;
+  Expr x = 1;
   int32 op_pos = 2;
   Token op = 3;
-  google.protobuf.Any y = 4;
+  Expr y = 4;
   TypeInfo type_info = 5;
 }
 
 message KeyValueExpr {
-  google.protobuf.Any key = 1;
+  Expr key = 1;
   int32 colon = 2;
-  google.protobuf.Any value = 3;
+  Expr value = 3;
   TypeInfo type_info = 4;
 }
 
 message ArrayType {
   int32 lbrack = 1;
-  google.protobuf.Any len = 2;
-  google.protobuf.Any elt = 3;
+  Expr len = 2;
+  Expr elt = 3;
   TypeInfo type_info = 4;
 }
 
@@ -175,8 +201,8 @@ message InterfaceType {
 
 message MapType {
   int32 map = 1;
-  google.protobuf.Any key = 2;
-  google.protobuf.Any value = 3;
+  Expr key = 2;
+  Expr value = 3;
   TypeInfo type_info = 4;
 }
 
@@ -185,8 +211,34 @@ message ChanType {
   int32 arrow = 2;
   bool send_dir = 3;
   bool recv_dir = 4;
-  google.protobuf.Any value = 5;
+  Expr value = 5;
   TypeInfo type_info = 6;
+}
+
+message Stmt {
+  oneof stmt {
+    BadStmt bad_stmt = 1;
+    DeclStmt decl_stmt = 2;
+    EmptyStmt empty_stmt = 3;
+    LabeledStmt labeled_stmt = 4;
+    ExprStmt expr_stmt = 5;
+    SendStmt send_stmt = 6;
+    IncDecStmt inc_dec_stmt = 7;
+    AssignStmt assign_stmt = 8;
+    GoStmt go_stmt = 9;
+    DeferStmt defer_stmt = 10;
+    ReturnStmt return_stmt = 11;
+    BranchStmt branch_stmt = 12;
+    BlockStmt block_stmt = 13;
+    IfStmt if_stmt = 14;
+    CaseClause case_clause = 15;
+    SwitchStmt switch_stmt = 16;
+    TypeSwitchStmt type_switch_stmt = 17;
+    CommClause comm_clause = 18;
+    SelectStmt select_stmt = 19;
+    ForStmt for_stmt = 20;
+    RangeStmt range_stmt = 21;
+  }
 }
 
 message BadStmt {
@@ -195,7 +247,7 @@ message BadStmt {
 }
 
 message DeclStmt {
-  google.protobuf.Any decl = 1;
+  Decl decl = 1;
 }
 
 message EmptyStmt {
@@ -206,30 +258,30 @@ message EmptyStmt {
 message LabeledStmt {
   Ident label = 1;
   int32 colon = 2;
-  google.protobuf.Any stmt = 3;
+  Stmt stmt = 3;
 }
 
 message ExprStmt {
-  google.protobuf.Any x = 1;
+  Expr x = 1;
 }
 
 message SendStmt {
-  google.protobuf.Any chan = 1;
+  Expr chan = 1;
   int32 arrow = 2;
-  google.protobuf.Any value = 3;
+  Expr value = 3;
 }
 
 message IncDecStmt {
-  google.protobuf.Any x = 1;
+  Expr x = 1;
   int32 tok_pos = 2;
   Token tok = 3;
 }
 
 message AssignStmt {
-  repeated google.protobuf.Any lhs = 1;
+  repeated Expr lhs = 1;
   int32 tok_pos = 2;
   Token tok = 3;
-  repeated google.protobuf.Any rhs = 4;
+  repeated Expr rhs = 4;
 }
 
 message GoStmt {
@@ -244,7 +296,7 @@ message DeferStmt {
 
 message ReturnStmt {
   int32 return = 1;
-  repeated google.protobuf.Any results = 2;
+  repeated Expr results = 2;
 }
 
 message BranchStmt {
@@ -255,44 +307,44 @@ message BranchStmt {
 
 message BlockStmt {
   int32 lbrace = 1;
-  repeated google.protobuf.Any list = 2;
+  repeated Stmt list = 2;
   int32 rbrace = 3;
 }
 
 message IfStmt {
   int32 if = 1;
-  google.protobuf.Any init = 2;
-  google.protobuf.Any cond = 3;
+  Stmt init = 2;
+  Expr cond = 3;
   BlockStmt body = 4;
-  google.protobuf.Any else = 5;
+  Stmt else = 5;
 }
 
 message CaseClause {
   int32 case = 1;
-  repeated google.protobuf.Any list = 2;
+  repeated Expr list = 2;
   int32 colon = 3;
-  repeated google.protobuf.Any body = 4;
+  repeated Stmt body = 4;
 }
 
 message SwitchStmt {
   int32 switch = 1;
-  google.protobuf.Any init = 2;
-  google.protobuf.Any tag = 3;
+  Stmt init = 2;
+  Expr tag = 3;
   BlockStmt body = 4;
 }
 
 message TypeSwitchStmt {
   int32 switch = 1;
-  google.protobuf.Any init = 2;
-  google.protobuf.Any assign = 3;
+  Stmt init = 2;
+  Stmt assign = 3;
   BlockStmt body = 4;
 }
 
 message CommClause {
   int32 case = 1;
-  google.protobuf.Any comm = 2;
+  Stmt comm = 2;
   int32 colon = 3;
-  repeated google.protobuf.Any body = 4;
+  repeated Stmt body = 4;
 }
 
 message SelectStmt {
@@ -302,20 +354,28 @@ message SelectStmt {
 
 message ForStmt {
   int32 for = 1;
-  google.protobuf.Any init = 2;
-  google.protobuf.Any cond = 3;
-  google.protobuf.Any post = 4;
+  Stmt init = 2;
+  Expr cond = 3;
+  Stmt post = 4;
   BlockStmt body = 5;
 }
 
 message RangeStmt {
   int32 for = 1;
-  google.protobuf.Any key = 2;
-  google.protobuf.Any value = 3;
+  Expr key = 2;
+  Expr value = 3;
   int32 tok_pos = 4;
   Token tok = 5;
-  google.protobuf.Any x = 6;
+  Expr x = 6;
   BlockStmt body = 7;
+}
+
+message Spec {
+  oneof spec {
+    ImportSpec import_spec = 1;
+    ValueSpec value_spec = 2;
+    TypeSpec type_spec = 3;
+  }
 }
 
 message ImportSpec {
@@ -329,8 +389,8 @@ message ImportSpec {
 message ValueSpec {
   CommentGroup doc = 1;
   repeated Ident names = 2;
-  google.protobuf.Any type = 3;
-  repeated google.protobuf.Any values = 4;
+  Expr type = 3;
+  repeated Expr values = 4;
   CommentGroup comment = 5;
 }
 
@@ -338,8 +398,16 @@ message TypeSpec {
   CommentGroup doc = 1;
   Ident name = 2;
   int32 assign = 3;
-  google.protobuf.Any type = 4;
+  Expr type = 4;
   CommentGroup comment = 5;
+}
+
+message Decl {
+  oneof decl {
+    BadDecl bad_decl = 1;
+    GenDecl gen_decl = 2;
+    FuncDecl func_decl = 3;
+  }
 }
 
 message BadDecl {
@@ -352,7 +420,7 @@ message GenDecl {
   int32 tok_pos = 2;
   Token tok = 3;
   int32 lparen = 4;
-  repeated google.protobuf.Any specs = 5;
+  repeated Spec specs = 5;
   int32 rparen = 6;
 }
 
@@ -365,18 +433,21 @@ message FuncDecl {
 }
 
 message File {
-  CommentGroup doc = 1;
-  int32 package = 2;
-  Ident name = 3;
-  repeated google.protobuf.Any decls = 4;
-  repeated ImportSpec imports = 5;
-  repeated Ident unresolved = 6;
-  repeated CommentGroup comments = 7;
+  string file_name = 1;
+  CommentGroup doc = 2;
+  int32 package = 3;
+  Ident name = 4;
+  repeated Decl decls = 5;
+  repeated ImportSpec imports = 6;
+  repeated Ident unresolved = 7;
+  repeated CommentGroup comments = 8;
 }
 
 message Package {
   string name = 1;
-  map<string, File> files = 2;
+  string path = 2;
+  repeated File files = 3;
+  repeated string var_init_order = 4;
 }
 
 message Packages {

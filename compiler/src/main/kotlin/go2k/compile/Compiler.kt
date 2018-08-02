@@ -1,73 +1,42 @@
 package go2k.compile
 
-import com.squareup.kotlinpoet.*
 import go2k.compile.dumppb.*
+import kastree.ast.Node
 
-open class Compiler {
-    fun compile(v: Package): List<FileSpec> {
-        return v.files.map { compile(it.key, it.value!!) }
+open class Compiler(val conf: Conf = Conf()) {
+
+    fun compileDeclTopLevel(v: Decl_.Decl) = when (v) {
+        is Decl_.Decl.BadDecl -> error("Bad decl: $v")
+        is Decl_.Decl.GenDecl -> compileGenDeclTopLevel(v.genDecl)
+        is Decl_.Decl.FuncDecl -> compileFuncDeclTopLevel(v.funcDecl)
     }
 
-    fun compile(fileName: String, v: File): FileSpec {
-        val ctx = FileContext()
-        val bld = FileSpec.builder("somepkg", "somefile")
-        v.decls.forEach {
-            AstAny.Decl.fromAny(it).also {
-                when (it) {
-                    is AstAny.Decl.FuncDecl -> bld.addFunction(compileFun(ctx, it.v))
-                    is AstAny.Decl.GenDecl -> when (it.v.tok) {
-                        Token.CONST -> compileConst(ctx, it.v).forEach { bld.addProperty(it) }
-                        Token.VAR -> bld.addProperty(compileVar(ctx, it.v))
-                        else -> error("Unsupported decl token: ${it.v.tok}")
-                    }
-                }
-            }
-        }
-        return bld.build()
-    }
+    fun compileFile(v: File) = Node.File(
+        anns = emptyList(),
+        pkg = null,
+        imports = emptyList(),
+        decls = v.decls.map { compileDeclTopLevel(it.decl!!) }
+    )
 
-    fun compileConst(ctx: FileContext, v: GenDecl): List<PropertySpec> {
-        println("Const decl: $v")
-        return v.specs.flatMap {
-            AstAny.Spec.fromAny(it).let {
-                if (it is AstAny.Spec.ValueSpec) compileConst(ctx, it.v)
-                else error("Unrecognized spec: $it")
-            }
-        }
-    }
+    fun compileFuncDeclTopLevel(v: FuncDecl): Node.Decl.Func = TODO()
 
-    fun compileConst(ctx: FileContext, v: ValueSpec): List<PropertySpec> {
-        println("Const spec: $v")
-        return v.names.mapIndexed { index, name ->
-            val value = AstAny.Expr.fromAny(v.values.getOrElse(index) { error("No value for const $it") })
-            println("Value: $value")
-            compileExpr(ctx, value).let { (code, typeName) ->
-                PropertySpec.builder(name.name, typeName, KModifier.CONST).initializer(code).build()
-            }
-        }
-    }
+    fun compileGenDeclTopLevel(v: GenDecl): Node.Decl = TODO()
 
-    fun compileExpr(ctx: FileContext, v: AstAny.Expr): Pair<CodeBlock, TypeName> {
-        return when (v) {
-            is AstAny.Expr.BasicLit -> v.v.kind.let {
-                when (it) {
-                    Token.STRING -> CodeBlock.of("%S", v.v.value) to String::class.asTypeName()
-                    else -> error("Unrecognized token: $it")
-                }
-            }
-            else -> error("Unrecognized expression: $v")
-        }
-    }
+    fun compilePackage(v: Package) = KotlinPackage(
+        files = v.files.map {
+            it.fileName.removeSuffix(".go") + ".kt" to compileFile(it).copy(
+                pkg = Node.Package(emptyList(), conf.namer.packageName(v.path, v.name).split('.'))
+            )
+        }.toMap()
+    )
 
-    fun compileFun(ctx: FileContext, v: FuncDecl): FunSpec { TODO() }
+    data class KotlinPackage(
+        val files: Map<String, Node.File>
+    )
 
-    fun compileVar(ctx: FileContext, v: GenDecl): PropertySpec {
-        TODO()
-    }
-
-    class FileContext {
-
-    }
+    data class Conf(
+        val namer: Namer = Namer.Simple()
+    )
 
     companion object : Compiler()
 }
