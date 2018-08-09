@@ -3,3 +3,5 @@
 /.idea
 /compiler/build
 /compiler/out
+/runtime/runtime-common/build
+/runtime/runtime-jvm/build

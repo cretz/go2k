@@ -3,6 +3,16 @@ package go2k.compile
 import kastree.ast.Node
 import kotlin.reflect.KClass
 
+fun arrayType(of: KClass<*>) = Node.Type(
+    mods = emptyList(),
+    ref = Node.TypeRef.Simple(
+        pieces = listOf(
+            Node.TypeRef.Simple.Piece("kotlin", emptyList()),
+            Node.TypeRef.Simple.Piece("Array", listOf(of.toType()))
+        )
+    )
+)
+
 fun binaryOp(lhs: Node.Expr, op: Node.Expr.BinaryOp.Token, rhs: Node.Expr) =
     Node.Expr.BinaryOp(lhs, Node.Expr.BinaryOp.Oper.Token(op), rhs)
 
@@ -44,6 +54,14 @@ val NullConst = Node.Expr.Const("null", Node.Expr.Const.Form.NULL)
 
 fun Node.Modifier.Keyword.toMod() = Node.Modifier.Lit(this)
 
+fun param(
+    mods: List<Node.Modifier> = emptyList(),
+    readOnly: Boolean? = null,
+    name: String,
+    type: Node.Type,
+    default: Node.Expr? = null
+) = Node.Decl.Func.Param(mods, readOnly, name, type, default)
+
 fun property(
     mods: List<Node.Modifier> = emptyList(),
     readOnly: Boolean = false,
@@ -64,3 +82,9 @@ fun String.toDottedExpr() = split('.').let {
 }
 fun String.toName() = Node.Expr.Name(this)
 fun String.toStringTmpl() = Node.Expr.StringTmpl(elems = listOf(Node.Expr.StringTmpl.Elem.Regular(this)), raw = false)
+
+fun valueArg(
+    name: String? = null,
+    asterisk: Boolean = false,
+    expr: Node.Expr
+) = Node.ValueArg(name, asterisk, expr)

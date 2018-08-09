@@ -131,7 +131,7 @@ open class Compiler(val conf: Conf = Conf()) {
     // TODO: fix builtin's to refer to the proper package
     fun compileIdent(v: Ident): Node.Expr {
         if (v.typeInfo?.type is TypeInfo.Type.TypeBuiltin) {
-            return "go2k.runtime.${v.name}".toDottedExpr()
+            return "go2k.runtime.builtin.${v.name}".toDottedExpr()
         }
         return v.name.javaName
     }
@@ -150,7 +150,7 @@ open class Compiler(val conf: Conf = Conf()) {
         // Compile all files...
         var initCount = 0
         val files = v.files.map {
-            it.fileName.removeSuffix(".go") + ".kt" to compileFile(it).let {
+            it.fileName + ".kt" to compileFile(it).let {
                 it.copy(
                     pkg = Node.Package(emptyList(), conf.namer.packageName(v.path, v.name).split('.')),
                     // Change all init functions to start with dollar sign and numbered
@@ -186,7 +186,8 @@ open class Compiler(val conf: Conf = Conf()) {
         }.toMap()
 
         // Make a suspendable public package init in the last file that does var inits and calls init funcs
-        val packageInit = func(
+        var extraDecls = emptyList<Node.Decl>()
+        extraDecls += func(
             mods = listOf(Node.Modifier.Keyword.SUSPEND.toMod()),
             name = "init",
             body = Node.Decl.Func.Body.Block(Node.Block(
@@ -196,9 +197,35 @@ open class Compiler(val conf: Conf = Conf()) {
             ))
         )
 
+        // If there is a main func and we're in the main package, we make a main with args to call it
+        val hasMain = v.name == "main" && v.files.any {
+            it.decls.any {
+                (it.decl as? Decl_.Decl.FuncDecl)?.funcDecl.let {
+                    it?.name?.name == "main" && it.recv == null
+                }
+            }
+        }
+        if (hasMain) extraDecls += func(
+            name = "main",
+            params = listOf(param(
+                name = "args",
+                type = arrayType(String::class)
+            )),
+            body = Node.Decl.Func.Body.Expr(call(
+                expr = "go2k.runtime.runMain".toDottedExpr(),
+                args = listOf(
+                    valueArg(expr = "args".javaName),
+                    valueArg(expr = Node.Expr.DoubleColonRef.Callable(recv = null, name = "init")),
+                    valueArg(expr = Node.Expr.Brace(emptyList(), Node.Block(listOf(
+                        Node.Stmt.Expr(call("main".javaName))
+                    ))))
+                )
+            ))
+        )
+
         return KotlinPackage(
             files = (files.dropLast(1) + files.last().let {
-                it.copy(second = it.second.copy(decls = it.second.decls + packageInit))
+                it.copy(second = it.second.copy(decls = it.second.decls + extraDecls))
             }).toMap()
         )
     }

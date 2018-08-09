@@ -1,6 +1,7 @@
 package go2k.compile
 
 import kastree.ast.Writer
+import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 
@@ -21,6 +22,8 @@ class CompilerTest : TestBase() {
                 }
             }
         }
+
+        compiled.forEach { JvmCompiler.compile(it) }
     }
 
     companion object {

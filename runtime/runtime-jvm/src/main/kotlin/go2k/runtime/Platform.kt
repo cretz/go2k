@@ -1,5 +1,7 @@
 package go2k.runtime
 
+import kotlinx.coroutines.runBlocking
+
 actual object Platform {
     actual inline fun arrayCopy(src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) {
         System.arraycopy(src, srcPos, dest, destPos, length)
@@ -17,6 +19,13 @@ actual object Platform {
             if (i > 0) System.err.print(' ')
             if (i == args.size - 1) System.err.print(arg)
             else System.err.println(arg)
+        }
+    }
+
+    actual fun <T> runSuspended(fn: suspend () -> T, cb: ((T) -> Unit)?) {
+        runBlocking {
+            val v = fn()
+            cb?.invoke(v)
         }
     }
 

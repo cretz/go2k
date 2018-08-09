@@ -11,19 +11,19 @@ interface Slice<T> {
     suspend fun slice(low: Int, high: Int?, max: Int?): Slice<T>
 
     interface Factory {
-        fun <T> new(arr: Array<T>, low: Int, high: Int, max: Int): Slice<T>
-        fun new(arr: ByteArray, low: Int, high: Int, max: Int): Slice<Byte>
-        fun new(arr: UByteArray, low: Int, high: Int, max: Int): Slice<UByte>
-        fun new(arr: ShortArray, low: Int, high: Int, max: Int): Slice<Short>
-        fun new(arr: UShortArray, low: Int, high: Int, max: Int): Slice<UShort>
-        fun new(arr: IntArray, low: Int, high: Int, max: Int): Slice<Int>
-        fun new(arr: UIntArray, low: Int, high: Int, max: Int): Slice<UInt>
-        fun new(arr: LongArray, low: Int, high: Int, max: Int): Slice<Long>
-        fun new(arr: ULongArray, low: Int, high: Int, max: Int): Slice<ULong>
-        fun new(arr: FloatArray, low: Int, high: Int, max: Int): Slice<Float>
-        fun new(arr: DoubleArray, low: Int, high: Int, max: Int): Slice<Double>
-        fun new(arr: BooleanArray, low: Int, high: Int, max: Int): Slice<Boolean>
-        fun new(arr: CharArray, low: Int, high: Int, max: Int): Slice<Char>
+        fun <T> newObjectSlice(arr: Array<T>, low: Int, high: Int, max: Int): Slice<T>
+        fun newByteSlice(arr: ByteArray, low: Int, high: Int, max: Int): Slice<Byte>
+        fun newUByteSlice(arr: UByteArray, low: Int, high: Int, max: Int): Slice<UByte>
+        fun newShortSlice(arr: ShortArray, low: Int, high: Int, max: Int): Slice<Short>
+        fun newUShortSlice(arr: UShortArray, low: Int, high: Int, max: Int): Slice<UShort>
+        fun newIntSlice(arr: IntArray, low: Int, high: Int, max: Int): Slice<Int>
+        fun newUIntSlice(arr: UIntArray, low: Int, high: Int, max: Int): Slice<UInt>
+        fun newLongSlice(arr: LongArray, low: Int, high: Int, max: Int): Slice<Long>
+        fun newULongSlice(arr: ULongArray, low: Int, high: Int, max: Int): Slice<ULong>
+        fun newFloatSlice(arr: FloatArray, low: Int, high: Int, max: Int): Slice<Float>
+        fun newDoubleSlice(arr: DoubleArray, low: Int, high: Int, max: Int): Slice<Double>
+        fun newBooleanSlice(arr: BooleanArray, low: Int, high: Int, max: Int): Slice<Boolean>
+        fun newCharSlice(arr: CharArray, low: Int, high: Int, max: Int): Slice<Char>
     }
 
     abstract class ArrayBased<T, ARR : Any>(
@@ -82,25 +82,38 @@ interface Slice<T> {
         }
         
         companion object : Factory {
-            override fun <T> new(arr: Array<T>, low: Int, high: Int, max: Int) = ObjectArr(arr, low, high, max)
-            override fun new(arr: ByteArray, low: Int, high: Int, max: Int) = ByteArr(arr, low, high, max)
-            override fun new(arr: UByteArray, low: Int, high: Int, max: Int) = UByteArr(arr, low, high, max)
-            override fun new(arr: ShortArray, low: Int, high: Int, max: Int) = ShortArr(arr, low, high, max)
-            override fun new(arr: UShortArray, low: Int, high: Int, max: Int) = UShortArr(arr, low, high, max)
-            override fun new(arr: IntArray, low: Int, high: Int, max: Int) = IntArr(arr, low, high, max)
-            override fun new(arr: UIntArray, low: Int, high: Int, max: Int) = UIntArr(arr, low, high, max)
-            override fun new(arr: LongArray, low: Int, high: Int, max: Int) = LongArr(arr, low, high, max)
-            override fun new(arr: ULongArray, low: Int, high: Int, max: Int) = ULongArr(arr, low, high, max)
-            override fun new(arr: FloatArray, low: Int, high: Int, max: Int) = FloatArr(arr, low, high, max)
-            override fun new(arr: DoubleArray, low: Int, high: Int, max: Int) = DoubleArr(arr, low, high, max)
-            override fun new(arr: BooleanArray, low: Int, high: Int, max: Int) = BooleanArr(arr, low, high, max)
-            override fun new(arr: CharArray, low: Int, high: Int, max: Int) = CharArr(arr, low, high, max)
+            override fun <T> newObjectSlice(arr: Array<T>, low: Int, high: Int, max: Int) =
+                ObjectArr(arr, low, high, max)
+            override fun newByteSlice(arr: ByteArray, low: Int, high: Int, max: Int) =
+                ByteArr(arr, low, high, max)
+            override fun newUByteSlice(arr: UByteArray, low: Int, high: Int, max: Int) =
+                UByteArr(arr, low, high, max)
+            override fun newShortSlice(arr: ShortArray, low: Int, high: Int, max: Int) =
+                ShortArr(arr, low, high, max)
+            override fun newUShortSlice(arr: UShortArray, low: Int, high: Int, max: Int) =
+                UShortArr(arr, low, high, max)
+            override fun newIntSlice(arr: IntArray, low: Int, high: Int, max: Int) =
+                IntArr(arr, low, high, max)
+            override fun newUIntSlice(arr: UIntArray, low: Int, high: Int, max: Int) =
+                UIntArr(arr, low, high, max)
+            override fun newLongSlice(arr: LongArray, low: Int, high: Int, max: Int) =
+                LongArr(arr, low, high, max)
+            override fun newULongSlice(arr: ULongArray, low: Int, high: Int, max: Int) =
+                ULongArr(arr, low, high, max)
+            override fun newFloatSlice(arr: FloatArray, low: Int, high: Int, max: Int) =
+                FloatArr(arr, low, high, max)
+            override fun newDoubleSlice(arr: DoubleArray, low: Int, high: Int, max: Int) =
+                DoubleArr(arr, low, high, max)
+            override fun newBooleanSlice(arr: BooleanArray, low: Int, high: Int, max: Int) =
+                BooleanArr(arr, low, high, max)
+            override fun newCharSlice(arr: CharArray, low: Int, high: Int, max: Int) =
+                CharArr(arr, low, high, max)
         }
     }
 
     open class ObjectArr<T>(array: Array<T>, low: Int, high: Int, max: Int) : ArrayBased<T, Array<T>>(array, low, high, max) {
         override val arraySize get() = array.size
-        override fun newArray(size: Int) = arrayOfNulls<T>(size) as Array<T>
+        override fun newArray(size: Int) = arrayOfNulls<Any?>(size) as Array<T>
         override fun newInst(array: Array<T>, low: Int, high: Int, max: Int) = ObjectArr(array, low, high, max)
         override suspend fun get(index: Int) = array[low + index]
     }
