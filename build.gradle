@@ -59,6 +59,14 @@ project(':compiler') {
     compileJava.enabled = false
     compileTestJava.enabled = false
 
+    // TODO: Remove when there is a setting to make generateProto manual only
+    // Ref: https://github.com/google/protobuf-gradle-plugin/issues/256
+    gradle.taskGraph.whenReady { graph ->
+        // Just disable the proto task if there are any non-proto tasks
+        def hasNonProto = graph.allTasks.any { !it.class.name.contains('protobuf') }
+        if (hasNonProto) generateProto.enabled = false
+    }
+
     protobuf {
         generatedFilesBaseDir = "$projectDir/src"
         protoc {
@@ -77,6 +85,7 @@ project(':compiler') {
             }
         }
     }
+
     if (System.getenv('PROTOC_KOTLIN') != null) {
         protobuf {
             plugins {

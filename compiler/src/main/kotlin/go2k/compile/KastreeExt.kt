@@ -1,6 +1,7 @@
 package go2k.compile
 
 import kastree.ast.Node
+import kotlin.reflect.KClass
 
 fun binaryOp(lhs: Node.Expr, op: Node.Expr.BinaryOp.Token, rhs: Node.Expr) =
     Node.Expr.BinaryOp(lhs, Node.Expr.BinaryOp.Oper.Token(op), rhs)
@@ -32,6 +33,13 @@ fun func(
 
 fun Int.toConst() = Node.Expr.Const(toString(), Node.Expr.Const.Form.INT)
 
+fun KClass<*>.toType() = Node.Type(
+    mods = emptyList(),
+    ref = Node.TypeRef.Simple(
+        pieces = qualifiedName!!.split('.').map { Node.TypeRef.Simple.Piece(it, emptyList()) }
+    )
+)
+
 val NullConst = Node.Expr.Const("null", Node.Expr.Const.Form.NULL)
 
 fun Node.Modifier.Keyword.toMod() = Node.Modifier.Lit(this)
@@ -49,5 +57,10 @@ fun property(
 ) = Node.Decl.Property(mods, readOnly, typeParams, receiverType, vars, typeConstraints, delegated, expr, accessors)
 
 // TODO: escaping and stuff
+fun String.toDottedExpr() = split('.').let {
+    it.drop(1).fold(Node.Expr.Name(it.first()) as Node.Expr) { expr, piece ->
+        binaryOp(expr, Node.Expr.BinaryOp.Token.DOT, piece.toName())
+    }
+}
 fun String.toName() = Node.Expr.Name(this)
 fun String.toStringTmpl() = Node.Expr.StringTmpl(elems = listOf(Node.Expr.StringTmpl.Elem.Regular(this)), raw = false)

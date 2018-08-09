@@ -3,8 +3,10 @@ package go2k.runtime
 @ExperimentalUnsignedTypes
 interface Slice<T> {
 
+    suspend fun append(other: Slice<T>): Slice<T>
     suspend fun cap(): Int
     suspend fun copyTo(slice: Slice<T>): Int
+    suspend fun get(index: Int): T
     suspend fun len(): Int
     suspend fun slice(low: Int, high: Int?, max: Int?): Slice<T>
 
@@ -24,28 +26,48 @@ interface Slice<T> {
         fun new(arr: CharArray, low: Int, high: Int, max: Int): Slice<Char>
     }
 
-    abstract class ArrayBased<T>(
+    abstract class ArrayBased<T, ARR : Any>(
+        protected val array: ARR,
         protected val low: Int,
-        protected val high: Int,
+        protected var high: Int,
         protected val max: Int
     ) : Slice<T> {
         init {
-            require(low in 0..high && high in 0..max && max <= arrSize)
+            require(low in 0..high && high in 0..max && max <= arraySize)
         }
 
-        protected abstract val arrObj: Any
-        protected abstract val arrSize: Int
-        protected abstract fun newInst(low: Int, high: Int, max: Int): ArrayBased<T>
+        protected abstract val arraySize: Int
+        protected abstract fun newArray(size: Int): ARR
+        protected abstract fun newInst(array: ARR, low: Int, high: Int, max: Int): ArrayBased<T, ARR>
+        protected open fun arrayCopy(src: ARR, srcPos: Int, dest: ARR, destPos: Int, len: Int) {
+            // TODO: this is no good for the unsigned ones, ref:
+            //  https://github.com/Kotlin/KEEP/issues/135#issuecomment-410143162
+            //  ...it's coming in the form of asWhateverArray
+            Platform.arrayCopy(src, srcPos, dest, destPos, len)
+        }
+
+        override suspend fun append(other: Slice<T>): Slice<T> {
+            val other = other as ArrayBased<T, ARR>
+            val total = len + other.len
+            if (total <= cap) {
+                arrayCopy(other.array, other.low, array, high, other.len)
+                high += other.len
+                return this
+            }
+            val newSize = ((total * 3) / 2) + 1
+            val newArrayInst = newArray(newSize)
+            arrayCopy(array, low, newArrayInst, 0, len)
+            arrayCopy(other.array, other.low, newArrayInst, len, other.len)
+            return newInst(newArrayInst, 0, total, newSize)
+        }
 
         protected inline val cap get() = max - low
         override suspend fun cap() = cap
 
         override suspend fun copyTo(slice: Slice<T>): Int {
-            slice as ArrayBased<T>
+            slice as ArrayBased<T, ARR>
             val amount = if (len < slice.len) len else slice.len
-            // TODO: this is no good for the unsigned ones, ref:
-            //  https://github.com/Kotlin/KEEP/issues/135#issuecomment-410143162
-            Platform.arrayCopy(arrObj, low, slice.arrObj, slice.low, amount)
+            arrayCopy(array, low, slice.array, slice.low, amount)
             return amount
         }
 
@@ -56,7 +78,7 @@ interface Slice<T> {
             val high = high ?: len
             val max = max ?: cap
             require(low in 0..high && max in high..cap)
-            return newInst(this.low + low, this.low + high, this.low + max)
+            return newInst(array, this.low + low, this.low + high, this.low + max)
         }
         
         companion object : Factory {
@@ -76,81 +98,107 @@ interface Slice<T> {
         }
     }
 
-    open class ObjectArr<T>(val array: Array<T>, low: Int, high: Int, max: Int) : ArrayBased<T>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = ObjectArr(array, low, high, max)
+    open class ObjectArr<T>(array: Array<T>, low: Int, high: Int, max: Int) : ArrayBased<T, Array<T>>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = arrayOfNulls<T>(size) as Array<T>
+        override fun newInst(array: Array<T>, low: Int, high: Int, max: Int) = ObjectArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class ByteArr(val array: ByteArray, low: Int, high: Int, max: Int) : ArrayBased<Byte>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = ByteArr(array, low, high, max)
+    open class ByteArr(array: ByteArray, low: Int, high: Int, max: Int) :
+        ArrayBased<Byte, ByteArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = ByteArray(size)
+        override fun newInst(array: ByteArray, low: Int, high: Int, max: Int) = ByteArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class UByteArr(val array: UByteArray, low: Int, high: Int, max: Int) : ArrayBased<UByte>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = UByteArr(array, low, high, max)
+    open class UByteArr(array: UByteArray, low: Int, high: Int, max: Int) :
+        ArrayBased<UByte, UByteArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        // TODO: in a newer version of Kotlin, we'll be able to create a byte array of size and turn it
+        override fun newArray(size: Int) = UByteArray(size) { 0.toUByte() }
+        override fun newInst(array: UByteArray, low: Int, high: Int, max: Int) = UByteArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class ShortArr(val array: ShortArray, low: Int, high: Int, max: Int) : ArrayBased<Short>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = ShortArr(array, low, high, max)
+    open class ShortArr(array: ShortArray, low: Int, high: Int, max: Int) :
+        ArrayBased<Short, ShortArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = ShortArray(size)
+        override fun newInst(array: ShortArray, low: Int, high: Int, max: Int) = ShortArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class UShortArr(val array: UShortArray, low: Int, high: Int, max: Int) : ArrayBased<UShort>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = UShortArr(array, low, high, max)
+    open class UShortArr(array: UShortArray, low: Int, high: Int, max: Int) :
+        ArrayBased<UShort, UShortArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = UShortArray(size) { 0.toUShort() }
+        override fun newInst(array: UShortArray, low: Int, high: Int, max: Int) = UShortArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class IntArr(val array: IntArray, low: Int, high: Int, max: Int) : ArrayBased<Int>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = IntArr(array, low, high, max)
+    open class IntArr(array: IntArray, low: Int, high: Int, max: Int) :
+        ArrayBased<Int, IntArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = IntArray(size)
+        override fun newInst(array: IntArray, low: Int, high: Int, max: Int) = IntArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class UIntArr(val array: UIntArray, low: Int, high: Int, max: Int) : ArrayBased<UInt>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = UIntArr(array, low, high, max)
+    open class UIntArr(array: UIntArray, low: Int, high: Int, max: Int) :
+        ArrayBased<UInt, UIntArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = UIntArray(size) { 0.toUInt() }
+        override fun newInst(array: UIntArray, low: Int, high: Int, max: Int) = UIntArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class LongArr(val array: LongArray, low: Int, high: Int, max: Int) : ArrayBased<Long>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = LongArr(array, low, high, max)
+    open class LongArr(array: LongArray, low: Int, high: Int, max: Int) :
+        ArrayBased<Long, LongArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = LongArray(size)
+        override fun newInst(array: LongArray, low: Int, high: Int, max: Int) = LongArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class ULongArr(val array: ULongArray, low: Int, high: Int, max: Int) : ArrayBased<ULong>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = ULongArr(array, low, high, max)
+    open class ULongArr(array: ULongArray, low: Int, high: Int, max: Int) :
+        ArrayBased<ULong, ULongArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = ULongArray(size) { 0.toULong() }
+        override fun newInst(array: ULongArray, low: Int, high: Int, max: Int) = ULongArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class FloatArr(val array: FloatArray, low: Int, high: Int, max: Int) : ArrayBased<Float>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = FloatArr(array, low, high, max)
+    open class FloatArr(array: FloatArray, low: Int, high: Int, max: Int) :
+        ArrayBased<Float, FloatArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = FloatArray(size)
+        override fun newInst(array: FloatArray, low: Int, high: Int, max: Int) = FloatArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class DoubleArr(val array: DoubleArray, low: Int, high: Int, max: Int) : ArrayBased<Double>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = DoubleArr(array, low, high, max)
+    open class DoubleArr(array: DoubleArray, low: Int, high: Int, max: Int) :
+        ArrayBased<Double, DoubleArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = DoubleArray(size)
+        override fun newInst(array: DoubleArray, low: Int, high: Int, max: Int) = DoubleArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class BooleanArr(val array: BooleanArray, low: Int, high: Int, max: Int) : ArrayBased<Boolean>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = BooleanArr(array, low, high, max)
+    open class BooleanArr(array: BooleanArray, low: Int, high: Int, max: Int) :
+        ArrayBased<Boolean, BooleanArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = BooleanArray(size)
+        override fun newInst(array: BooleanArray, low: Int, high: Int, max: Int) = BooleanArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 
-    open class CharArr(val array: CharArray, low: Int, high: Int, max: Int) : ArrayBased<Char>(low, high, max) {
-        override val arrObj get() = array
-        override val arrSize get() = array.size
-        override fun newInst(low: Int, high: Int, max: Int) = CharArr(array, low, high, max)
+    open class CharArr(array: CharArray, low: Int, high: Int, max: Int) :
+        ArrayBased<Char, CharArray>(array, low, high, max) {
+        override val arraySize get() = array.size
+        override fun newArray(size: Int) = CharArray(size)
+        override fun newInst(array: CharArray, low: Int, high: Int, max: Int) = CharArr(array, low, high, max)
+        override suspend fun get(index: Int) = array[low + index]
     }
 }

@@ -1,5 +1,6 @@
 package go2k.runtime.builtin
 
+import go2k.runtime.Platform
 import go2k.runtime.Slice
 
 fun <T> append(slice: Slice<T>?, elems: Slice<T>?): Slice<T>? = TODO()
@@ -20,7 +21,7 @@ inline fun cap(v: CharArray) = v.size
 suspend inline fun cap(v: Slice<*>) = v.cap()
 
 suspend inline fun <T> copy(dst: Slice<T>?, src: Slice<T>?) = dst?.let { src?.copyTo(it) } ?: 0
-fun copy(dst: Slice<Byte>?, src: String): Int = TODO()
+suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, slice(Platform.stringToBytes(src)))
 
 inline fun len(v: Array<*>) = v.size
 inline fun len(v: ByteArray) = v.size
@@ -47,7 +48,7 @@ inline fun <T> makeSlice(len: Int, cap: Int? = null) =
 inline fun makeByteSlice(len: Int, cap: Int? = null) =
     slice(ByteArray(cap ?: len), high = len)
 // TODO: this is not really an acceptable way to construct this array
-// TODO: Waiting for Kotlin feedback
+// Ref: https://youtrack.jetbrains.com/issue/KT-25875
 inline fun makeUByteSlice(len: Int, cap: Int? = null) =
     slice(UByteArray(cap ?: len) { 0.toUByte() }, high = len)
 inline fun makeShortSlice(len: Int, cap: Int? = null) =
@@ -70,6 +71,11 @@ inline fun makeBooleanSlice(len: Int, cap: Int? = null) =
     slice(BooleanArray(cap ?: len), high = len)
 inline fun makeCharSlice(len: Int, cap: Int? = null) =
     slice(CharArray(cap ?: len), high = len)
+
+// Usually these would be "args: Slice<*>" like other Go varargs, but these are special builtins
+// and Go handles them differently (e.g. you can't splat the args)
+suspend inline fun print(vararg args: Any?) = Platform.print(*args)
+suspend inline fun println(vararg args: Any?) = Platform.println(*args)
 
 inline fun <T> slice(arr: Array<T>, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.new(arr, low, high, max)
