@@ -1,7 +1,9 @@
 package main
 
 var (
-	a = c + b
+	// TODO: Ideally we'd test "a = c + b" here but it breaks our tests due to a bug in Go compiler.
+	// Ref: https://github.com/golang/go/issues/22326
+	a = b + c
 	b = f()
 	c = f()
 	d = 3

@@ -3,6 +3,7 @@ package go2k.compile
 import go2k.compile.dumppb.*
 import kastree.ast.Node
 
+@ExperimentalUnsignedTypes
 open class Compiler(val conf: Conf = Conf()) {
 
     fun compileAssignStmt(v: AssignStmt): Node.Stmt {
@@ -146,13 +147,14 @@ open class Compiler(val conf: Conf = Conf()) {
         )
     )
 
-    fun compilePackage(v: Package): KotlinPackage {
+    fun compilePackage(v: Package, overrideName: String? = null): KotlinPackage {
         // Compile all files...
         var initCount = 0
         val files = v.files.map {
             it.fileName + ".kt" to compileFile(it).let {
+                val pkgName = (overrideName ?: conf.namer.packageName(v.path, v.name)).split('.')
                 it.copy(
-                    pkg = Node.Package(emptyList(), conf.namer.packageName(v.path, v.name).split('.')),
+                    pkg = Node.Package(emptyList(), pkgName),
                     // Change all init functions to start with dollar sign and numbered
                     decls = it.decls.map { decl ->
                         (decl as? Node.Decl.Func)?.takeIf { it.name == "init" }?.copy(

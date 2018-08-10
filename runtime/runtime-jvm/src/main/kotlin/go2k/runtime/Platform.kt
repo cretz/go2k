@@ -17,8 +17,8 @@ actual object Platform {
     actual suspend fun println(vararg args: Any?) {
         args.forEachIndexed { i, arg ->
             if (i > 0) System.err.print(' ')
-            if (i == args.size - 1) System.err.print(arg)
-            else System.err.println(arg)
+            System.err.print(arg)
+            if (i == args.size - 1) System.err.print('\n')
         }
     }
 

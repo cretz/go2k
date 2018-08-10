@@ -12,7 +12,7 @@ interface Parser {
     open class FromGoProcess : Parser {
         val goDumpPath by lazy {
             val goPath = System.getenv("GOPATH") ?: error("Missing GOPATH env var")
-            Paths.get(goPath, "src/github.com/cretz/go-dump/main.go").also {
+            Paths.get(goPath, "src/github.com/cretz/go-dump/main.go")!!.also {
                 require(Files.isRegularFile(it)) { "Not a file: $it" }
             }
         }
