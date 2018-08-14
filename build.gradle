@@ -64,9 +64,8 @@ project(':compiler') {
     // TODO: Remove when there is a setting to make generateProto manual only
     // Ref: https://github.com/google/protobuf-gradle-plugin/issues/256
     gradle.taskGraph.whenReady { graph ->
-        // Just disable the proto task if there are any non-proto tasks
-        def hasNonProto = graph.allTasks.any { !it.class.name.contains('protobuf') }
-        if (hasNonProto) generateProto.enabled = false
+        // Only enable the proto task when called explicitly
+        generateProto.enabled = graph.allTasks.last().class.name.contains('protobuf')
     }
 
     protobuf {
@@ -76,6 +75,7 @@ project(':compiler') {
         }
         generateProtoTasks {
             all().each { task ->
+                task.outputs.upToDateWhen { false }
                 task.builtins {
                     remove java
                 }

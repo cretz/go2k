@@ -95,7 +95,7 @@ data class Expr_(
 data class BadExpr(
     val from: Int = 0,
     val to: Int = 0,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<BadExpr> {
     override operator fun plus(other: BadExpr?) = protoMergeImpl(other)
@@ -109,8 +109,8 @@ data class BadExpr(
 data class Ident(
     val namePos: Int = 0,
     val name: String = "",
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
-    val defTypeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val defTypeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Ident> {
     override operator fun plus(other: Ident?) = protoMergeImpl(other)
@@ -124,7 +124,7 @@ data class Ident(
 data class Ellipsis(
     val ellipsis: Int = 0,
     val elt: go2k.compile.dumppb.Expr_? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Ellipsis> {
     override operator fun plus(other: Ellipsis?) = protoMergeImpl(other)
@@ -139,7 +139,7 @@ data class BasicLit(
     val valuePos: Int = 0,
     val kind: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
     val value: String = "",
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<BasicLit> {
     override operator fun plus(other: BasicLit?) = protoMergeImpl(other)
@@ -153,7 +153,7 @@ data class BasicLit(
 data class FuncLit(
     val type: go2k.compile.dumppb.FuncType? = null,
     val body: go2k.compile.dumppb.BlockStmt? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<FuncLit> {
     override operator fun plus(other: FuncLit?) = protoMergeImpl(other)
@@ -169,7 +169,7 @@ data class CompositeLit(
     val lbrace: Int = 0,
     val elts: List<go2k.compile.dumppb.Expr_> = emptyList(),
     val rbrace: Int = 0,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<CompositeLit> {
     override operator fun plus(other: CompositeLit?) = protoMergeImpl(other)
@@ -184,7 +184,7 @@ data class ParenExpr(
     val lparen: Int = 0,
     val x: go2k.compile.dumppb.Expr_? = null,
     val rparen: Int = 0,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ParenExpr> {
     override operator fun plus(other: ParenExpr?) = protoMergeImpl(other)
@@ -198,7 +198,7 @@ data class ParenExpr(
 data class SelectorExpr(
     val x: go2k.compile.dumppb.Expr_? = null,
     val sel: go2k.compile.dumppb.Ident? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<SelectorExpr> {
     override operator fun plus(other: SelectorExpr?) = protoMergeImpl(other)
@@ -214,7 +214,7 @@ data class IndexExpr(
     val lbrack: Int = 0,
     val index: go2k.compile.dumppb.Expr_? = null,
     val rbrack: Int = 0,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<IndexExpr> {
     override operator fun plus(other: IndexExpr?) = protoMergeImpl(other)
@@ -233,7 +233,7 @@ data class SliceExpr(
     val max: go2k.compile.dumppb.Expr_? = null,
     val slice3: Boolean = false,
     val rbrack: Int = 0,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<SliceExpr> {
     override operator fun plus(other: SliceExpr?) = protoMergeImpl(other)
@@ -249,7 +249,7 @@ data class TypeAssertExpr(
     val lparen: Int = 0,
     val type: go2k.compile.dumppb.Expr_? = null,
     val rparen: Int = 0,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeAssertExpr> {
     override operator fun plus(other: TypeAssertExpr?) = protoMergeImpl(other)
@@ -266,7 +266,7 @@ data class CallExpr(
     val args: List<go2k.compile.dumppb.Expr_> = emptyList(),
     val ellipsis: Int = 0,
     val rparen: Int = 0,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<CallExpr> {
     override operator fun plus(other: CallExpr?) = protoMergeImpl(other)
@@ -280,7 +280,7 @@ data class CallExpr(
 data class StarExpr(
     val star: Int = 0,
     val x: go2k.compile.dumppb.Expr_? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<StarExpr> {
     override operator fun plus(other: StarExpr?) = protoMergeImpl(other)
@@ -295,7 +295,7 @@ data class UnaryExpr(
     val opPos: Int = 0,
     val op: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
     val x: go2k.compile.dumppb.Expr_? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<UnaryExpr> {
     override operator fun plus(other: UnaryExpr?) = protoMergeImpl(other)
@@ -311,7 +311,7 @@ data class BinaryExpr(
     val opPos: Int = 0,
     val op: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
     val y: go2k.compile.dumppb.Expr_? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<BinaryExpr> {
     override operator fun plus(other: BinaryExpr?) = protoMergeImpl(other)
@@ -326,7 +326,7 @@ data class KeyValueExpr(
     val key: go2k.compile.dumppb.Expr_? = null,
     val colon: Int = 0,
     val value: go2k.compile.dumppb.Expr_? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<KeyValueExpr> {
     override operator fun plus(other: KeyValueExpr?) = protoMergeImpl(other)
@@ -341,7 +341,7 @@ data class ArrayType(
     val lbrack: Int = 0,
     val len: go2k.compile.dumppb.Expr_? = null,
     val elt: go2k.compile.dumppb.Expr_? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ArrayType> {
     override operator fun plus(other: ArrayType?) = protoMergeImpl(other)
@@ -356,7 +356,7 @@ data class StructType(
     val struct: Int = 0,
     val fields: go2k.compile.dumppb.FieldList? = null,
     val incomplete: Boolean = false,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<StructType> {
     override operator fun plus(other: StructType?) = protoMergeImpl(other)
@@ -371,7 +371,7 @@ data class FuncType(
     val func: Int = 0,
     val params: go2k.compile.dumppb.FieldList? = null,
     val results: go2k.compile.dumppb.FieldList? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<FuncType> {
     override operator fun plus(other: FuncType?) = protoMergeImpl(other)
@@ -386,7 +386,7 @@ data class InterfaceType(
     val `interface`: Int = 0,
     val methods: go2k.compile.dumppb.FieldList? = null,
     val incomplete: Boolean = false,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<InterfaceType> {
     override operator fun plus(other: InterfaceType?) = protoMergeImpl(other)
@@ -401,7 +401,7 @@ data class MapType(
     val map: Int = 0,
     val key: go2k.compile.dumppb.Expr_? = null,
     val value: go2k.compile.dumppb.Expr_? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<MapType> {
     override operator fun plus(other: MapType?) = protoMergeImpl(other)
@@ -418,7 +418,7 @@ data class ChanType(
     val sendDir: Boolean = false,
     val recvDir: Boolean = false,
     val value: go2k.compile.dumppb.Expr_? = null,
-    val typeInfo: go2k.compile.dumppb.TypeInfo? = null,
+    val typeRef: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ChanType> {
     override operator fun plus(other: ChanType?) = protoMergeImpl(other)
@@ -915,6 +915,7 @@ data class Package(
     val name: String = "",
     val path: String = "",
     val files: List<go2k.compile.dumppb.File> = emptyList(),
+    val types: List<go2k.compile.dumppb.Type_> = emptyList(),
     val varInitOrder: List<String> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Package> {
@@ -1213,7 +1214,7 @@ private fun Expr_.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshall
 }
 
 private fun BadExpr.protoMergeImpl(plus: BadExpr?): BadExpr = plus?.copy(
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1221,7 +1222,7 @@ private fun BadExpr.protoSizeImpl(): Int {
     var protoSize = 0
     if (from != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(from)
     if (to != 0) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.int32Size(to)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1229,26 +1230,26 @@ private fun BadExpr.protoSizeImpl(): Int {
 private fun BadExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (from != 0) protoMarshal.writeTag(8).writeInt32(from)
     if (to != 0) protoMarshal.writeTag(16).writeInt32(to)
-    if (typeInfo != null) protoMarshal.writeTag(26).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(26).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
 private fun BadExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): BadExpr {
     var from = 0
     var to = 0
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return BadExpr(from, to, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return BadExpr(from, to, typeRef, protoUnmarshal.unknownFields())
         8 -> from = protoUnmarshal.readInt32()
         16 -> to = protoUnmarshal.readInt32()
-        26 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun Ident.protoMergeImpl(plus: Ident?): Ident = plus?.copy(
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
-    defTypeInfo = defTypeInfo?.plus(plus.defTypeInfo) ?: plus.defTypeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
+    defTypeRef = defTypeRef?.plus(plus.defTypeRef) ?: plus.defTypeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1256,8 +1257,8 @@ private fun Ident.protoSizeImpl(): Int {
     var protoSize = 0
     if (namePos != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(namePos)
     if (name.isNotEmpty()) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.stringSize(name)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeInfo)
-    if (defTypeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(defTypeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeRef)
+    if (defTypeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(defTypeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1265,29 +1266,29 @@ private fun Ident.protoSizeImpl(): Int {
 private fun Ident.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (namePos != 0) protoMarshal.writeTag(8).writeInt32(namePos)
     if (name.isNotEmpty()) protoMarshal.writeTag(18).writeString(name)
-    if (typeInfo != null) protoMarshal.writeTag(26).writeMessage(typeInfo)
-    if (defTypeInfo != null) protoMarshal.writeTag(34).writeMessage(defTypeInfo)
+    if (typeRef != null) protoMarshal.writeTag(26).writeMessage(typeRef)
+    if (defTypeRef != null) protoMarshal.writeTag(34).writeMessage(defTypeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
 private fun Ident.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): Ident {
     var namePos = 0
     var name = ""
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
-    var defTypeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var defTypeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return Ident(namePos, name, typeInfo, defTypeInfo, protoUnmarshal.unknownFields())
+        0 -> return Ident(namePos, name, typeRef, defTypeRef, protoUnmarshal.unknownFields())
         8 -> namePos = protoUnmarshal.readInt32()
         18 -> name = protoUnmarshal.readString()
-        26 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
-        34 -> defTypeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        34 -> defTypeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun Ellipsis.protoMergeImpl(plus: Ellipsis?): Ellipsis = plus?.copy(
     elt = elt?.plus(plus.elt) ?: plus.elt,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1295,7 +1296,7 @@ private fun Ellipsis.protoSizeImpl(): Int {
     var protoSize = 0
     if (ellipsis != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(ellipsis)
     if (elt != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(elt)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1303,25 +1304,25 @@ private fun Ellipsis.protoSizeImpl(): Int {
 private fun Ellipsis.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (ellipsis != 0) protoMarshal.writeTag(8).writeInt32(ellipsis)
     if (elt != null) protoMarshal.writeTag(18).writeMessage(elt)
-    if (typeInfo != null) protoMarshal.writeTag(26).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(26).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
 private fun Ellipsis.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): Ellipsis {
     var ellipsis = 0
     var elt: go2k.compile.dumppb.Expr_? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return Ellipsis(ellipsis, elt, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return Ellipsis(ellipsis, elt, typeRef, protoUnmarshal.unknownFields())
         8 -> ellipsis = protoUnmarshal.readInt32()
         18 -> elt = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        26 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun BasicLit.protoMergeImpl(plus: BasicLit?): BasicLit = plus?.copy(
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1330,7 +1331,7 @@ private fun BasicLit.protoSizeImpl(): Int {
     if (valuePos != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(valuePos)
     if (kind.value != 0) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.enumSize(kind)
     if (value.isNotEmpty()) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.stringSize(value)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1339,7 +1340,7 @@ private fun BasicLit.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (valuePos != 0) protoMarshal.writeTag(8).writeInt32(valuePos)
     if (kind.value != 0) protoMarshal.writeTag(16).writeEnum(kind)
     if (value.isNotEmpty()) protoMarshal.writeTag(26).writeString(value)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1347,13 +1348,13 @@ private fun BasicLit.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsh
     var valuePos = 0
     var kind: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
     var value = ""
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return BasicLit(valuePos, kind, value, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return BasicLit(valuePos, kind, value, typeRef, protoUnmarshal.unknownFields())
         8 -> valuePos = protoUnmarshal.readInt32()
         16 -> kind = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
         26 -> value = protoUnmarshal.readString()
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1361,7 +1362,7 @@ private fun BasicLit.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsh
 private fun FuncLit.protoMergeImpl(plus: FuncLit?): FuncLit = plus?.copy(
     type = type?.plus(plus.type) ?: plus.type,
     body = body?.plus(plus.body) ?: plus.body,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1369,7 +1370,7 @@ private fun FuncLit.protoSizeImpl(): Int {
     var protoSize = 0
     if (type != null) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.messageSize(type)
     if (body != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(body)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1377,19 +1378,19 @@ private fun FuncLit.protoSizeImpl(): Int {
 private fun FuncLit.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (type != null) protoMarshal.writeTag(10).writeMessage(type)
     if (body != null) protoMarshal.writeTag(18).writeMessage(body)
-    if (typeInfo != null) protoMarshal.writeTag(26).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(26).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
 private fun FuncLit.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): FuncLit {
     var type: go2k.compile.dumppb.FuncType? = null
     var body: go2k.compile.dumppb.BlockStmt? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return FuncLit(type, body, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return FuncLit(type, body, typeRef, protoUnmarshal.unknownFields())
         10 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.FuncType.Companion)
         18 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
-        26 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1397,7 +1398,7 @@ private fun FuncLit.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsha
 private fun CompositeLit.protoMergeImpl(plus: CompositeLit?): CompositeLit = plus?.copy(
     type = type?.plus(plus.type) ?: plus.type,
     elts = elts + plus.elts,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1407,7 +1408,7 @@ private fun CompositeLit.protoSizeImpl(): Int {
     if (lbrace != 0) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.int32Size(lbrace)
     if (elts.isNotEmpty()) protoSize += (pbandk.Sizer.tagSize(3) * elts.size) + elts.sumBy(pbandk.Sizer::messageSize)
     if (rbrace != 0) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.int32Size(rbrace)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1417,7 +1418,7 @@ private fun CompositeLit.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (lbrace != 0) protoMarshal.writeTag(16).writeInt32(lbrace)
     if (elts.isNotEmpty()) elts.forEach { protoMarshal.writeTag(26).writeMessage(it) }
     if (rbrace != 0) protoMarshal.writeTag(32).writeInt32(rbrace)
-    if (typeInfo != null) protoMarshal.writeTag(42).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(42).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1426,22 +1427,22 @@ private fun CompositeLit.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unm
     var lbrace = 0
     var elts: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
     var rbrace = 0
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return CompositeLit(type, lbrace, pbandk.ListWithSize.Builder.fixed(elts), rbrace,
-            typeInfo, protoUnmarshal.unknownFields())
+            typeRef, protoUnmarshal.unknownFields())
         10 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         16 -> lbrace = protoUnmarshal.readInt32()
         26 -> elts = protoUnmarshal.readRepeatedMessage(elts, go2k.compile.dumppb.Expr_.Companion, true)
         32 -> rbrace = protoUnmarshal.readInt32()
-        42 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun ParenExpr.protoMergeImpl(plus: ParenExpr?): ParenExpr = plus?.copy(
     x = x?.plus(plus.x) ?: plus.x,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1450,7 +1451,7 @@ private fun ParenExpr.protoSizeImpl(): Int {
     if (lparen != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(lparen)
     if (x != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(x)
     if (rparen != 0) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.int32Size(rparen)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1459,7 +1460,7 @@ private fun ParenExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (lparen != 0) protoMarshal.writeTag(8).writeInt32(lparen)
     if (x != null) protoMarshal.writeTag(18).writeMessage(x)
     if (rparen != 0) protoMarshal.writeTag(24).writeInt32(rparen)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1467,13 +1468,13 @@ private fun ParenExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
     var lparen = 0
     var x: go2k.compile.dumppb.Expr_? = null
     var rparen = 0
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return ParenExpr(lparen, x, rparen, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return ParenExpr(lparen, x, rparen, typeRef, protoUnmarshal.unknownFields())
         8 -> lparen = protoUnmarshal.readInt32()
         18 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         24 -> rparen = protoUnmarshal.readInt32()
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1481,7 +1482,7 @@ private fun ParenExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
 private fun SelectorExpr.protoMergeImpl(plus: SelectorExpr?): SelectorExpr = plus?.copy(
     x = x?.plus(plus.x) ?: plus.x,
     sel = sel?.plus(plus.sel) ?: plus.sel,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1489,7 +1490,7 @@ private fun SelectorExpr.protoSizeImpl(): Int {
     var protoSize = 0
     if (x != null) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.messageSize(x)
     if (sel != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(sel)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1497,19 +1498,19 @@ private fun SelectorExpr.protoSizeImpl(): Int {
 private fun SelectorExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (x != null) protoMarshal.writeTag(10).writeMessage(x)
     if (sel != null) protoMarshal.writeTag(18).writeMessage(sel)
-    if (typeInfo != null) protoMarshal.writeTag(26).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(26).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
 private fun SelectorExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): SelectorExpr {
     var x: go2k.compile.dumppb.Expr_? = null
     var sel: go2k.compile.dumppb.Ident? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return SelectorExpr(x, sel, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return SelectorExpr(x, sel, typeRef, protoUnmarshal.unknownFields())
         10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         18 -> sel = protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion)
-        26 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1517,7 +1518,7 @@ private fun SelectorExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unm
 private fun IndexExpr.protoMergeImpl(plus: IndexExpr?): IndexExpr = plus?.copy(
     x = x?.plus(plus.x) ?: plus.x,
     index = index?.plus(plus.index) ?: plus.index,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1527,7 +1528,7 @@ private fun IndexExpr.protoSizeImpl(): Int {
     if (lbrack != 0) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.int32Size(lbrack)
     if (index != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(index)
     if (rbrack != 0) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.int32Size(rbrack)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1537,7 +1538,7 @@ private fun IndexExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (lbrack != 0) protoMarshal.writeTag(16).writeInt32(lbrack)
     if (index != null) protoMarshal.writeTag(26).writeMessage(index)
     if (rbrack != 0) protoMarshal.writeTag(32).writeInt32(rbrack)
-    if (typeInfo != null) protoMarshal.writeTag(42).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(42).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1546,15 +1547,15 @@ private fun IndexExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
     var lbrack = 0
     var index: go2k.compile.dumppb.Expr_? = null
     var rbrack = 0
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return IndexExpr(x, lbrack, index, rbrack,
-            typeInfo, protoUnmarshal.unknownFields())
+            typeRef, protoUnmarshal.unknownFields())
         10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         16 -> lbrack = protoUnmarshal.readInt32()
         26 -> index = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         32 -> rbrack = protoUnmarshal.readInt32()
-        42 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1564,7 +1565,7 @@ private fun SliceExpr.protoMergeImpl(plus: SliceExpr?): SliceExpr = plus?.copy(
     low = low?.plus(plus.low) ?: plus.low,
     high = high?.plus(plus.high) ?: plus.high,
     max = max?.plus(plus.max) ?: plus.max,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1577,7 +1578,7 @@ private fun SliceExpr.protoSizeImpl(): Int {
     if (max != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(max)
     if (slice3) protoSize += pbandk.Sizer.tagSize(6) + pbandk.Sizer.boolSize(slice3)
     if (rbrack != 0) protoSize += pbandk.Sizer.tagSize(7) + pbandk.Sizer.int32Size(rbrack)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(8) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(8) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1590,7 +1591,7 @@ private fun SliceExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (max != null) protoMarshal.writeTag(42).writeMessage(max)
     if (slice3) protoMarshal.writeTag(48).writeBool(slice3)
     if (rbrack != 0) protoMarshal.writeTag(56).writeInt32(rbrack)
-    if (typeInfo != null) protoMarshal.writeTag(66).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(66).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1602,10 +1603,10 @@ private fun SliceExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
     var max: go2k.compile.dumppb.Expr_? = null
     var slice3 = false
     var rbrack = 0
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return SliceExpr(x, lbrack, low, high,
-            max, slice3, rbrack, typeInfo, protoUnmarshal.unknownFields())
+            max, slice3, rbrack, typeRef, protoUnmarshal.unknownFields())
         10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         16 -> lbrack = protoUnmarshal.readInt32()
         26 -> low = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
@@ -1613,7 +1614,7 @@ private fun SliceExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
         42 -> max = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         48 -> slice3 = protoUnmarshal.readBool()
         56 -> rbrack = protoUnmarshal.readInt32()
-        66 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        66 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1621,7 +1622,7 @@ private fun SliceExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
 private fun TypeAssertExpr.protoMergeImpl(plus: TypeAssertExpr?): TypeAssertExpr = plus?.copy(
     x = x?.plus(plus.x) ?: plus.x,
     type = type?.plus(plus.type) ?: plus.type,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1631,7 +1632,7 @@ private fun TypeAssertExpr.protoSizeImpl(): Int {
     if (lparen != 0) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.int32Size(lparen)
     if (type != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(type)
     if (rparen != 0) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.int32Size(rparen)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1641,7 +1642,7 @@ private fun TypeAssertExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (lparen != 0) protoMarshal.writeTag(16).writeInt32(lparen)
     if (type != null) protoMarshal.writeTag(26).writeMessage(type)
     if (rparen != 0) protoMarshal.writeTag(32).writeInt32(rparen)
-    if (typeInfo != null) protoMarshal.writeTag(42).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(42).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1650,15 +1651,15 @@ private fun TypeAssertExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.U
     var lparen = 0
     var type: go2k.compile.dumppb.Expr_? = null
     var rparen = 0
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeAssertExpr(x, lparen, type, rparen,
-            typeInfo, protoUnmarshal.unknownFields())
+            typeRef, protoUnmarshal.unknownFields())
         10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         16 -> lparen = protoUnmarshal.readInt32()
         26 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         32 -> rparen = protoUnmarshal.readInt32()
-        42 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1666,7 +1667,7 @@ private fun TypeAssertExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.U
 private fun CallExpr.protoMergeImpl(plus: CallExpr?): CallExpr = plus?.copy(
     `fun` = `fun`?.plus(plus.`fun`) ?: plus.`fun`,
     args = args + plus.args,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1677,7 +1678,7 @@ private fun CallExpr.protoSizeImpl(): Int {
     if (args.isNotEmpty()) protoSize += (pbandk.Sizer.tagSize(3) * args.size) + args.sumBy(pbandk.Sizer::messageSize)
     if (ellipsis != 0) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.int32Size(ellipsis)
     if (rparen != 0) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.int32Size(rparen)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(6) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(6) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1688,7 +1689,7 @@ private fun CallExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (args.isNotEmpty()) args.forEach { protoMarshal.writeTag(26).writeMessage(it) }
     if (ellipsis != 0) protoMarshal.writeTag(32).writeInt32(ellipsis)
     if (rparen != 0) protoMarshal.writeTag(40).writeInt32(rparen)
-    if (typeInfo != null) protoMarshal.writeTag(50).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(50).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1698,23 +1699,23 @@ private fun CallExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsh
     var args: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
     var ellipsis = 0
     var rparen = 0
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return CallExpr(`fun`, lparen, pbandk.ListWithSize.Builder.fixed(args), ellipsis,
-            rparen, typeInfo, protoUnmarshal.unknownFields())
+            rparen, typeRef, protoUnmarshal.unknownFields())
         10 -> `fun` = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         16 -> lparen = protoUnmarshal.readInt32()
         26 -> args = protoUnmarshal.readRepeatedMessage(args, go2k.compile.dumppb.Expr_.Companion, true)
         32 -> ellipsis = protoUnmarshal.readInt32()
         40 -> rparen = protoUnmarshal.readInt32()
-        50 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        50 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun StarExpr.protoMergeImpl(plus: StarExpr?): StarExpr = plus?.copy(
     x = x?.plus(plus.x) ?: plus.x,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1722,7 +1723,7 @@ private fun StarExpr.protoSizeImpl(): Int {
     var protoSize = 0
     if (star != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(star)
     if (x != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(x)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1730,26 +1731,26 @@ private fun StarExpr.protoSizeImpl(): Int {
 private fun StarExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (star != 0) protoMarshal.writeTag(8).writeInt32(star)
     if (x != null) protoMarshal.writeTag(18).writeMessage(x)
-    if (typeInfo != null) protoMarshal.writeTag(26).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(26).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
 private fun StarExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): StarExpr {
     var star = 0
     var x: go2k.compile.dumppb.Expr_? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return StarExpr(star, x, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return StarExpr(star, x, typeRef, protoUnmarshal.unknownFields())
         8 -> star = protoUnmarshal.readInt32()
         18 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        26 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun UnaryExpr.protoMergeImpl(plus: UnaryExpr?): UnaryExpr = plus?.copy(
     x = x?.plus(plus.x) ?: plus.x,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1758,7 +1759,7 @@ private fun UnaryExpr.protoSizeImpl(): Int {
     if (opPos != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(opPos)
     if (op.value != 0) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.enumSize(op)
     if (x != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(x)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1767,7 +1768,7 @@ private fun UnaryExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (opPos != 0) protoMarshal.writeTag(8).writeInt32(opPos)
     if (op.value != 0) protoMarshal.writeTag(16).writeEnum(op)
     if (x != null) protoMarshal.writeTag(26).writeMessage(x)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1775,13 +1776,13 @@ private fun UnaryExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
     var opPos = 0
     var op: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
     var x: go2k.compile.dumppb.Expr_? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return UnaryExpr(opPos, op, x, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return UnaryExpr(opPos, op, x, typeRef, protoUnmarshal.unknownFields())
         8 -> opPos = protoUnmarshal.readInt32()
         16 -> op = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
         26 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1789,7 +1790,7 @@ private fun UnaryExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
 private fun BinaryExpr.protoMergeImpl(plus: BinaryExpr?): BinaryExpr = plus?.copy(
     x = x?.plus(plus.x) ?: plus.x,
     y = y?.plus(plus.y) ?: plus.y,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1799,7 +1800,7 @@ private fun BinaryExpr.protoSizeImpl(): Int {
     if (opPos != 0) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.int32Size(opPos)
     if (op.value != 0) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.enumSize(op)
     if (y != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(y)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1809,7 +1810,7 @@ private fun BinaryExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (opPos != 0) protoMarshal.writeTag(16).writeInt32(opPos)
     if (op.value != 0) protoMarshal.writeTag(24).writeEnum(op)
     if (y != null) protoMarshal.writeTag(34).writeMessage(y)
-    if (typeInfo != null) protoMarshal.writeTag(42).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(42).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1818,15 +1819,15 @@ private fun BinaryExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmar
     var opPos = 0
     var op: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
     var y: go2k.compile.dumppb.Expr_? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return BinaryExpr(x, opPos, op, y,
-            typeInfo, protoUnmarshal.unknownFields())
+            typeRef, protoUnmarshal.unknownFields())
         10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         16 -> opPos = protoUnmarshal.readInt32()
         24 -> op = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
         34 -> y = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        42 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1834,7 +1835,7 @@ private fun BinaryExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmar
 private fun KeyValueExpr.protoMergeImpl(plus: KeyValueExpr?): KeyValueExpr = plus?.copy(
     key = key?.plus(plus.key) ?: plus.key,
     value = value?.plus(plus.value) ?: plus.value,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1843,7 +1844,7 @@ private fun KeyValueExpr.protoSizeImpl(): Int {
     if (key != null) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.messageSize(key)
     if (colon != 0) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.int32Size(colon)
     if (value != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(value)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1852,7 +1853,7 @@ private fun KeyValueExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (key != null) protoMarshal.writeTag(10).writeMessage(key)
     if (colon != 0) protoMarshal.writeTag(16).writeInt32(colon)
     if (value != null) protoMarshal.writeTag(26).writeMessage(value)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1860,13 +1861,13 @@ private fun KeyValueExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unm
     var key: go2k.compile.dumppb.Expr_? = null
     var colon = 0
     var value: go2k.compile.dumppb.Expr_? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return KeyValueExpr(key, colon, value, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return KeyValueExpr(key, colon, value, typeRef, protoUnmarshal.unknownFields())
         10 -> key = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         16 -> colon = protoUnmarshal.readInt32()
         26 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1874,7 +1875,7 @@ private fun KeyValueExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unm
 private fun ArrayType.protoMergeImpl(plus: ArrayType?): ArrayType = plus?.copy(
     len = len?.plus(plus.len) ?: plus.len,
     elt = elt?.plus(plus.elt) ?: plus.elt,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1883,7 +1884,7 @@ private fun ArrayType.protoSizeImpl(): Int {
     if (lbrack != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(lbrack)
     if (len != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(len)
     if (elt != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(elt)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1892,7 +1893,7 @@ private fun ArrayType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (lbrack != 0) protoMarshal.writeTag(8).writeInt32(lbrack)
     if (len != null) protoMarshal.writeTag(18).writeMessage(len)
     if (elt != null) protoMarshal.writeTag(26).writeMessage(elt)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1900,20 +1901,20 @@ private fun ArrayType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
     var lbrack = 0
     var len: go2k.compile.dumppb.Expr_? = null
     var elt: go2k.compile.dumppb.Expr_? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return ArrayType(lbrack, len, elt, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return ArrayType(lbrack, len, elt, typeRef, protoUnmarshal.unknownFields())
         8 -> lbrack = protoUnmarshal.readInt32()
         18 -> len = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         26 -> elt = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun StructType.protoMergeImpl(plus: StructType?): StructType = plus?.copy(
     fields = fields?.plus(plus.fields) ?: plus.fields,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1922,7 +1923,7 @@ private fun StructType.protoSizeImpl(): Int {
     if (struct != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(struct)
     if (fields != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(fields)
     if (incomplete) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.boolSize(incomplete)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1931,7 +1932,7 @@ private fun StructType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (struct != 0) protoMarshal.writeTag(8).writeInt32(struct)
     if (fields != null) protoMarshal.writeTag(18).writeMessage(fields)
     if (incomplete) protoMarshal.writeTag(24).writeBool(incomplete)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1939,13 +1940,13 @@ private fun StructType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmar
     var struct = 0
     var fields: go2k.compile.dumppb.FieldList? = null
     var incomplete = false
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return StructType(struct, fields, incomplete, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return StructType(struct, fields, incomplete, typeRef, protoUnmarshal.unknownFields())
         8 -> struct = protoUnmarshal.readInt32()
         18 -> fields = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
         24 -> incomplete = protoUnmarshal.readBool()
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1953,7 +1954,7 @@ private fun StructType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmar
 private fun FuncType.protoMergeImpl(plus: FuncType?): FuncType = plus?.copy(
     params = params?.plus(plus.params) ?: plus.params,
     results = results?.plus(plus.results) ?: plus.results,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -1962,7 +1963,7 @@ private fun FuncType.protoSizeImpl(): Int {
     if (func != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(func)
     if (params != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(params)
     if (results != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(results)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -1971,7 +1972,7 @@ private fun FuncType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (func != 0) protoMarshal.writeTag(8).writeInt32(func)
     if (params != null) protoMarshal.writeTag(18).writeMessage(params)
     if (results != null) protoMarshal.writeTag(26).writeMessage(results)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -1979,20 +1980,20 @@ private fun FuncType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsh
     var func = 0
     var params: go2k.compile.dumppb.FieldList? = null
     var results: go2k.compile.dumppb.FieldList? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return FuncType(func, params, results, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return FuncType(func, params, results, typeRef, protoUnmarshal.unknownFields())
         8 -> func = protoUnmarshal.readInt32()
         18 -> params = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
         26 -> results = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun InterfaceType.protoMergeImpl(plus: InterfaceType?): InterfaceType = plus?.copy(
     methods = methods?.plus(plus.methods) ?: plus.methods,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -2001,7 +2002,7 @@ private fun InterfaceType.protoSizeImpl(): Int {
     if (`interface` != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(`interface`)
     if (methods != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(methods)
     if (incomplete) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.boolSize(incomplete)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -2010,7 +2011,7 @@ private fun InterfaceType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (`interface` != 0) protoMarshal.writeTag(8).writeInt32(`interface`)
     if (methods != null) protoMarshal.writeTag(18).writeMessage(methods)
     if (incomplete) protoMarshal.writeTag(24).writeBool(incomplete)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -2018,13 +2019,13 @@ private fun InterfaceType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Un
     var `interface` = 0
     var methods: go2k.compile.dumppb.FieldList? = null
     var incomplete = false
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return InterfaceType(`interface`, methods, incomplete, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return InterfaceType(`interface`, methods, incomplete, typeRef, protoUnmarshal.unknownFields())
         8 -> `interface` = protoUnmarshal.readInt32()
         18 -> methods = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
         24 -> incomplete = protoUnmarshal.readBool()
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2032,7 +2033,7 @@ private fun InterfaceType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Un
 private fun MapType.protoMergeImpl(plus: MapType?): MapType = plus?.copy(
     key = key?.plus(plus.key) ?: plus.key,
     value = value?.plus(plus.value) ?: plus.value,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -2041,7 +2042,7 @@ private fun MapType.protoSizeImpl(): Int {
     if (map != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.int32Size(map)
     if (key != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(key)
     if (value != null) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(value)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -2050,7 +2051,7 @@ private fun MapType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (map != 0) protoMarshal.writeTag(8).writeInt32(map)
     if (key != null) protoMarshal.writeTag(18).writeMessage(key)
     if (value != null) protoMarshal.writeTag(26).writeMessage(value)
-    if (typeInfo != null) protoMarshal.writeTag(34).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(34).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -2058,20 +2059,20 @@ private fun MapType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsha
     var map = 0
     var key: go2k.compile.dumppb.Expr_? = null
     var value: go2k.compile.dumppb.Expr_? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return MapType(map, key, value, typeInfo, protoUnmarshal.unknownFields())
+        0 -> return MapType(map, key, value, typeRef, protoUnmarshal.unknownFields())
         8 -> map = protoUnmarshal.readInt32()
         18 -> key = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
         26 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
 
 private fun ChanType.protoMergeImpl(plus: ChanType?): ChanType = plus?.copy(
     value = value?.plus(plus.value) ?: plus.value,
-    typeInfo = typeInfo?.plus(plus.typeInfo) ?: plus.typeInfo,
+    typeRef = typeRef?.plus(plus.typeRef) ?: plus.typeRef,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
@@ -2082,7 +2083,7 @@ private fun ChanType.protoSizeImpl(): Int {
     if (sendDir) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.boolSize(sendDir)
     if (recvDir) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.boolSize(recvDir)
     if (value != null) protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.messageSize(value)
-    if (typeInfo != null) protoSize += pbandk.Sizer.tagSize(6) + pbandk.Sizer.messageSize(typeInfo)
+    if (typeRef != null) protoSize += pbandk.Sizer.tagSize(6) + pbandk.Sizer.messageSize(typeRef)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -2093,7 +2094,7 @@ private fun ChanType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (sendDir) protoMarshal.writeTag(24).writeBool(sendDir)
     if (recvDir) protoMarshal.writeTag(32).writeBool(recvDir)
     if (value != null) protoMarshal.writeTag(42).writeMessage(value)
-    if (typeInfo != null) protoMarshal.writeTag(50).writeMessage(typeInfo)
+    if (typeRef != null) protoMarshal.writeTag(50).writeMessage(typeRef)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -2103,16 +2104,16 @@ private fun ChanType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsh
     var sendDir = false
     var recvDir = false
     var value: go2k.compile.dumppb.Expr_? = null
-    var typeInfo: go2k.compile.dumppb.TypeInfo? = null
+    var typeRef: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ChanType(begin, arrow, sendDir, recvDir,
-            value, typeInfo, protoUnmarshal.unknownFields())
+            value, typeRef, protoUnmarshal.unknownFields())
         8 -> begin = protoUnmarshal.readInt32()
         16 -> arrow = protoUnmarshal.readInt32()
         24 -> sendDir = protoUnmarshal.readBool()
         32 -> recvDir = protoUnmarshal.readBool()
         42 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        50 -> typeInfo = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        50 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -3406,6 +3407,7 @@ private fun File.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshalle
 
 private fun Package.protoMergeImpl(plus: Package?): Package = plus?.copy(
     files = files + plus.files,
+    types = types + plus.types,
     varInitOrder = varInitOrder + plus.varInitOrder,
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
@@ -3415,7 +3417,8 @@ private fun Package.protoSizeImpl(): Int {
     if (name.isNotEmpty()) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.stringSize(name)
     if (path.isNotEmpty()) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.stringSize(path)
     if (files.isNotEmpty()) protoSize += (pbandk.Sizer.tagSize(3) * files.size) + files.sumBy(pbandk.Sizer::messageSize)
-    if (varInitOrder.isNotEmpty()) protoSize += (pbandk.Sizer.tagSize(4) * varInitOrder.size) + varInitOrder.sumBy(pbandk.Sizer::stringSize)
+    if (types.isNotEmpty()) protoSize += (pbandk.Sizer.tagSize(4) * types.size) + types.sumBy(pbandk.Sizer::messageSize)
+    if (varInitOrder.isNotEmpty()) protoSize += (pbandk.Sizer.tagSize(5) * varInitOrder.size) + varInitOrder.sumBy(pbandk.Sizer::stringSize)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -3424,7 +3427,8 @@ private fun Package.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (name.isNotEmpty()) protoMarshal.writeTag(10).writeString(name)
     if (path.isNotEmpty()) protoMarshal.writeTag(18).writeString(path)
     if (files.isNotEmpty()) files.forEach { protoMarshal.writeTag(26).writeMessage(it) }
-    if (varInitOrder.isNotEmpty()) varInitOrder.forEach { protoMarshal.writeTag(34).writeString(it) }
+    if (types.isNotEmpty()) types.forEach { protoMarshal.writeTag(34).writeMessage(it) }
+    if (varInitOrder.isNotEmpty()) varInitOrder.forEach { protoMarshal.writeTag(42).writeString(it) }
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -3432,13 +3436,16 @@ private fun Package.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsha
     var name = ""
     var path = ""
     var files: pbandk.ListWithSize.Builder<go2k.compile.dumppb.File>? = null
+    var types: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Type_>? = null
     var varInitOrder: pbandk.ListWithSize.Builder<String>? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return Package(name, path, pbandk.ListWithSize.Builder.fixed(files), pbandk.ListWithSize.Builder.fixed(varInitOrder), protoUnmarshal.unknownFields())
+        0 -> return Package(name, path, pbandk.ListWithSize.Builder.fixed(files), pbandk.ListWithSize.Builder.fixed(types),
+            pbandk.ListWithSize.Builder.fixed(varInitOrder), protoUnmarshal.unknownFields())
         10 -> name = protoUnmarshal.readString()
         18 -> path = protoUnmarshal.readString()
         26 -> files = protoUnmarshal.readRepeatedMessage(files, go2k.compile.dumppb.File.Companion, true)
-        34 -> varInitOrder = protoUnmarshal.readRepeated(varInitOrder, protoUnmarshal::readString, true)
+        34 -> types = protoUnmarshal.readRepeatedMessage(types, go2k.compile.dumppb.Type_.Companion, true)
+        42 -> varInitOrder = protoUnmarshal.readRepeated(varInitOrder, protoUnmarshal::readString, true)
         else -> protoUnmarshal.unknownField()
     }
 }

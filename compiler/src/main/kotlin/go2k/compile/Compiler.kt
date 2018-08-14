@@ -4,7 +4,7 @@ import go2k.compile.dumppb.*
 import kastree.ast.Node
 
 @ExperimentalUnsignedTypes
-open class Compiler(val conf: Conf = Conf()) {
+open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
 
     fun compileAssignStmt(v: AssignStmt): Node.Stmt {
         // For cases where we have non-arith-binary-op assigns, just unwrap it to regular assign
@@ -41,7 +41,7 @@ open class Compiler(val conf: Conf = Conf()) {
         Token.FLOAT -> Node.Expr.Const(v.value, Node.Expr.Const.Form.FLOAT)
         Token.IMAG -> TODO()
         Token.CHAR -> Node.Expr.Const(v.value, Node.Expr.Const.Form.CHAR)
-        Token.STRING -> ((v.typeInfo?.type as? TypeInfo.Type.TypeConst)?.
+        Token.STRING -> ((v.typeRef?.type as? Type_.Type.TypeConst)?.
             typeConst?.value?.value as? ConstantValue.Value.String_)?.
             string?.toStringTmpl() ?: error("Invalid const string")
         else -> error("Unrecognized lit kind: ${v.kind}")
@@ -119,7 +119,7 @@ open class Compiler(val conf: Conf = Conf()) {
             type = v.type!!.results?.let {
                 if (it.list.size != 1 || it.list.single().names.size > 1) TODO()
                 val id = (it.list.first().type!!.expr as Expr_.Expr.Ident).ident
-                compileTypeInfo(id.typeInfo!!)
+                compileTypeRef(id.typeRef!!)
             },
             body = v.body?.let { Node.Decl.Func.Body.Block(compileBlockStmt(it)) }
         )
@@ -131,7 +131,7 @@ open class Compiler(val conf: Conf = Conf()) {
 
     // TODO: fix builtin's to refer to the proper package
     fun compileIdent(v: Ident): Node.Expr {
-        if (v.typeInfo?.type is TypeInfo.Type.TypeBuiltin) {
+        if (v.typeRef?.type is Type_.Type.TypeBuiltin) {
             return "go2k.runtime.builtin.${v.name}".toDottedExpr()
         }
         return v.name.javaName
@@ -147,12 +147,12 @@ open class Compiler(val conf: Conf = Conf()) {
         )
     )
 
-    fun compilePackage(v: Package, overrideName: String? = null): KotlinPackage {
+    fun compilePackage(overrideName: String? = null): KotlinPackage {
         // Compile all files...
         var initCount = 0
-        val files = v.files.map {
+        val files = pkg.files.map {
             it.fileName + ".kt" to compileFile(it).let {
-                val pkgName = (overrideName ?: conf.namer.packageName(v.path, v.name)).split('.')
+                val pkgName = (overrideName ?: conf.namer.packageName(pkg.path, pkg.name)).split('.')
                 it.copy(
                     pkg = Node.Package(emptyList(), pkgName),
                     // Change all init functions to start with dollar sign and numbered
@@ -167,7 +167,7 @@ open class Compiler(val conf: Conf = Conf()) {
         }
 
         // Create initializers for the top level vars
-        val topLevelValueSpecs = v.files.flatMap {
+        val topLevelValueSpecs = pkg.files.flatMap {
             it.decls.flatMap {
                 (it.decl as? Decl_.Decl.GenDecl)?.genDecl?.specs?.mapNotNull {
                     (it.spec as? Spec_.Spec.ValueSpec)?.valueSpec
@@ -193,14 +193,14 @@ open class Compiler(val conf: Conf = Conf()) {
             mods = listOf(Node.Modifier.Keyword.SUSPEND.toMod()),
             name = "init",
             body = Node.Decl.Func.Body.Block(Node.Block(
-                v.varInitOrder.mapNotNull {
+                pkg.varInitOrder.mapNotNull {
                     varInitStmtsByName[it]
                 } + (1..initCount).map { initNum -> Node.Stmt.Expr(call("\$init$initNum".javaName)) }
             ))
         )
 
         // If there is a main func and we're in the main package, we make a main with args to call it
-        val hasMain = v.name == "main" && v.files.any {
+        val hasMain = pkg.name == "main" && pkg.files.any {
             it.decls.any {
                 (it.decl as? Decl_.Decl.FuncDecl)?.funcDecl.let {
                     it?.name?.name == "main" && it.recv == null
@@ -273,10 +273,10 @@ open class Compiler(val conf: Conf = Conf()) {
         is Stmt_.Stmt.RangeStmt -> TODO()
     }
 
-    fun compileTypeInfo(v: TypeInfo): Node.Type = when (v.type) {
+    fun compileType(v: Type_): Node.Type = when (v.type) {
         null -> TODO()
-        is TypeInfo.Type.TypeArray -> TODO()
-        is TypeInfo.Type.TypeBasic -> when (v.type.typeBasic.kind) {
+        is Type_.Type.TypeArray -> TODO()
+        is Type_.Type.TypeBasic -> when (v.type.typeBasic.kind) {
             TypeBasic.Kind.BOOL, TypeBasic.Kind.UNTYPED_BOOL -> Boolean::class.toType()
             TypeBasic.Kind.INT -> Int::class.toType()
             TypeBasic.Kind.INT_8 -> Byte::class.toType()
@@ -298,29 +298,33 @@ open class Compiler(val conf: Conf = Conf()) {
             TypeBasic.Kind.UNTYPED_NIL -> TODO()
             else -> error("Unrecognized type kind: ${v.type.typeBasic.kind}")
         }
-        is TypeInfo.Type.TypeBuiltin -> TODO()
-        is TypeInfo.Type.TypeChan -> TODO()
-        is TypeInfo.Type.TypeConst -> TODO()
-        is TypeInfo.Type.TypeFunc -> TODO()
-        is TypeInfo.Type.TypeInterface -> TODO()
-        is TypeInfo.Type.TypeLabel -> TODO()
-        is TypeInfo.Type.TypeMap -> TODO()
-        is TypeInfo.Type.TypeName -> compileTypeInfo(v.type.typeName)
-        is TypeInfo.Type.TypeNamed -> TODO()
-        is TypeInfo.Type.TypeNil -> TODO()
-        is TypeInfo.Type.TypePackage -> TODO()
-        is TypeInfo.Type.TypePointer -> TODO()
-        is TypeInfo.Type.TypeSignature -> TODO()
-        is TypeInfo.Type.TypeSlice -> TODO()
-        is TypeInfo.Type.TypeStruct -> TODO()
-        is TypeInfo.Type.TypeTuple -> TODO()
-        is TypeInfo.Type.TypeVar -> compileTypeInfo(v.type.typeVar)
+        is Type_.Type.TypeBuiltin -> TODO()
+        is Type_.Type.TypeChan -> TODO()
+        is Type_.Type.TypeConst -> TODO()
+        is Type_.Type.TypeFunc -> TODO()
+        is Type_.Type.TypeInterface -> TODO()
+        is Type_.Type.TypeLabel -> TODO()
+        is Type_.Type.TypeMap -> TODO()
+        is Type_.Type.TypeName -> compileTypeRef(v.type.typeName)
+        is Type_.Type.TypeNamed -> TODO()
+        is Type_.Type.TypeNil -> TODO()
+        is Type_.Type.TypePackage -> TODO()
+        is Type_.Type.TypePointer -> TODO()
+        is Type_.Type.TypeSignature -> TODO()
+        is Type_.Type.TypeSlice -> TODO()
+        is Type_.Type.TypeStruct -> TODO()
+        is Type_.Type.TypeTuple -> TODO()
+        is Type_.Type.TypeVar -> compileTypeRef(v.type.typeVar)
     }
 
-    fun compileTypeInfoZeroExpr(v: TypeInfo): Node.Expr = when (v.type) {
+    fun compileTypeRef(v: TypeRef) = compileType(v.namedType)
+
+    fun compileTypeRefZeroExpr(v: TypeRef) = compileTypeZeroExpr(v.namedType)
+
+    fun compileTypeZeroExpr(v: Type_): Node.Expr = when (v.type) {
         null -> error("No type")
-        is TypeInfo.Type.TypeArray -> TODO()
-        is TypeInfo.Type.TypeBasic -> when (v.type.typeBasic.kind) {
+        is Type_.Type.TypeArray -> TODO()
+        is Type_.Type.TypeBasic -> when (v.type.typeBasic.kind) {
             TypeBasic.Kind.BOOL, TypeBasic.Kind.UNTYPED_BOOL ->
                 false.toConst()
             TypeBasic.Kind.INT, TypeBasic.Kind.INT_8, TypeBasic.Kind.INT_16, TypeBasic.Kind.INT_32,
@@ -338,34 +342,34 @@ open class Compiler(val conf: Conf = Conf()) {
             else ->
                 error("Unrecognized type kind: ${v.type.typeBasic.kind}")
         }
-        is TypeInfo.Type.TypeBuiltin -> TODO()
-        is TypeInfo.Type.TypeChan, is TypeInfo.Type.TypeFunc, is TypeInfo.Type.TypeInterface,
-            is TypeInfo.Type.TypeMap, is TypeInfo.Type.TypeNil, is TypeInfo.Type.TypePointer,
-            is TypeInfo.Type.TypeSlice ->
+        is Type_.Type.TypeBuiltin -> TODO()
+        is Type_.Type.TypeChan, is Type_.Type.TypeFunc, is Type_.Type.TypeInterface,
+            is Type_.Type.TypeMap, is Type_.Type.TypeNil, is Type_.Type.TypePointer,
+            is Type_.Type.TypeSlice ->
             NullConst
-        is TypeInfo.Type.TypeConst -> compileTypeInfoZeroExpr(v.type.typeConst.type!!)
-        is TypeInfo.Type.TypeLabel -> compileTypeInfoZeroExpr(v.type.typeLabel)
-        is TypeInfo.Type.TypeName -> compileTypeInfoZeroExpr(v.type.typeName)
-        is TypeInfo.Type.TypeNamed -> compileTypeInfoZeroExpr(v.type.typeNamed.type!!)
-        is TypeInfo.Type.TypePackage -> TODO()
-        is TypeInfo.Type.TypeSignature -> TODO()
-        is TypeInfo.Type.TypeStruct -> TODO()
-        is TypeInfo.Type.TypeTuple -> TODO()
-        is TypeInfo.Type.TypeVar -> compileTypeInfoZeroExpr(v.type.typeVar)
+        is Type_.Type.TypeConst -> compileTypeRefZeroExpr(v.type.typeConst.type!!)
+        is Type_.Type.TypeLabel -> compileTypeRefZeroExpr(v.type.typeLabel)
+        is Type_.Type.TypeName -> compileTypeRefZeroExpr(v.type.typeName)
+        is Type_.Type.TypeNamed -> compileTypeRefZeroExpr(v.type.typeNamed.type!!)
+        is Type_.Type.TypePackage -> TODO()
+        is Type_.Type.TypeSignature -> TODO()
+        is Type_.Type.TypeStruct -> TODO()
+        is Type_.Type.TypeTuple -> TODO()
+        is Type_.Type.TypeVar -> compileTypeRefZeroExpr(v.type.typeVar)
     }
 
     fun compileValueSpecTopLevel(v: ValueSpec, const: Boolean): List<Node.Decl> {
         if (const) TODO()
         return v.names.map { id ->
-            val type = (id.defTypeInfo?.type as? TypeInfo.Type.TypeVar)?.typeVar ?: error("Can't find var type")
+            val type = (id.defTypeRef?.type as? Type_.Type.TypeVar)?.typeVar?.namedType ?: error("Can't find var type")
             // Vars are never inited on their own. Instead they are inited in a separate init area. Therefore, we
             // must mark 'em lateinit. But lateinit is only for non-primitive, non-null types. Otherwise we just
             // init to the 0 value.
             val needsLateinit = !type.isJavaPrimitive && !type.isNullable
             property(
                 mods = if (needsLateinit) listOf(Node.Modifier.Keyword.LATEINIT.toMod()) else emptyList(),
-                vars = listOf(Node.Decl.Property.Var(id.name.javaIdent, compileTypeInfo(type))),
-                expr = if (needsLateinit) null else compileTypeInfoZeroExpr(type)
+                vars = listOf(Node.Decl.Property.Var(id.name.javaIdent, compileType(type))),
+                expr = if (needsLateinit) null else compileTypeZeroExpr(type)
             )
         }
     }
@@ -373,6 +377,10 @@ open class Compiler(val conf: Conf = Conf()) {
     // TODO
     val String.javaIdent get() = this
     val String.javaName get() = Node.Expr.Name(javaIdent)
+
+    protected val TypeRef.name get() = namedType.name
+    protected val TypeRef.namedType get() = pkg.types[id]
+    protected val TypeRef.type get() = namedType.type
 
     data class KotlinPackage(
         val files: Map<String, Node.File>
@@ -382,5 +390,7 @@ open class Compiler(val conf: Conf = Conf()) {
         val namer: Namer = Namer.Simple()
     )
 
-    companion object : Compiler()
+    companion object {
+        fun compilePackage(pkg: Package, overrideName: String? = null) = Compiler(pkg).compilePackage(overrideName)
+    }
 }

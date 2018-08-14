@@ -21,12 +21,24 @@ data class ConstantValue(
     }
 }
 
-data class TypeInfo(
+data class TypeRef(
+    val id: Int = 0,
+    val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
+) : pbandk.Message<TypeRef> {
+    override operator fun plus(other: TypeRef?) = protoMergeImpl(other)
+    override val protoSize by lazy { protoSizeImpl() }
+    override fun protoMarshal(m: pbandk.Marshaller) = protoMarshalImpl(m)
+    companion object : pbandk.Message.Companion<TypeRef> {
+        override fun protoUnmarshal(u: pbandk.Unmarshaller) = TypeRef.protoUnmarshalImpl(u)
+    }
+}
+
+data class Type_(
     val `package`: String = "",
     val name: String = "",
     val type: Type? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
-) : pbandk.Message<TypeInfo> {
+) : pbandk.Message<Type_> {
     sealed class Type {
         data class TypeArray(val typeArray: go2k.compile.dumppb.TypeArray) : Type()
         data class TypeBasic(val typeBasic: go2k.compile.dumppb.TypeBasic) : Type()
@@ -35,30 +47,30 @@ data class TypeInfo(
         data class TypeConst(val typeConst: go2k.compile.dumppb.TypeConst) : Type()
         data class TypeFunc(val typeFunc: go2k.compile.dumppb.TypeSignature) : Type()
         data class TypeInterface(val typeInterface: go2k.compile.dumppb.TypeInterface) : Type()
-        data class TypeLabel(val typeLabel: go2k.compile.dumppb.TypeInfo) : Type()
+        data class TypeLabel(val typeLabel: go2k.compile.dumppb.TypeRef) : Type()
         data class TypeMap(val typeMap: go2k.compile.dumppb.TypeMap) : Type()
-        data class TypeName(val typeName: go2k.compile.dumppb.TypeInfo) : Type()
+        data class TypeName(val typeName: go2k.compile.dumppb.TypeRef) : Type()
         data class TypeNamed(val typeNamed: go2k.compile.dumppb.TypeNamed) : Type()
-        data class TypeNil(val typeNil: go2k.compile.dumppb.TypeInfo) : Type()
+        data class TypeNil(val typeNil: go2k.compile.dumppb.TypeRef) : Type()
         data class TypePackage(val typePackage: Boolean = false) : Type()
         data class TypePointer(val typePointer: go2k.compile.dumppb.TypePointer) : Type()
         data class TypeSignature(val typeSignature: go2k.compile.dumppb.TypeSignature) : Type()
         data class TypeSlice(val typeSlice: go2k.compile.dumppb.TypeSlice) : Type()
         data class TypeStruct(val typeStruct: go2k.compile.dumppb.TypeStruct) : Type()
         data class TypeTuple(val typeTuple: go2k.compile.dumppb.TypeTuple) : Type()
-        data class TypeVar(val typeVar: go2k.compile.dumppb.TypeInfo) : Type()
+        data class TypeVar(val typeVar: go2k.compile.dumppb.TypeRef) : Type()
     }
 
-    override operator fun plus(other: TypeInfo?) = protoMergeImpl(other)
+    override operator fun plus(other: Type_?) = protoMergeImpl(other)
     override val protoSize by lazy { protoSizeImpl() }
     override fun protoMarshal(m: pbandk.Marshaller) = protoMarshalImpl(m)
-    companion object : pbandk.Message.Companion<TypeInfo> {
-        override fun protoUnmarshal(u: pbandk.Unmarshaller) = TypeInfo.protoUnmarshalImpl(u)
+    companion object : pbandk.Message.Companion<Type_> {
+        override fun protoUnmarshal(u: pbandk.Unmarshaller) = Type_.protoUnmarshalImpl(u)
     }
 }
 
 data class TypeArray(
-    val elem: go2k.compile.dumppb.TypeInfo? = null,
+    val elem: go2k.compile.dumppb.TypeRef? = null,
     val len: Long = 0L,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeArray> {
@@ -145,7 +157,7 @@ data class TypeBasic(
 }
 
 data class TypeChan(
-    val elem: go2k.compile.dumppb.TypeInfo? = null,
+    val elem: go2k.compile.dumppb.TypeRef? = null,
     val sendDir: Boolean = false,
     val recvDir: Boolean = false,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
@@ -159,7 +171,7 @@ data class TypeChan(
 }
 
 data class TypeConst(
-    val type: go2k.compile.dumppb.TypeInfo? = null,
+    val type: go2k.compile.dumppb.TypeRef? = null,
     val value: go2k.compile.dumppb.ConstantValue? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeConst> {
@@ -172,8 +184,8 @@ data class TypeConst(
 }
 
 data class TypeInterface(
-    val explicitMethods: List<go2k.compile.dumppb.TypeInfo> = emptyList(),
-    val embedded: List<go2k.compile.dumppb.TypeInfo> = emptyList(),
+    val explicitMethods: List<go2k.compile.dumppb.TypeRef> = emptyList(),
+    val embedded: List<go2k.compile.dumppb.TypeRef> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeInterface> {
     override operator fun plus(other: TypeInterface?) = protoMergeImpl(other)
@@ -185,8 +197,8 @@ data class TypeInterface(
 }
 
 data class TypeMap(
-    val elem: go2k.compile.dumppb.TypeInfo? = null,
-    val key: go2k.compile.dumppb.TypeInfo? = null,
+    val elem: go2k.compile.dumppb.TypeRef? = null,
+    val key: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeMap> {
     override operator fun plus(other: TypeMap?) = protoMergeImpl(other)
@@ -198,9 +210,9 @@ data class TypeMap(
 }
 
 data class TypeNamed(
-    val typeName: go2k.compile.dumppb.TypeInfo? = null,
-    val type: go2k.compile.dumppb.TypeInfo? = null,
-    val methods: List<go2k.compile.dumppb.TypeInfo> = emptyList(),
+    val typeName: go2k.compile.dumppb.TypeRef? = null,
+    val type: go2k.compile.dumppb.TypeRef? = null,
+    val methods: List<go2k.compile.dumppb.TypeRef> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeNamed> {
     override operator fun plus(other: TypeNamed?) = protoMergeImpl(other)
@@ -212,7 +224,7 @@ data class TypeNamed(
 }
 
 data class TypePointer(
-    val elem: go2k.compile.dumppb.TypeInfo? = null,
+    val elem: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypePointer> {
     override operator fun plus(other: TypePointer?) = protoMergeImpl(other)
@@ -224,9 +236,9 @@ data class TypePointer(
 }
 
 data class TypeSignature(
-    val recv: go2k.compile.dumppb.TypeInfo? = null,
-    val params: List<go2k.compile.dumppb.TypeInfo> = emptyList(),
-    val results: List<go2k.compile.dumppb.TypeInfo> = emptyList(),
+    val recv: go2k.compile.dumppb.TypeRef? = null,
+    val params: List<go2k.compile.dumppb.TypeRef> = emptyList(),
+    val results: List<go2k.compile.dumppb.TypeRef> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeSignature> {
     override operator fun plus(other: TypeSignature?) = protoMergeImpl(other)
@@ -238,7 +250,7 @@ data class TypeSignature(
 }
 
 data class TypeSlice(
-    val elem: go2k.compile.dumppb.TypeInfo? = null,
+    val elem: go2k.compile.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeSlice> {
     override operator fun plus(other: TypeSlice?) = protoMergeImpl(other)
@@ -250,7 +262,7 @@ data class TypeSlice(
 }
 
 data class TypeStruct(
-    val fields: List<go2k.compile.dumppb.TypeInfo> = emptyList(),
+    val fields: List<go2k.compile.dumppb.TypeRef> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeStruct> {
     override operator fun plus(other: TypeStruct?) = protoMergeImpl(other)
@@ -262,7 +274,7 @@ data class TypeStruct(
 }
 
 data class TypeTuple(
-    val vars: List<go2k.compile.dumppb.TypeInfo> = emptyList(),
+    val vars: List<go2k.compile.dumppb.TypeRef> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeTuple> {
     override operator fun plus(other: TypeTuple?) = protoMergeImpl(other)
@@ -316,129 +328,154 @@ private fun ConstantValue.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Un
     }
 }
 
-private fun TypeInfo.protoMergeImpl(plus: TypeInfo?): TypeInfo = plus?.copy(
+private fun TypeRef.protoMergeImpl(plus: TypeRef?): TypeRef = plus?.copy(
+    unknownFields = unknownFields + plus.unknownFields
+) ?: this
+
+private fun TypeRef.protoSizeImpl(): Int {
+    var protoSize = 0
+    if (id != 0) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.uInt32Size(id)
+    protoSize += unknownFields.entries.sumBy { it.value.size() }
+    return protoSize
+}
+
+private fun TypeRef.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
+    if (id != 0) protoMarshal.writeTag(8).writeUInt32(id)
+    if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
+}
+
+private fun TypeRef.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeRef {
+    var id = 0
+    while (true) when (protoUnmarshal.readTag()) {
+        0 -> return TypeRef(id, protoUnmarshal.unknownFields())
+        8 -> id = protoUnmarshal.readUInt32()
+        else -> protoUnmarshal.unknownField()
+    }
+}
+
+private fun Type_.protoMergeImpl(plus: Type_?): Type_ = plus?.copy(
     type = when {
-        type is TypeInfo.Type.TypeArray && plus.type is TypeInfo.Type.TypeArray ->
-            TypeInfo.Type.TypeArray(type.typeArray + plus.type.typeArray)
-        type is TypeInfo.Type.TypeBasic && plus.type is TypeInfo.Type.TypeBasic ->
-            TypeInfo.Type.TypeBasic(type.typeBasic + plus.type.typeBasic)
-        type is TypeInfo.Type.TypeChan && plus.type is TypeInfo.Type.TypeChan ->
-            TypeInfo.Type.TypeChan(type.typeChan + plus.type.typeChan)
-        type is TypeInfo.Type.TypeConst && plus.type is TypeInfo.Type.TypeConst ->
-            TypeInfo.Type.TypeConst(type.typeConst + plus.type.typeConst)
-        type is TypeInfo.Type.TypeFunc && plus.type is TypeInfo.Type.TypeFunc ->
-            TypeInfo.Type.TypeFunc(type.typeFunc + plus.type.typeFunc)
-        type is TypeInfo.Type.TypeInterface && plus.type is TypeInfo.Type.TypeInterface ->
-            TypeInfo.Type.TypeInterface(type.typeInterface + plus.type.typeInterface)
-        type is TypeInfo.Type.TypeLabel && plus.type is TypeInfo.Type.TypeLabel ->
-            TypeInfo.Type.TypeLabel(type.typeLabel + plus.type.typeLabel)
-        type is TypeInfo.Type.TypeMap && plus.type is TypeInfo.Type.TypeMap ->
-            TypeInfo.Type.TypeMap(type.typeMap + plus.type.typeMap)
-        type is TypeInfo.Type.TypeName && plus.type is TypeInfo.Type.TypeName ->
-            TypeInfo.Type.TypeName(type.typeName + plus.type.typeName)
-        type is TypeInfo.Type.TypeNamed && plus.type is TypeInfo.Type.TypeNamed ->
-            TypeInfo.Type.TypeNamed(type.typeNamed + plus.type.typeNamed)
-        type is TypeInfo.Type.TypeNil && plus.type is TypeInfo.Type.TypeNil ->
-            TypeInfo.Type.TypeNil(type.typeNil + plus.type.typeNil)
-        type is TypeInfo.Type.TypePointer && plus.type is TypeInfo.Type.TypePointer ->
-            TypeInfo.Type.TypePointer(type.typePointer + plus.type.typePointer)
-        type is TypeInfo.Type.TypeSignature && plus.type is TypeInfo.Type.TypeSignature ->
-            TypeInfo.Type.TypeSignature(type.typeSignature + plus.type.typeSignature)
-        type is TypeInfo.Type.TypeSlice && plus.type is TypeInfo.Type.TypeSlice ->
-            TypeInfo.Type.TypeSlice(type.typeSlice + plus.type.typeSlice)
-        type is TypeInfo.Type.TypeStruct && plus.type is TypeInfo.Type.TypeStruct ->
-            TypeInfo.Type.TypeStruct(type.typeStruct + plus.type.typeStruct)
-        type is TypeInfo.Type.TypeTuple && plus.type is TypeInfo.Type.TypeTuple ->
-            TypeInfo.Type.TypeTuple(type.typeTuple + plus.type.typeTuple)
-        type is TypeInfo.Type.TypeVar && plus.type is TypeInfo.Type.TypeVar ->
-            TypeInfo.Type.TypeVar(type.typeVar + plus.type.typeVar)
+        type is Type_.Type.TypeArray && plus.type is Type_.Type.TypeArray ->
+            Type_.Type.TypeArray(type.typeArray + plus.type.typeArray)
+        type is Type_.Type.TypeBasic && plus.type is Type_.Type.TypeBasic ->
+            Type_.Type.TypeBasic(type.typeBasic + plus.type.typeBasic)
+        type is Type_.Type.TypeChan && plus.type is Type_.Type.TypeChan ->
+            Type_.Type.TypeChan(type.typeChan + plus.type.typeChan)
+        type is Type_.Type.TypeConst && plus.type is Type_.Type.TypeConst ->
+            Type_.Type.TypeConst(type.typeConst + plus.type.typeConst)
+        type is Type_.Type.TypeFunc && plus.type is Type_.Type.TypeFunc ->
+            Type_.Type.TypeFunc(type.typeFunc + plus.type.typeFunc)
+        type is Type_.Type.TypeInterface && plus.type is Type_.Type.TypeInterface ->
+            Type_.Type.TypeInterface(type.typeInterface + plus.type.typeInterface)
+        type is Type_.Type.TypeLabel && plus.type is Type_.Type.TypeLabel ->
+            Type_.Type.TypeLabel(type.typeLabel + plus.type.typeLabel)
+        type is Type_.Type.TypeMap && plus.type is Type_.Type.TypeMap ->
+            Type_.Type.TypeMap(type.typeMap + plus.type.typeMap)
+        type is Type_.Type.TypeName && plus.type is Type_.Type.TypeName ->
+            Type_.Type.TypeName(type.typeName + plus.type.typeName)
+        type is Type_.Type.TypeNamed && plus.type is Type_.Type.TypeNamed ->
+            Type_.Type.TypeNamed(type.typeNamed + plus.type.typeNamed)
+        type is Type_.Type.TypeNil && plus.type is Type_.Type.TypeNil ->
+            Type_.Type.TypeNil(type.typeNil + plus.type.typeNil)
+        type is Type_.Type.TypePointer && plus.type is Type_.Type.TypePointer ->
+            Type_.Type.TypePointer(type.typePointer + plus.type.typePointer)
+        type is Type_.Type.TypeSignature && plus.type is Type_.Type.TypeSignature ->
+            Type_.Type.TypeSignature(type.typeSignature + plus.type.typeSignature)
+        type is Type_.Type.TypeSlice && plus.type is Type_.Type.TypeSlice ->
+            Type_.Type.TypeSlice(type.typeSlice + plus.type.typeSlice)
+        type is Type_.Type.TypeStruct && plus.type is Type_.Type.TypeStruct ->
+            Type_.Type.TypeStruct(type.typeStruct + plus.type.typeStruct)
+        type is Type_.Type.TypeTuple && plus.type is Type_.Type.TypeTuple ->
+            Type_.Type.TypeTuple(type.typeTuple + plus.type.typeTuple)
+        type is Type_.Type.TypeVar && plus.type is Type_.Type.TypeVar ->
+            Type_.Type.TypeVar(type.typeVar + plus.type.typeVar)
         else ->
             plus.type ?: type
     },
     unknownFields = unknownFields + plus.unknownFields
 ) ?: this
 
-private fun TypeInfo.protoSizeImpl(): Int {
+private fun Type_.protoSizeImpl(): Int {
     var protoSize = 0
     if (`package`.isNotEmpty()) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.stringSize(`package`)
     if (name.isNotEmpty()) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.stringSize(name)
     when (type) {
-        is TypeInfo.Type.TypeArray -> protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(type.typeArray)
-        is TypeInfo.Type.TypeBasic -> protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(type.typeBasic)
-        is TypeInfo.Type.TypeBuiltin -> protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.boolSize(type.typeBuiltin)
-        is TypeInfo.Type.TypeChan -> protoSize += pbandk.Sizer.tagSize(6) + pbandk.Sizer.messageSize(type.typeChan)
-        is TypeInfo.Type.TypeConst -> protoSize += pbandk.Sizer.tagSize(7) + pbandk.Sizer.messageSize(type.typeConst)
-        is TypeInfo.Type.TypeFunc -> protoSize += pbandk.Sizer.tagSize(8) + pbandk.Sizer.messageSize(type.typeFunc)
-        is TypeInfo.Type.TypeInterface -> protoSize += pbandk.Sizer.tagSize(9) + pbandk.Sizer.messageSize(type.typeInterface)
-        is TypeInfo.Type.TypeLabel -> protoSize += pbandk.Sizer.tagSize(10) + pbandk.Sizer.messageSize(type.typeLabel)
-        is TypeInfo.Type.TypeMap -> protoSize += pbandk.Sizer.tagSize(11) + pbandk.Sizer.messageSize(type.typeMap)
-        is TypeInfo.Type.TypeName -> protoSize += pbandk.Sizer.tagSize(12) + pbandk.Sizer.messageSize(type.typeName)
-        is TypeInfo.Type.TypeNamed -> protoSize += pbandk.Sizer.tagSize(13) + pbandk.Sizer.messageSize(type.typeNamed)
-        is TypeInfo.Type.TypeNil -> protoSize += pbandk.Sizer.tagSize(14) + pbandk.Sizer.messageSize(type.typeNil)
-        is TypeInfo.Type.TypePackage -> protoSize += pbandk.Sizer.tagSize(15) + pbandk.Sizer.boolSize(type.typePackage)
-        is TypeInfo.Type.TypePointer -> protoSize += pbandk.Sizer.tagSize(16) + pbandk.Sizer.messageSize(type.typePointer)
-        is TypeInfo.Type.TypeSignature -> protoSize += pbandk.Sizer.tagSize(17) + pbandk.Sizer.messageSize(type.typeSignature)
-        is TypeInfo.Type.TypeSlice -> protoSize += pbandk.Sizer.tagSize(18) + pbandk.Sizer.messageSize(type.typeSlice)
-        is TypeInfo.Type.TypeStruct -> protoSize += pbandk.Sizer.tagSize(19) + pbandk.Sizer.messageSize(type.typeStruct)
-        is TypeInfo.Type.TypeTuple -> protoSize += pbandk.Sizer.tagSize(20) + pbandk.Sizer.messageSize(type.typeTuple)
-        is TypeInfo.Type.TypeVar -> protoSize += pbandk.Sizer.tagSize(21) + pbandk.Sizer.messageSize(type.typeVar)
+        is Type_.Type.TypeArray -> protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.messageSize(type.typeArray)
+        is Type_.Type.TypeBasic -> protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.messageSize(type.typeBasic)
+        is Type_.Type.TypeBuiltin -> protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.boolSize(type.typeBuiltin)
+        is Type_.Type.TypeChan -> protoSize += pbandk.Sizer.tagSize(6) + pbandk.Sizer.messageSize(type.typeChan)
+        is Type_.Type.TypeConst -> protoSize += pbandk.Sizer.tagSize(7) + pbandk.Sizer.messageSize(type.typeConst)
+        is Type_.Type.TypeFunc -> protoSize += pbandk.Sizer.tagSize(8) + pbandk.Sizer.messageSize(type.typeFunc)
+        is Type_.Type.TypeInterface -> protoSize += pbandk.Sizer.tagSize(9) + pbandk.Sizer.messageSize(type.typeInterface)
+        is Type_.Type.TypeLabel -> protoSize += pbandk.Sizer.tagSize(10) + pbandk.Sizer.messageSize(type.typeLabel)
+        is Type_.Type.TypeMap -> protoSize += pbandk.Sizer.tagSize(11) + pbandk.Sizer.messageSize(type.typeMap)
+        is Type_.Type.TypeName -> protoSize += pbandk.Sizer.tagSize(12) + pbandk.Sizer.messageSize(type.typeName)
+        is Type_.Type.TypeNamed -> protoSize += pbandk.Sizer.tagSize(13) + pbandk.Sizer.messageSize(type.typeNamed)
+        is Type_.Type.TypeNil -> protoSize += pbandk.Sizer.tagSize(14) + pbandk.Sizer.messageSize(type.typeNil)
+        is Type_.Type.TypePackage -> protoSize += pbandk.Sizer.tagSize(15) + pbandk.Sizer.boolSize(type.typePackage)
+        is Type_.Type.TypePointer -> protoSize += pbandk.Sizer.tagSize(16) + pbandk.Sizer.messageSize(type.typePointer)
+        is Type_.Type.TypeSignature -> protoSize += pbandk.Sizer.tagSize(17) + pbandk.Sizer.messageSize(type.typeSignature)
+        is Type_.Type.TypeSlice -> protoSize += pbandk.Sizer.tagSize(18) + pbandk.Sizer.messageSize(type.typeSlice)
+        is Type_.Type.TypeStruct -> protoSize += pbandk.Sizer.tagSize(19) + pbandk.Sizer.messageSize(type.typeStruct)
+        is Type_.Type.TypeTuple -> protoSize += pbandk.Sizer.tagSize(20) + pbandk.Sizer.messageSize(type.typeTuple)
+        is Type_.Type.TypeVar -> protoSize += pbandk.Sizer.tagSize(21) + pbandk.Sizer.messageSize(type.typeVar)
     }
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
 
-private fun TypeInfo.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
+private fun Type_.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (`package`.isNotEmpty()) protoMarshal.writeTag(10).writeString(`package`)
     if (name.isNotEmpty()) protoMarshal.writeTag(18).writeString(name)
-    if (type is TypeInfo.Type.TypeArray) protoMarshal.writeTag(26).writeMessage(type.typeArray)
-    if (type is TypeInfo.Type.TypeBasic) protoMarshal.writeTag(34).writeMessage(type.typeBasic)
-    if (type is TypeInfo.Type.TypeBuiltin) protoMarshal.writeTag(40).writeBool(type.typeBuiltin)
-    if (type is TypeInfo.Type.TypeChan) protoMarshal.writeTag(50).writeMessage(type.typeChan)
-    if (type is TypeInfo.Type.TypeConst) protoMarshal.writeTag(58).writeMessage(type.typeConst)
-    if (type is TypeInfo.Type.TypeFunc) protoMarshal.writeTag(66).writeMessage(type.typeFunc)
-    if (type is TypeInfo.Type.TypeInterface) protoMarshal.writeTag(74).writeMessage(type.typeInterface)
-    if (type is TypeInfo.Type.TypeLabel) protoMarshal.writeTag(82).writeMessage(type.typeLabel)
-    if (type is TypeInfo.Type.TypeMap) protoMarshal.writeTag(90).writeMessage(type.typeMap)
-    if (type is TypeInfo.Type.TypeName) protoMarshal.writeTag(98).writeMessage(type.typeName)
-    if (type is TypeInfo.Type.TypeNamed) protoMarshal.writeTag(106).writeMessage(type.typeNamed)
-    if (type is TypeInfo.Type.TypeNil) protoMarshal.writeTag(114).writeMessage(type.typeNil)
-    if (type is TypeInfo.Type.TypePackage) protoMarshal.writeTag(120).writeBool(type.typePackage)
-    if (type is TypeInfo.Type.TypePointer) protoMarshal.writeTag(130).writeMessage(type.typePointer)
-    if (type is TypeInfo.Type.TypeSignature) protoMarshal.writeTag(138).writeMessage(type.typeSignature)
-    if (type is TypeInfo.Type.TypeSlice) protoMarshal.writeTag(146).writeMessage(type.typeSlice)
-    if (type is TypeInfo.Type.TypeStruct) protoMarshal.writeTag(154).writeMessage(type.typeStruct)
-    if (type is TypeInfo.Type.TypeTuple) protoMarshal.writeTag(162).writeMessage(type.typeTuple)
-    if (type is TypeInfo.Type.TypeVar) protoMarshal.writeTag(170).writeMessage(type.typeVar)
+    if (type is Type_.Type.TypeArray) protoMarshal.writeTag(26).writeMessage(type.typeArray)
+    if (type is Type_.Type.TypeBasic) protoMarshal.writeTag(34).writeMessage(type.typeBasic)
+    if (type is Type_.Type.TypeBuiltin) protoMarshal.writeTag(40).writeBool(type.typeBuiltin)
+    if (type is Type_.Type.TypeChan) protoMarshal.writeTag(50).writeMessage(type.typeChan)
+    if (type is Type_.Type.TypeConst) protoMarshal.writeTag(58).writeMessage(type.typeConst)
+    if (type is Type_.Type.TypeFunc) protoMarshal.writeTag(66).writeMessage(type.typeFunc)
+    if (type is Type_.Type.TypeInterface) protoMarshal.writeTag(74).writeMessage(type.typeInterface)
+    if (type is Type_.Type.TypeLabel) protoMarshal.writeTag(82).writeMessage(type.typeLabel)
+    if (type is Type_.Type.TypeMap) protoMarshal.writeTag(90).writeMessage(type.typeMap)
+    if (type is Type_.Type.TypeName) protoMarshal.writeTag(98).writeMessage(type.typeName)
+    if (type is Type_.Type.TypeNamed) protoMarshal.writeTag(106).writeMessage(type.typeNamed)
+    if (type is Type_.Type.TypeNil) protoMarshal.writeTag(114).writeMessage(type.typeNil)
+    if (type is Type_.Type.TypePackage) protoMarshal.writeTag(120).writeBool(type.typePackage)
+    if (type is Type_.Type.TypePointer) protoMarshal.writeTag(130).writeMessage(type.typePointer)
+    if (type is Type_.Type.TypeSignature) protoMarshal.writeTag(138).writeMessage(type.typeSignature)
+    if (type is Type_.Type.TypeSlice) protoMarshal.writeTag(146).writeMessage(type.typeSlice)
+    if (type is Type_.Type.TypeStruct) protoMarshal.writeTag(154).writeMessage(type.typeStruct)
+    if (type is Type_.Type.TypeTuple) protoMarshal.writeTag(162).writeMessage(type.typeTuple)
+    if (type is Type_.Type.TypeVar) protoMarshal.writeTag(170).writeMessage(type.typeVar)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
-private fun TypeInfo.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeInfo {
+private fun Type_.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): Type_ {
     var `package` = ""
     var name = ""
-    var type: TypeInfo.Type? = null
+    var type: Type_.Type? = null
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return TypeInfo(`package`, name, type, protoUnmarshal.unknownFields())
+        0 -> return Type_(`package`, name, type, protoUnmarshal.unknownFields())
         10 -> `package` = protoUnmarshal.readString()
         18 -> name = protoUnmarshal.readString()
-        26 -> type = TypeInfo.Type.TypeArray(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeArray.Companion))
-        34 -> type = TypeInfo.Type.TypeBasic(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeBasic.Companion))
-        40 -> type = TypeInfo.Type.TypeBuiltin(protoUnmarshal.readBool())
-        50 -> type = TypeInfo.Type.TypeChan(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeChan.Companion))
-        58 -> type = TypeInfo.Type.TypeConst(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeConst.Companion))
-        66 -> type = TypeInfo.Type.TypeFunc(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSignature.Companion))
-        74 -> type = TypeInfo.Type.TypeInterface(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInterface.Companion))
-        82 -> type = TypeInfo.Type.TypeLabel(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion))
-        90 -> type = TypeInfo.Type.TypeMap(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeMap.Companion))
-        98 -> type = TypeInfo.Type.TypeName(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion))
-        106 -> type = TypeInfo.Type.TypeNamed(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeNamed.Companion))
-        114 -> type = TypeInfo.Type.TypeNil(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion))
-        120 -> type = TypeInfo.Type.TypePackage(protoUnmarshal.readBool())
-        130 -> type = TypeInfo.Type.TypePointer(protoUnmarshal.readMessage(go2k.compile.dumppb.TypePointer.Companion))
-        138 -> type = TypeInfo.Type.TypeSignature(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSignature.Companion))
-        146 -> type = TypeInfo.Type.TypeSlice(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSlice.Companion))
-        154 -> type = TypeInfo.Type.TypeStruct(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeStruct.Companion))
-        162 -> type = TypeInfo.Type.TypeTuple(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeTuple.Companion))
-        170 -> type = TypeInfo.Type.TypeVar(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion))
+        26 -> type = Type_.Type.TypeArray(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeArray.Companion))
+        34 -> type = Type_.Type.TypeBasic(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeBasic.Companion))
+        40 -> type = Type_.Type.TypeBuiltin(protoUnmarshal.readBool())
+        50 -> type = Type_.Type.TypeChan(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeChan.Companion))
+        58 -> type = Type_.Type.TypeConst(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeConst.Companion))
+        66 -> type = Type_.Type.TypeFunc(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSignature.Companion))
+        74 -> type = Type_.Type.TypeInterface(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInterface.Companion))
+        82 -> type = Type_.Type.TypeLabel(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion))
+        90 -> type = Type_.Type.TypeMap(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeMap.Companion))
+        98 -> type = Type_.Type.TypeName(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion))
+        106 -> type = Type_.Type.TypeNamed(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeNamed.Companion))
+        114 -> type = Type_.Type.TypeNil(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion))
+        120 -> type = Type_.Type.TypePackage(protoUnmarshal.readBool())
+        130 -> type = Type_.Type.TypePointer(protoUnmarshal.readMessage(go2k.compile.dumppb.TypePointer.Companion))
+        138 -> type = Type_.Type.TypeSignature(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSignature.Companion))
+        146 -> type = Type_.Type.TypeSlice(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSlice.Companion))
+        154 -> type = Type_.Type.TypeStruct(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeStruct.Companion))
+        162 -> type = Type_.Type.TypeTuple(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeTuple.Companion))
+        170 -> type = Type_.Type.TypeVar(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion))
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -463,11 +500,11 @@ private fun TypeArray.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeArray.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeArray {
-    var elem: go2k.compile.dumppb.TypeInfo? = null
+    var elem: go2k.compile.dumppb.TypeRef? = null
     var len = 0L
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeArray(elem, len, protoUnmarshal.unknownFields())
-        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         16 -> len = protoUnmarshal.readInt64()
         else -> protoUnmarshal.unknownField()
     }
@@ -524,12 +561,12 @@ private fun TypeChan.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeChan.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeChan {
-    var elem: go2k.compile.dumppb.TypeInfo? = null
+    var elem: go2k.compile.dumppb.TypeRef? = null
     var sendDir = false
     var recvDir = false
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeChan(elem, sendDir, recvDir, protoUnmarshal.unknownFields())
-        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         16 -> sendDir = protoUnmarshal.readBool()
         24 -> recvDir = protoUnmarshal.readBool()
         else -> protoUnmarshal.unknownField()
@@ -557,11 +594,11 @@ private fun TypeConst.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeConst.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeConst {
-    var type: go2k.compile.dumppb.TypeInfo? = null
+    var type: go2k.compile.dumppb.TypeRef? = null
     var value: go2k.compile.dumppb.ConstantValue? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeConst(type, value, protoUnmarshal.unknownFields())
-        10 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        10 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         18 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.ConstantValue.Companion)
         else -> protoUnmarshal.unknownField()
     }
@@ -588,12 +625,12 @@ private fun TypeInterface.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeInterface.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeInterface {
-    var explicitMethods: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeInfo>? = null
-    var embedded: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeInfo>? = null
+    var explicitMethods: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
+    var embedded: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeInterface(pbandk.ListWithSize.Builder.fixed(explicitMethods), pbandk.ListWithSize.Builder.fixed(embedded), protoUnmarshal.unknownFields())
-        10 -> explicitMethods = protoUnmarshal.readRepeatedMessage(explicitMethods, go2k.compile.dumppb.TypeInfo.Companion, true)
-        18 -> embedded = protoUnmarshal.readRepeatedMessage(embedded, go2k.compile.dumppb.TypeInfo.Companion, true)
+        10 -> explicitMethods = protoUnmarshal.readRepeatedMessage(explicitMethods, go2k.compile.dumppb.TypeRef.Companion, true)
+        18 -> embedded = protoUnmarshal.readRepeatedMessage(embedded, go2k.compile.dumppb.TypeRef.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -619,12 +656,12 @@ private fun TypeMap.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeMap.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeMap {
-    var elem: go2k.compile.dumppb.TypeInfo? = null
-    var key: go2k.compile.dumppb.TypeInfo? = null
+    var elem: go2k.compile.dumppb.TypeRef? = null
+    var key: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeMap(elem, key, protoUnmarshal.unknownFields())
-        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
-        18 -> key = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        18 -> key = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -653,14 +690,14 @@ private fun TypeNamed.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeNamed.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeNamed {
-    var typeName: go2k.compile.dumppb.TypeInfo? = null
-    var type: go2k.compile.dumppb.TypeInfo? = null
-    var methods: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeInfo>? = null
+    var typeName: go2k.compile.dumppb.TypeRef? = null
+    var type: go2k.compile.dumppb.TypeRef? = null
+    var methods: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeNamed(typeName, type, pbandk.ListWithSize.Builder.fixed(methods), protoUnmarshal.unknownFields())
-        10 -> typeName = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
-        18 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
-        26 -> methods = protoUnmarshal.readRepeatedMessage(methods, go2k.compile.dumppb.TypeInfo.Companion, true)
+        10 -> typeName = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        18 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        26 -> methods = protoUnmarshal.readRepeatedMessage(methods, go2k.compile.dumppb.TypeRef.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -683,10 +720,10 @@ private fun TypePointer.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypePointer.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypePointer {
-    var elem: go2k.compile.dumppb.TypeInfo? = null
+    var elem: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypePointer(elem, protoUnmarshal.unknownFields())
-        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -715,14 +752,14 @@ private fun TypeSignature.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeSignature.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeSignature {
-    var recv: go2k.compile.dumppb.TypeInfo? = null
-    var params: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeInfo>? = null
-    var results: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeInfo>? = null
+    var recv: go2k.compile.dumppb.TypeRef? = null
+    var params: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
+    var results: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeSignature(recv, pbandk.ListWithSize.Builder.fixed(params), pbandk.ListWithSize.Builder.fixed(results), protoUnmarshal.unknownFields())
-        10 -> recv = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
-        18 -> params = protoUnmarshal.readRepeatedMessage(params, go2k.compile.dumppb.TypeInfo.Companion, true)
-        26 -> results = protoUnmarshal.readRepeatedMessage(results, go2k.compile.dumppb.TypeInfo.Companion, true)
+        10 -> recv = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        18 -> params = protoUnmarshal.readRepeatedMessage(params, go2k.compile.dumppb.TypeRef.Companion, true)
+        26 -> results = protoUnmarshal.readRepeatedMessage(results, go2k.compile.dumppb.TypeRef.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -745,10 +782,10 @@ private fun TypeSlice.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeSlice.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeSlice {
-    var elem: go2k.compile.dumppb.TypeInfo? = null
+    var elem: go2k.compile.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeSlice(elem, protoUnmarshal.unknownFields())
-        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeInfo.Companion)
+        10 -> elem = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -771,10 +808,10 @@ private fun TypeStruct.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeStruct.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeStruct {
-    var fields: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeInfo>? = null
+    var fields: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeStruct(pbandk.ListWithSize.Builder.fixed(fields), protoUnmarshal.unknownFields())
-        10 -> fields = protoUnmarshal.readRepeatedMessage(fields, go2k.compile.dumppb.TypeInfo.Companion, true)
+        10 -> fields = protoUnmarshal.readRepeatedMessage(fields, go2k.compile.dumppb.TypeRef.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -797,10 +834,10 @@ private fun TypeTuple.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeTuple.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeTuple {
-    var vars: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeInfo>? = null
+    var vars: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeTuple(pbandk.ListWithSize.Builder.fixed(vars), protoUnmarshal.unknownFields())
-        10 -> vars = protoUnmarshal.readRepeatedMessage(vars, go2k.compile.dumppb.TypeInfo.Companion, true)
+        10 -> vars = protoUnmarshal.readRepeatedMessage(vars, go2k.compile.dumppb.TypeRef.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }

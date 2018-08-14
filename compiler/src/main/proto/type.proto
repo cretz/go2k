@@ -12,7 +12,11 @@ message ConstantValue {
   }
 }
 
-message TypeInfo {
+message TypeRef {
+  uint32 id = 1;
+}
+
+message Type {
   string package = 1;
   string name = 2;
   oneof type {
@@ -23,23 +27,23 @@ message TypeInfo {
     TypeConst type_const = 7;
     TypeSignature type_func = 8;
     TypeInterface type_interface = 9;
-    TypeInfo type_label = 10;
+    TypeRef type_label = 10;
     TypeMap type_map = 11;
-    TypeInfo type_name = 12;
+    TypeRef type_name = 12;
     TypeNamed type_named = 13;
-    TypeInfo type_nil = 14;
+    TypeRef type_nil = 14;
     bool type_package = 15;
     TypePointer type_pointer = 16;
     TypeSignature type_signature = 17;
     TypeSlice type_slice = 18;
     TypeStruct type_struct = 19;
     TypeTuple type_tuple = 20;
-    TypeInfo type_var = 21;
+    TypeRef type_var = 21;
   }
 }
 
 message TypeArray {
-  TypeInfo elem = 1;
+  TypeRef elem = 1;
   int64 len = 2;
 }
 
@@ -78,50 +82,50 @@ message TypeBasic {
 }
 
 message TypeChan {
-  TypeInfo elem = 1;
+  TypeRef elem = 1;
   bool send_dir = 2;
   bool recv_dir = 3;
 }
 
 message TypeConst {
-  TypeInfo type = 1;
+  TypeRef type = 1;
   ConstantValue value = 2;
 }
 
 message TypeInterface {
-  repeated TypeInfo explicit_methods = 1;
-  repeated TypeInfo embedded = 2;
+  repeated TypeRef explicit_methods = 1;
+  repeated TypeRef embedded = 2;
 }
 
 message TypeMap {
-  TypeInfo elem = 1;
-  TypeInfo key = 2;
+  TypeRef elem = 1;
+  TypeRef key = 2;
 }
 
 message TypeNamed {
-  TypeInfo type_name = 1;
-  TypeInfo type = 2;
-  repeated TypeInfo methods = 3;
+  TypeRef type_name = 1;
+  TypeRef type = 2;
+  repeated TypeRef methods = 3;
 }
 
 message TypePointer {
-  TypeInfo elem = 1;
+  TypeRef elem = 1;
 }
 
 message TypeSignature {
-  TypeInfo recv = 1;
-  repeated TypeInfo params = 2;
-  repeated TypeInfo results = 3;
+  TypeRef recv = 1;
+  repeated TypeRef params = 2;
+  repeated TypeRef results = 3;
 }
 
 message TypeSlice {
-  TypeInfo elem = 1;
+  TypeRef elem = 1;
 }
 
 message TypeStruct {
-  repeated TypeInfo fields = 1;
+  repeated TypeRef fields = 1;
 }
 
 message TypeTuple {
-  repeated TypeInfo vars = 1;
+  repeated TypeRef vars = 1;
 }

@@ -19,10 +19,23 @@ class TestUnit(
     override fun toString() = mainFilePath.fileName.toString()
 
     companion object {
-        val units by lazy {
+        val allUnits by lazy { localUnits + goUnits }
+
+        val localUnits by lazy {
             val gopath = System.getenv("GOPATH") ?: error("Missing GOPATH")
             val testDir = Paths.get(gopath, "src/github.com/cretz/go2k/compiler/src/test/go")
+            require(Files.isDirectory(testDir)) { "Missing local test dir: $testDir" }
             Files.list(testDir).filter { it.toString().endsWith(".go") }.map { TestUnit(it) }.toList()
+        }
+
+        val goUnits by lazy {
+            val gopath = System.getenv("GOPATH") ?: error("Missing GOPATH")
+            val testDir = Paths.get(gopath, "src/github.com/golang/go/test")
+            require(Files.isDirectory(testDir)) { "Missing Go test dir: $testDir" }
+            // Only "// run" for now
+            Files.list(testDir).filter {
+                it.toString().endsWith(".go") && it.toFile().readText().startsWith("// run\n\n")
+            }.map { TestUnit(it) }.toList()
         }
     }
 }

@@ -57,33 +57,33 @@ message Expr {
 message BadExpr {
   int32 from = 1;
   int32 to = 2;
-  TypeInfo type_info = 3;
+  TypeRef type_ref = 3;
 }
 
 message Ident {
   int32 name_pos = 1;
   string name = 2;
-  TypeInfo type_info = 3;
-  TypeInfo def_type_info = 4;
+  TypeRef type_ref = 3;
+  TypeRef def_type_ref = 4;
 }
 
 message Ellipsis {
   int32 ellipsis = 1;
   Expr elt = 2;
-  TypeInfo type_info = 3;
+  TypeRef type_ref = 3;
 }
 
 message BasicLit {
   int32 value_pos = 1;
   Token kind = 2;
   string value = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message FuncLit {
   FuncType type = 1;
   BlockStmt body = 2;
-  TypeInfo type_info = 3;
+  TypeRef type_ref = 3;
 }
 
 message CompositeLit {
@@ -91,20 +91,20 @@ message CompositeLit {
   int32 lbrace = 2;
   repeated Expr elts = 3;
   int32 rbrace = 4;
-  TypeInfo type_info = 5;
+  TypeRef type_ref = 5;
 }
 
 message ParenExpr {
   int32 lparen = 1;
   Expr x = 2;
   int32 rparen = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message SelectorExpr {
   Expr x = 1;
   Ident sel = 2;
-  TypeInfo type_info = 3;
+  TypeRef type_ref = 3;
 }
 
 message IndexExpr {
@@ -112,7 +112,7 @@ message IndexExpr {
   int32 lbrack = 2;
   Expr index = 3;
   int32 rbrack = 4;
-  TypeInfo type_info = 5;
+  TypeRef type_ref = 5;
 }
 
 message SliceExpr {
@@ -123,7 +123,7 @@ message SliceExpr {
   Expr max = 5;
   bool slice3 = 6;
   int32 rbrack = 7;
-  TypeInfo type_info = 8;
+  TypeRef type_ref = 8;
 }
 
 message TypeAssertExpr {
@@ -131,7 +131,7 @@ message TypeAssertExpr {
   int32 lparen = 2;
   Expr type = 3;
   int32 rparen = 4;
-  TypeInfo type_info = 5;
+  TypeRef type_ref = 5;
 }
 
 message CallExpr {
@@ -140,20 +140,20 @@ message CallExpr {
   repeated Expr args = 3;
   int32 ellipsis = 4;
   int32 rparen = 5;
-  TypeInfo type_info = 6;
+  TypeRef type_ref = 6;
 }
 
 message StarExpr {
   int32 star = 1;
   Expr x = 2;
-  TypeInfo type_info = 3;
+  TypeRef type_ref = 3;
 }
 
 message UnaryExpr {
   int32 op_pos = 1;
   Token op = 2;
   Expr x = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message BinaryExpr {
@@ -161,49 +161,49 @@ message BinaryExpr {
   int32 op_pos = 2;
   Token op = 3;
   Expr y = 4;
-  TypeInfo type_info = 5;
+  TypeRef type_ref = 5;
 }
 
 message KeyValueExpr {
   Expr key = 1;
   int32 colon = 2;
   Expr value = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message ArrayType {
   int32 lbrack = 1;
   Expr len = 2;
   Expr elt = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message StructType {
   int32 struct = 1;
   FieldList fields = 2;
   bool incomplete = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message FuncType {
   int32 func = 1;
   FieldList params = 2;
   FieldList results = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message InterfaceType {
   int32 interface = 1;
   FieldList methods = 2;
   bool incomplete = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message MapType {
   int32 map = 1;
   Expr key = 2;
   Expr value = 3;
-  TypeInfo type_info = 4;
+  TypeRef type_ref = 4;
 }
 
 message ChanType {
@@ -212,7 +212,7 @@ message ChanType {
   bool send_dir = 3;
   bool recv_dir = 4;
   Expr value = 5;
-  TypeInfo type_info = 6;
+  TypeRef type_ref = 6;
 }
 
 message Stmt {
@@ -447,7 +447,8 @@ message Package {
   string name = 1;
   string path = 2;
   repeated File files = 3;
-  repeated string var_init_order = 4;
+  repeated Type types = 4;
+  repeated string var_init_order = 5;
 }
 
 message Packages {
