@@ -1,6 +1,7 @@
 package go2k.compile
 
 import kastree.ast.Node
+import java.math.BigInteger
 import kotlin.reflect.KClass
 
 fun arrayType(of: KClass<*>) = Node.Type(
@@ -29,6 +30,8 @@ fun Char.toConst() = Node.Expr.Const(toString(), Node.Expr.Const.Form.CHAR)
 
 fun Double.toConst() = Node.Expr.Const(toString(), Node.Expr.Const.Form.FLOAT)
 
+fun Node.Expr.dot(rhs: Node.Expr) = binaryOp(this, Node.Expr.BinaryOp.Token.DOT, rhs)
+
 fun func(
     mods: List<Node.Modifier> = emptyList(),
     typeParams: List<Node.TypeParam> = emptyList(),
@@ -41,7 +44,7 @@ fun func(
     body: Node.Decl.Func.Body? = null
 ) = Node.Decl.Func(mods, typeParams, receiverType, name, paramTypeParams, params, type, typeConstraints, body)
 
-fun Int.toConst() = Node.Expr.Const(toString(), Node.Expr.Const.Form.INT)
+fun Int.toConst() = toString().toIntConst()
 
 fun KClass<*>.toType() = Node.Type(
     mods = emptyList(),
@@ -80,8 +83,14 @@ fun String.toDottedExpr() = split('.').let {
         binaryOp(expr, Node.Expr.BinaryOp.Token.DOT, piece.toName())
     }
 }
+fun String.toIntConst() = Node.Expr.Const(this, Node.Expr.Const.Form.INT)
 fun String.toName() = Node.Expr.Name(this)
 fun String.toStringTmpl() = Node.Expr.StringTmpl(elems = listOf(Node.Expr.StringTmpl.Elem.Regular(this)), raw = false)
+fun String.untypedIntClass(): KClass<out Number> = toBigInteger().let { bigInt ->
+    if (bigInt >= Int.MIN_VALUE.toBigInteger() && bigInt <= Int.MAX_VALUE.toBigInteger()) Int::class
+    else if (bigInt >= Long.MIN_VALUE.toBigInteger() && bigInt <= Long.MAX_VALUE.toBigInteger()) Long::class
+    else BigInteger::class
+}
 
 fun valueArg(
     name: String? = null,

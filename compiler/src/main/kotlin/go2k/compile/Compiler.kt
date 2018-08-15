@@ -2,6 +2,7 @@ package go2k.compile
 
 import go2k.compile.dumppb.*
 import kastree.ast.Node
+import java.math.BigInteger
 
 @ExperimentalUnsignedTypes
 open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
@@ -37,7 +38,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
     }
 
     fun compileBasicLit(v: BasicLit) = when (v.kind) {
-        Token.INT -> Node.Expr.Const(v.value, Node.Expr.Const.Form.INT)
+        Token.INT -> compileConstantValue((v.typeRef?.type as Type_.Type.TypeConst).typeConst)
         Token.FLOAT -> Node.Expr.Const(v.value, Node.Expr.Const.Form.FLOAT)
         Token.IMAG -> TODO()
         Token.CHAR -> Node.Expr.Const(v.value, Node.Expr.Const.Form.CHAR)
@@ -66,6 +67,34 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
             Node.ValueArg(name = null, expr = compileExpr(it), asterisk = false)
         }
     )
+
+    fun compileConstantValue(v: TypeConst): Node.Expr {
+        val constVal = v.value?.value
+        return when (constVal) {
+            null -> error("Unknown constant type")
+            is ConstantValue.Value.Int_ -> {
+                val basicType = v.type?.type as? Type_.Type.TypeBasic
+                when (basicType?.typeBasic?.kind) {
+                    TypeBasic.Kind.INT, TypeBasic.Kind.INT_32 -> constVal.int.toIntConst()
+                    TypeBasic.Kind.INT_8 -> call(constVal.int.toIntConst().dot("toByte".toName()))
+                    TypeBasic.Kind.INT_16 -> call(constVal.int.toIntConst().dot("toShort".toName()))
+                    TypeBasic.Kind.INT_64 -> (constVal.int + "L").toIntConst()
+                    TypeBasic.Kind.UINT, TypeBasic.Kind.UINT_32 -> (constVal.int + "u").toIntConst()
+                    TypeBasic.Kind.UINT_8 -> call((constVal.int + "u").toIntConst().dot("toUByte".toName()))
+                    TypeBasic.Kind.UINT_16 -> call((constVal.int + "u").toIntConst().dot("toUShort".toName()))
+                    TypeBasic.Kind.UINT_64 -> (constVal.int + "uL").toIntConst()
+                    TypeBasic.Kind.UNTYPED_INT ->
+                        if (constVal.int.untypedIntClass() != BigInteger::class) constVal.int.toIntConst()
+                        else call(
+                            expr = BigInteger::class.qualifiedName!!.toDottedExpr(),
+                            args = listOf(valueArg(expr = constVal.int.toStringTmpl()))
+                        )
+                    else -> error("Unrecognized basic int kind of $basicType")
+                }
+            }
+            else -> TODO()
+        }
+    }
 
     fun compileDeclTopLevel(v: Decl_.Decl) = when (v) {
         is Decl_.Decl.BadDecl -> error("Bad decl: $v")
@@ -166,10 +195,10 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
             }
         }
 
-        // Create initializers for the top level vars
+        // Create initializers for the top level vars (i.e. non-consts)
         val topLevelValueSpecs = pkg.files.flatMap {
             it.decls.flatMap {
-                (it.decl as? Decl_.Decl.GenDecl)?.genDecl?.specs?.mapNotNull {
+                (it.decl as? Decl_.Decl.GenDecl)?.genDecl?.takeIf { it.tok != Token.CONST }?.specs?.mapNotNull {
                     (it.spec as? Spec_.Spec.ValueSpec)?.valueSpec
                 } ?: emptyList()
             }
@@ -359,7 +388,28 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
     }
 
     fun compileValueSpecTopLevel(v: ValueSpec, const: Boolean): List<Node.Decl> {
-        if (const) TODO()
+        if (const) {
+            // Consts are always declared inline, and use a const val if possible
+            return v.names.zip(v.values) { id, value ->
+                val typeConst = (value.expr?.typeRef?.type as? Type_.Type.TypeConst)?.typeConst
+                typeConst ?: error("Unable to find type const")
+                val basicKind = (typeConst.type?.type as? Type_.Type.TypeBasic)?.typeBasic?.kind
+                basicKind ?: error("Unable to find basic kind")
+                val constVal = when (basicKind) {
+                    TypeBasic.Kind.UNTYPED_INT ->
+                        (typeConst.value?.value as ConstantValue.Value.Int_).int.untypedIntClass() != BigInteger::class
+                    // TODO: others
+                    else ->
+                        true
+                }
+                property(
+                    mods = if (constVal) listOf(Node.Modifier.Keyword.CONST.toMod()) else emptyList(),
+                    readOnly = true,
+                    vars = listOf(Node.Decl.Property.Var(id.name.javaIdent, null)),
+                    expr = compileConstantValue(typeConst)
+                )
+            }
+        }
         return v.names.map { id ->
             val type = (id.defTypeRef?.type as? Type_.Type.TypeVar)?.typeVar?.namedType ?: error("Can't find var type")
             // Vars are never inited on their own. Instead they are inited in a separate init area. Therefore, we
