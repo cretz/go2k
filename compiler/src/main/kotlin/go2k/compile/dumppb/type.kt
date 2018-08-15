@@ -9,7 +9,7 @@ data class ConstantValue(
         data class Bool(val bool: Boolean = false) : Value()
         data class String_(val string: String = "") : Value()
         data class Int_(val int: String = "") : Value()
-        data class Float_(val float: Double = 0.0) : Value()
+        data class Float_(val float: String = "") : Value()
         data class Complex(val complex: String = "") : Value()
     }
 
@@ -297,7 +297,7 @@ private fun ConstantValue.protoSizeImpl(): Int {
         is ConstantValue.Value.Bool -> protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.boolSize(value.bool)
         is ConstantValue.Value.String_ -> protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.stringSize(value.string)
         is ConstantValue.Value.Int_ -> protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.stringSize(value.int)
-        is ConstantValue.Value.Float_ -> protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.doubleSize(value.float)
+        is ConstantValue.Value.Float_ -> protoSize += pbandk.Sizer.tagSize(5) + pbandk.Sizer.stringSize(value.float)
         is ConstantValue.Value.Complex -> protoSize += pbandk.Sizer.tagSize(6) + pbandk.Sizer.stringSize(value.complex)
     }
     protoSize += unknownFields.entries.sumBy { it.value.size() }
@@ -309,7 +309,7 @@ private fun ConstantValue.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (value is ConstantValue.Value.Bool) protoMarshal.writeTag(16).writeBool(value.bool)
     if (value is ConstantValue.Value.String_) protoMarshal.writeTag(26).writeString(value.string)
     if (value is ConstantValue.Value.Int_) protoMarshal.writeTag(34).writeString(value.int)
-    if (value is ConstantValue.Value.Float_) protoMarshal.writeTag(41).writeDouble(value.float)
+    if (value is ConstantValue.Value.Float_) protoMarshal.writeTag(42).writeString(value.float)
     if (value is ConstantValue.Value.Complex) protoMarshal.writeTag(50).writeString(value.complex)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
@@ -322,7 +322,7 @@ private fun ConstantValue.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Un
         16 -> value = ConstantValue.Value.Bool(protoUnmarshal.readBool())
         26 -> value = ConstantValue.Value.String_(protoUnmarshal.readString())
         34 -> value = ConstantValue.Value.Int_(protoUnmarshal.readString())
-        41 -> value = ConstantValue.Value.Float_(protoUnmarshal.readDouble())
+        42 -> value = ConstantValue.Value.Float_(protoUnmarshal.readString())
         50 -> value = ConstantValue.Value.Complex(protoUnmarshal.readString())
         else -> protoUnmarshal.unknownField()
     }

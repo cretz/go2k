@@ -1,6 +1,7 @@
 package go2k.compile
 
 import kastree.ast.Node
+import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
 
@@ -83,9 +84,15 @@ fun String.toDottedExpr() = split('.').let {
         binaryOp(expr, Node.Expr.BinaryOp.Token.DOT, piece.toName())
     }
 }
+fun String.toFloatConst() = Node.Expr.Const(this, Node.Expr.Const.Form.FLOAT)
 fun String.toIntConst() = Node.Expr.Const(this, Node.Expr.Const.Form.INT)
 fun String.toName() = Node.Expr.Name(this)
 fun String.toStringTmpl() = Node.Expr.StringTmpl(elems = listOf(Node.Expr.StringTmpl.Elem.Regular(this)), raw = false)
+fun String.untypedFloatClass(includeFloatClass: Boolean = false): KClass<out Number> = toBigDecimal().let { bigDec ->
+    if (includeFloatClass && bigDec.compareTo(bigDec.toFloat().toBigDecimal()) == 0) Float::class
+    else if (bigDec.compareTo(bigDec.toDouble().toBigDecimal()) == 0) Double::class
+    else BigDecimal::class
+}
 fun String.untypedIntClass(): KClass<out Number> = toBigInteger().let { bigInt ->
     if (bigInt >= Int.MIN_VALUE.toBigInteger() && bigInt <= Int.MAX_VALUE.toBigInteger()) Int::class
     else if (bigInt >= Long.MIN_VALUE.toBigInteger() && bigInt <= Long.MAX_VALUE.toBigInteger()) Long::class

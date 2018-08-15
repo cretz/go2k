@@ -7,7 +7,7 @@ message ConstantValue {
     bool bool = 2;
     string string = 3;
     string int = 4;
-    double float = 5;
+    string float = 5;
     string complex = 6;
   }
 }

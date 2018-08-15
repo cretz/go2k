@@ -2,6 +2,7 @@ package go2k.compile
 
 import go2k.compile.dumppb.*
 import kastree.ast.Node
+import java.math.BigDecimal
 import java.math.BigInteger
 
 @ExperimentalUnsignedTypes
@@ -72,6 +73,8 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         val constVal = v.value?.value
         return when (constVal) {
             null -> error("Unknown constant type")
+            is ConstantValue.Value.Bool ->
+                Node.Expr.Const(if (constVal.bool) "true" else "false", Node.Expr.Const.Form.BOOLEAN)
             is ConstantValue.Value.Int_ -> {
                 val basicType = v.type?.type as? Type_.Type.TypeBasic
                 when (basicType?.typeBasic?.kind) {
@@ -86,13 +89,39 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                     TypeBasic.Kind.UNTYPED_INT ->
                         if (constVal.int.untypedIntClass() != BigInteger::class) constVal.int.toIntConst()
                         else call(
-                            expr = BigInteger::class.qualifiedName!!.toDottedExpr(),
+                            expr = "go2k.runtime.BigInt".toDottedExpr(),
                             args = listOf(valueArg(expr = constVal.int.toStringTmpl()))
                         )
                     else -> error("Unrecognized basic int kind of $basicType")
                 }
             }
-            else -> TODO()
+            is ConstantValue.Value.Float_ -> {
+                val basicType = v.type?.type as? Type_.Type.TypeBasic
+                // Due to representability rules, we have to sometimes round down if it's too big
+                val reprClass = constVal.float.untypedFloatClass(includeFloatClass = true)
+                val bigDecCall = if (reprClass != BigDecimal::class) null else call(
+                    expr = "go2k.runtime.BigDec".toDottedExpr(),
+                    args = listOf(valueArg(expr = constVal.float.toStringTmpl()))
+                )
+                val withDec = if (constVal.float.contains('.')) constVal.float else constVal.float + ".0"
+                when (basicType?.typeBasic?.kind) {
+                    TypeBasic.Kind.FLOAT_32 -> when (reprClass) {
+                        Float::class -> (withDec + "f").toFloatConst()
+                        Double::class -> call(withDec.toFloatConst().dot("toFloat".toName()))
+                        else -> call(bigDecCall!!.dot("toFloat".toName()))
+                    }
+                    TypeBasic.Kind.FLOAT_64 -> when (reprClass) {
+                        Float::class, Double::class -> withDec.toFloatConst()
+                        else -> call(bigDecCall!!.dot("toDouble".toName()))
+                    }
+                    TypeBasic.Kind.UNTYPED_FLOAT -> when (reprClass) {
+                        Float::class, Double::class -> withDec.toFloatConst()
+                        else -> bigDecCall!!
+                    }
+                    else -> error("Unrecognized basic float kind of $basicType")
+                }
+            }
+            else -> TODO("$constVal")
         }
     }
 
@@ -396,6 +425,9 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 val basicKind = (typeConst.type?.type as? Type_.Type.TypeBasic)?.typeBasic?.kind
                 basicKind ?: error("Unable to find basic kind")
                 val constVal = when (basicKind) {
+                    TypeBasic.Kind.UNTYPED_FLOAT, TypeBasic.Kind.FLOAT_32, TypeBasic.Kind.FLOAT_64 ->
+                        (typeConst.value?.value as ConstantValue.Value.Float_).
+                            float.untypedFloatClass() != BigDecimal::class
                     TypeBasic.Kind.UNTYPED_INT ->
                         (typeConst.value?.value as ConstantValue.Value.Int_).int.untypedIntClass() != BigInteger::class
                     // TODO: others
