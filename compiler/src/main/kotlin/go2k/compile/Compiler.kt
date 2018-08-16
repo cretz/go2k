@@ -4,6 +4,7 @@ import go2k.compile.dumppb.*
 import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
+import kotlin.reflect.KClass
 
 @ExperimentalUnsignedTypes
 open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
@@ -49,14 +50,51 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         else -> error("Unrecognized lit kind: ${v.kind}")
     }
 
-    fun compileBinaryExpr(v: BinaryExpr) = binaryOp(
-        lhs = compileExpr(v.x!!),
-        op = when (v.op) {
-            Token.ADD -> Node.Expr.BinaryOp.Token.ADD
-            else -> error("Unrecognized op ${v.op}")
-        },
-        rhs = compileExpr(v.y!!)
-    )
+    fun compileBinaryExpr(v: BinaryExpr) = when (v.op) {
+        Token.AND_NOT -> binaryOp(
+            lhs = compileExpr(v.x!!),
+            op = "and".toInfix(),
+            rhs = call(compileExpr(v.y!!).dot("inv".toName())).convertUntypedMaybe(v.y, v.x)
+        )
+        Token.AND_ASSIGN -> TODO()
+        Token.OR_ASSIGN -> TODO()
+        Token.XOR_ASSIGN -> TODO()
+        Token.SHL_ASSIGN -> TODO()
+        Token.SHR_ASSIGN -> TODO()
+        Token.AND_NOT_ASSIGN -> TODO()
+        Token.DEFINE -> TODO()
+        else -> binaryOp(
+            lhs = compileExpr(v.x!!),
+            op = when (v.op) {
+                Token.ADD -> Node.Expr.BinaryOp.Token.ADD.toOper()
+                Token.SUB -> Node.Expr.BinaryOp.Token.SUB.toOper()
+                Token.MUL -> Node.Expr.BinaryOp.Token.MUL.toOper()
+                Token.QUO -> Node.Expr.BinaryOp.Token.DIV.toOper()
+                Token.REM -> Node.Expr.BinaryOp.Token.MOD.toOper()
+                Token.AND -> "and".toInfix()
+                Token.OR -> "or".toInfix()
+                Token.XOR -> "xor".toInfix()
+                Token.SHL -> "shl".toInfix()
+                Token.SHR -> "shr".toInfix()
+                Token.ADD_ASSIGN -> Node.Expr.BinaryOp.Token.ADD_ASSN.toOper()
+                Token.SUB_ASSIGN -> Node.Expr.BinaryOp.Token.SUB_ASSN.toOper()
+                Token.MUL_ASSIGN -> Node.Expr.BinaryOp.Token.MUL_ASSN.toOper()
+                Token.QUO_ASSIGN -> Node.Expr.BinaryOp.Token.DIV_ASSN.toOper()
+                Token.REM_ASSIGN -> Node.Expr.BinaryOp.Token.MOD_ASSN.toOper()
+                Token.LAND -> Node.Expr.BinaryOp.Token.AND.toOper()
+                Token.LOR -> Node.Expr.BinaryOp.Token.OR.toOper()
+                Token.EQL -> Node.Expr.BinaryOp.Token.EQ.toOper()
+                Token.LSS -> Node.Expr.BinaryOp.Token.LT.toOper()
+                Token.GTR -> Node.Expr.BinaryOp.Token.GT.toOper()
+                Token.ASSIGN -> Node.Expr.BinaryOp.Token.ASSN.toOper()
+                Token.NEQ -> Node.Expr.BinaryOp.Token.NEQ.toOper()
+                Token.LEQ -> Node.Expr.BinaryOp.Token.LTE.toOper()
+                Token.GEQ -> Node.Expr.BinaryOp.Token.GTE.toOper()
+                else -> error("Unrecognized op ${v.op}")
+            },
+            rhs = compileExpr(v.y!!).convertUntypedMaybe(v.y, v.x)
+        )
+    }
 
     fun compileBlockStmt(v: BlockStmt) = Node.Block(v.list.map { compileStmt(it) })
 
@@ -70,13 +108,17 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
     )
 
     fun compileConstantValue(v: TypeConst): Node.Expr {
-        val constVal = v.value?.value
+        var constVal = v.value?.value
+        val basicType = v.type?.type as? Type_.Type.TypeBasic
+        // As a special case, if it's a const float masquerading as an int, treat as a float
+        if (constVal is ConstantValue.Value.Int_ && basicType?.typeBasic?.kind == TypeBasic.Kind.UNTYPED_FLOAT) {
+            constVal = ConstantValue.Value.Float_(float = constVal.int)
+        }
         return when (constVal) {
             null -> error("Unknown constant type")
             is ConstantValue.Value.Bool ->
                 Node.Expr.Const(if (constVal.bool) "true" else "false", Node.Expr.Const.Form.BOOLEAN)
             is ConstantValue.Value.Int_ -> {
-                val basicType = v.type?.type as? Type_.Type.TypeBasic
                 when (basicType?.typeBasic?.kind) {
                     TypeBasic.Kind.INT, TypeBasic.Kind.INT_32 -> constVal.int.toIntConst()
                     TypeBasic.Kind.INT_8 -> call(constVal.int.toIntConst().dot("toByte".toName()))
@@ -96,7 +138,6 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 }
             }
             is ConstantValue.Value.Float_ -> {
-                val basicType = v.type?.type as? Type_.Type.TypeBasic
                 // Due to representability rules, we have to sometimes round down if it's too big
                 val reprClass = constVal.float.untypedFloatClass(includeFloatClass = true)
                 val bigDecCall = if (reprClass != BigDecimal::class) null else call(
@@ -146,7 +187,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Expr_.Expr.TypeAssertExpr -> TODO()
         is Expr_.Expr.CallExpr -> compileCallExpr(v.callExpr)
         is Expr_.Expr.StarExpr -> TODO()
-        is Expr_.Expr.UnaryExpr -> TODO()
+        is Expr_.Expr.UnaryExpr -> compileUnaryExpr(v.unaryExpr)
         is Expr_.Expr.BinaryExpr -> compileBinaryExpr(v.binaryExpr)
         is Expr_.Expr.KeyValueExpr -> TODO()
         is Expr_.Expr.ArrayType -> TODO()
@@ -172,8 +213,14 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         return func(
             mods = mods,
             name = v.name.name.javaIdent,
-            // TODO
-            params = emptyList(),
+            params = (v.type!!.params?.list ?: emptyList()).flatMap { field ->
+                field.names.map { name ->
+                    param(
+                        name = name.name.javaIdent,
+                        type = compileTypeRef(field.type!!.expr!!.typeRef!!)
+                    )
+                }
+            },
             type = v.type!!.results?.let {
                 if (it.list.size != 1 || it.list.single().names.size > 1) TODO()
                 val id = (it.list.first().type!!.expr as Expr_.Expr.Ident).ident
@@ -187,13 +234,23 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         compileSpecTopLevel(it.spec!!, v.tok == Token.CONST)
     }
 
-    // TODO: fix builtin's to refer to the proper package
     fun compileIdent(v: Ident): Node.Expr {
         if (v.typeRef?.type is Type_.Type.TypeBuiltin) {
             return "go2k.runtime.builtin.${v.name}".toDottedExpr()
         }
         return v.name.javaName
     }
+
+    fun compileIfStmt(v: IfStmt) = Node.Stmt.Expr(run {
+        if (v.init != null) TODO()
+        Node.Expr.If(
+            expr = compileExpr(v.cond!!),
+            body = Node.Expr.Brace(emptyList(), compileBlockStmt(v.body!!)),
+            elseBody = v.`else`?.let { elseBody ->
+                (compileStmt(elseBody) as? Node.Stmt.Expr)?.expr ?: error("Expected single expr stmt")
+            }
+        )
+    })
 
     fun compileIncDecStmt(v: IncDecStmt) = Node.Stmt.Expr(
         Node.Expr.UnaryOp(
@@ -321,7 +378,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Stmt_.Stmt.ReturnStmt -> compileReturnStmt(v.returnStmt)
         is Stmt_.Stmt.BranchStmt -> TODO()
         is Stmt_.Stmt.BlockStmt -> TODO()
-        is Stmt_.Stmt.IfStmt -> TODO()
+        is Stmt_.Stmt.IfStmt -> compileIfStmt(v.ifStmt)
         is Stmt_.Stmt.CaseClause -> TODO()
         is Stmt_.Stmt.SwitchStmt -> TODO()
         is Stmt_.Stmt.TypeSwitchStmt -> TODO()
@@ -334,28 +391,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
     fun compileType(v: Type_): Node.Type = when (v.type) {
         null -> TODO()
         is Type_.Type.TypeArray -> TODO()
-        is Type_.Type.TypeBasic -> when (v.type.typeBasic.kind) {
-            TypeBasic.Kind.BOOL, TypeBasic.Kind.UNTYPED_BOOL -> Boolean::class.toType()
-            TypeBasic.Kind.INT -> Int::class.toType()
-            TypeBasic.Kind.INT_8 -> Byte::class.toType()
-            TypeBasic.Kind.INT_16 -> Short::class.toType()
-            TypeBasic.Kind.INT_32 -> if (v.name == "rune") Char::class.toType() else Int::class.toType()
-            TypeBasic.Kind.INT_64 -> Long::class.toType()
-            TypeBasic.Kind.UINT, TypeBasic.Kind.UINT_32 -> UInt::class.toType()
-            TypeBasic.Kind.UINT_8 -> UByte::class.toType()
-            TypeBasic.Kind.UINT_16 -> UShort::class.toType()
-            TypeBasic.Kind.UINT_64, TypeBasic.Kind.UINT_PTR -> ULong::class.toType()
-            TypeBasic.Kind.FLOAT_32 -> Float::class.toType()
-            TypeBasic.Kind.FLOAT_64 -> Double::class.toType()
-            TypeBasic.Kind.COMPLEX_64 -> TODO()
-            TypeBasic.Kind.COMPLEX_128, TypeBasic.Kind.UNTYPED_COMPLEX -> TODO()
-            TypeBasic.Kind.STRING, TypeBasic.Kind.UNTYPED_STRING -> String::class.toType()
-            TypeBasic.Kind.UNTYPED_INT -> TODO("Figure out how to handle untyped int, ideally based on value")
-            TypeBasic.Kind.UNTYPED_RUNE -> Char::class.toType()
-            TypeBasic.Kind.UNTYPED_FLOAT -> TODO("Figure out how to handle untyped int, ideally based on value")
-            TypeBasic.Kind.UNTYPED_NIL -> TODO()
-            else -> error("Unrecognized type kind: ${v.type.typeBasic.kind}")
-        }
+        is Type_.Type.TypeBasic -> v.type.typeBasic.kotlinPrimitiveType(v.name).toType()
         is Type_.Type.TypeBuiltin -> TODO()
         is Type_.Type.TypeChan -> TODO()
         is Type_.Type.TypeConst -> TODO()
@@ -416,6 +452,19 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Type_.Type.TypeVar -> compileTypeRefZeroExpr(v.type.typeVar)
     }
 
+    fun compileUnaryExpr(v: UnaryExpr) = unaryOp(
+        expr = compileExpr(v.x!!),
+        op = when (v.op) {
+            Token.ADD -> Node.Expr.UnaryOp.Token.POS
+            Token.SUB -> Node.Expr.UnaryOp.Token.NEG
+            Token.INC -> Node.Expr.UnaryOp.Token.INC
+            Token.DEC -> Node.Expr.UnaryOp.Token.DEC
+            Token.NOT -> Node.Expr.UnaryOp.Token.NOT
+            else -> error("Unrecognized op: ${v.op}")
+        },
+        prefix = v.op != Token.INC && v.op != Token.DEC
+    )
+
     fun compileValueSpecTopLevel(v: ValueSpec, const: Boolean): List<Node.Decl> {
         if (const) {
             // Consts are always declared inline, and use a const val if possible
@@ -456,9 +505,77 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         }
     }
 
+    fun Node.Expr.convertUntypedMaybe(from: Expr_, to: Expr_) =
+        convertUntypedMaybe(from.expr!!.typeRef!!.namedType, to.expr!!.typeRef!!.namedType)
+
+    fun Node.Expr.convertUntypedMaybe(from: Type_, to: Type_): Node.Expr {
+        val fromType = from.kotlinPrimitiveType() ?: return this
+        val toType = to.kotlinPrimitiveType() ?: return this
+        if (fromType == toType) return this
+        return when (toType) {
+            Byte::class -> call(dot("toByte".javaName))
+            Short::class -> call(dot("toShort".javaName))
+            Char::class -> call(dot("toChar".javaName))
+            Int::class -> call(dot("toInt".javaName))
+            Long::class -> call(dot("toLong".javaName))
+            UBYTE_CLASS -> call(dot("toUByte".javaName))
+            USHORT_CLASS -> call(dot("toUShort".javaName))
+            UINT_CLASS -> call(dot("toUInt".javaName))
+            ULONG_CLASS -> call(dot("toULong".javaName))
+            BigInteger::class -> call(dot("toBigInteger".javaName))
+            Float::class -> call(dot("toFloat".javaName))
+            Double::class -> call(dot("toDouble".javaName))
+            BigDecimal::class -> call(dot("toBigDecimal".javaName))
+            else -> this
+        }
+    }
+
     // TODO
     val String.javaIdent get() = this
     val String.javaName get() = Node.Expr.Name(javaIdent)
+
+    fun Type_.kotlinPrimitiveType(): KClass<*>? = when (type) {
+        is Type_.Type.TypeBasic -> type.typeBasic.kotlinPrimitiveType(name)
+        is Type_.Type.TypeConst -> type.typeConst.kotlinPrimitiveType()
+        else -> null
+    }
+
+    fun TypeConst.kotlinPrimitiveType() = type!!.namedType.kotlinPrimitiveType()?.let { primType ->
+        // Untyped is based on value
+        when (primType) {
+            BigInteger::class -> (value!!.value as ConstantValue.Value.Int_).int.untypedIntClass()
+            BigDecimal::class -> when (val v = value!!.value) {
+                is ConstantValue.Value.Int_ -> v.int.untypedFloatClass()
+                is ConstantValue.Value.Float_ -> v.float.untypedFloatClass()
+                else -> error("Unknown float type of $v")
+            }
+            else -> primType
+        }
+    }
+
+    fun TypeBasic.kotlinPrimitiveType(name: String) = when (kind) {
+        TypeBasic.Kind.BOOL, TypeBasic.Kind.UNTYPED_BOOL -> Boolean::class
+        TypeBasic.Kind.INT -> Int::class
+        TypeBasic.Kind.INT_8 -> Byte::class
+        TypeBasic.Kind.INT_16 -> Short::class
+        TypeBasic.Kind.INT_32 -> if (name == "rune") Char::class else Int::class
+        TypeBasic.Kind.INT_64 -> Long::class
+        TypeBasic.Kind.UINT, TypeBasic.Kind.UINT_32 -> UINT_CLASS
+        TypeBasic.Kind.UINT_8 -> UBYTE_CLASS
+        TypeBasic.Kind.UINT_16 -> USHORT_CLASS
+        // TODO: break this into two
+        TypeBasic.Kind.UINT_64, TypeBasic.Kind.UINT_PTR -> ULONG_CLASS
+        TypeBasic.Kind.FLOAT_32 -> Float::class
+        TypeBasic.Kind.FLOAT_64 -> Double::class
+        TypeBasic.Kind.COMPLEX_64 -> TODO()
+        TypeBasic.Kind.COMPLEX_128, TypeBasic.Kind.UNTYPED_COMPLEX -> TODO()
+        TypeBasic.Kind.STRING, TypeBasic.Kind.UNTYPED_STRING -> String::class
+        TypeBasic.Kind.UNTYPED_INT -> BigInteger::class
+        TypeBasic.Kind.UNTYPED_RUNE -> Char::class
+        TypeBasic.Kind.UNTYPED_FLOAT -> BigDecimal::class
+        TypeBasic.Kind.UNTYPED_NIL -> TODO()
+        else -> error("Unrecognized type kind: $kind")
+    }
 
     protected val TypeRef.name get() = namedType.name
     protected val TypeRef.namedType get() = pkg.types[id]

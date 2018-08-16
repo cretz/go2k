@@ -1,5 +1,6 @@
 package go2k.runtime.builtin
 
+import go2k.runtime.Panic
 import go2k.runtime.Platform
 import go2k.runtime.Slice
 
@@ -69,6 +70,8 @@ inline fun makeBooleanSlice(len: Int, cap: Int? = null) =
     sliceBooleanArray(BooleanArray(cap ?: len), high = len)
 inline fun makeCharSlice(len: Int, cap: Int? = null) =
     sliceCharArray(CharArray(cap ?: len), high = len)
+
+inline fun panic(v: Any?): Nothing = throw Panic(v)
 
 // Usually these would be "args: Slice<*>" like other Go varargs, but these are special builtins
 // and Go handles them differently (e.g. you can't splat the args)

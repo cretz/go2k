@@ -1,7 +1,8 @@
 package main
 
 const (
-	c0    = 0
+	c0 = 0
+
 	cm1   = -1
 	chuge = 1 << 100
 
@@ -27,7 +28,25 @@ const (
 	f1e3    float64 = 1e3
 )
 
+func assert(t bool, s string) {
+	if !t {
+		panic(s)
+	}
+}
+
+func ints() {
+	assert(c0 == 0, "c0")
+	assert(c1 == 1, "c1")
+	assert(chuge > chuge_1, "chuge")
+	assert(chuge_1+1 == chuge, "chuge 1")
+	assert(chuge+cm1+1 == chuge, "cm1")
+	assert(c3div2 == 1, "3/2")
+	assert(c1e3 == 1000, "c1e3 int")
+	assert(c1e3 == 1e3, "c1e3 float")
+	assert(rsh1 == 0, "rsh1")
+	assert(rsh2 == 9, "rsh2")
+}
+
 func main() {
-	// println(c0, cm1, c1, cfalse, c1e3)
-	// println(fhuge)
+	ints()
 }
