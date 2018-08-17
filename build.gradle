@@ -18,9 +18,9 @@ allprojects {
     repositories {
         mavenCentral()
         // Needed for pre-release of Kotlin, remove when on regular release
-        maven {
-            url 'http://dl.bintray.com/kotlin/kotlin-eap'
-        }
+        maven { url 'http://dl.bintray.com/kotlin/kotlin-eap' }
+        // Needed for kastree snapshot, remove when on regular release
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
     }
 }
 project(':compiler') {
@@ -41,7 +41,7 @@ project(':compiler') {
         compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
         compile 'org.jetbrains.kotlin:kotlin-reflect'
         compile 'org.jetbrains.kotlin:kotlin-compiler'
-        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.1.0'
+        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.2.0-SNAPSHOT'
         compile 'com.github.cretz.pbandk:pbandk-runtime-jvm:0.2.0'
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
         testImplementation 'org.junit.jupiter:junit-jupiter-params:5.1.0'

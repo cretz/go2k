@@ -42,7 +42,7 @@ fun func(
     mods: List<Node.Modifier> = emptyList(),
     typeParams: List<Node.TypeParam> = emptyList(),
     receiverType: Node.Type? = null,
-    name: String,
+    name: String? = null,
     paramTypeParams: List<Node.TypeParam> = emptyList(),
     params: List<Node.Decl.Func.Param> = emptyList(),
     type: Node.Type? = null,
@@ -67,7 +67,7 @@ fun param(
     mods: List<Node.Modifier> = emptyList(),
     readOnly: Boolean? = null,
     name: String,
-    type: Node.Type,
+    type: Node.Type? = null,
     default: Node.Expr? = null
 ) = Node.Decl.Func.Param(mods, readOnly, name, type, default)
 
@@ -104,6 +104,8 @@ fun String.untypedIntClass(): KClass<out Number> = toBigInteger().let { bigInt -
     else if (bigInt >= Long.MIN_VALUE.toBigInteger() && bigInt <= Long.MAX_VALUE.toBigInteger()) Long::class
     else BigInteger::class
 }
+
+fun Node.Type.nullable() = copy(ref = Node.TypeRef.Nullable(ref))
 
 fun unaryOp(expr: Node.Expr, op: Node.Expr.UnaryOp.Token, prefix: Boolean = true) =
     Node.Expr.UnaryOp(expr = expr, oper = Node.Expr.UnaryOp.Oper(op), prefix = prefix)
