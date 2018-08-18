@@ -1,5 +1,6 @@
 package go2k.runtime.builtin
 
+import go2k.runtime.GoInterface
 import go2k.runtime.Panic
 import go2k.runtime.Platform
 import go2k.runtime.Slice
@@ -23,6 +24,14 @@ suspend inline fun cap(v: Slice<*>) = v.cap()
 
 suspend inline fun <T> copy(dst: Slice<T>?, src: Slice<T>?) = dst?.let { src?.copyTo(it) } ?: 0
 suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, sliceByteArray(Platform.stringToBytes(src)))
+
+interface EmptyInterface : GoInterface {
+    companion object {
+        inline fun impl(v: Any?): EmptyInterface = EmptyInterfaceImpl(v)
+    }
+}
+
+inline class EmptyInterfaceImpl(override val v: Any?) : EmptyInterface
 
 inline fun len(v: Array<*>) = v.size
 inline fun len(v: ByteArray) = v.size

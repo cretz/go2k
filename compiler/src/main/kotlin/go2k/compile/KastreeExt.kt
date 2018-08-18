@@ -52,10 +52,14 @@ fun func(
 
 fun Int.toConst() = toString().toIntConst()
 
-fun KClass<*>.toType() = Node.Type(
+fun KClass<*>.toType(typeParams: List<Node.Type?> = emptyList()) = Node.Type(
     mods = emptyList(),
     ref = Node.TypeRef.Simple(
-        pieces = qualifiedName!!.split('.').map { Node.TypeRef.Simple.Piece(it, emptyList()) }
+        pieces = qualifiedName!!.split('.').let { names ->
+            names.mapIndexed { index, name ->
+                Node.TypeRef.Simple.Piece(name, if (index == names.size - 1) typeParams else emptyList())
+            }
+        }
     )
 )
 
@@ -106,6 +110,9 @@ fun String.untypedIntClass(): KClass<out Number> = toBigInteger().let { bigInt -
 }
 
 fun Node.Type.nullable() = copy(ref = Node.TypeRef.Nullable(ref))
+
+fun typeOp(lhs: Node.Expr, op: Node.Expr.TypeOp.Token, rhs: Node.Type) =
+    Node.Expr.TypeOp(lhs, Node.Expr.TypeOp.Oper(op), rhs)
 
 fun unaryOp(expr: Node.Expr, op: Node.Expr.UnaryOp.Token, prefix: Boolean = true) =
     Node.Expr.UnaryOp(expr = expr, oper = Node.Expr.UnaryOp.Oper(op), prefix = prefix)

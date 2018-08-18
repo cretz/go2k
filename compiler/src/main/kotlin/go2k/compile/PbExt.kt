@@ -32,6 +32,8 @@ val Expr_.Expr.typeRef get() = when (this) {
 
 val Type_.isJavaPrimitive get() =
     type is Type_.Type.TypeBasic && type.typeBasic.kind != TypeBasic.Kind.STRING
+val Type_.isNil get() =
+    type is Type_.Type.TypeNil
 val Type_.isNullable get() =
     type is Type_.Type.TypeSlice ||
     type is Type_.Type.TypePointer ||

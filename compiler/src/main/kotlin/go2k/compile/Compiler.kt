@@ -1,6 +1,7 @@
 package go2k.compile
 
 import go2k.compile.dumppb.*
+import go2k.runtime.builtin.EmptyInterface
 import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -67,6 +68,20 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
     }
 
     fun compileBinaryExpr(v: BinaryExpr) = when (v.op) {
+        Token.EQL -> call(
+            expr = "go2k.runtime.Ops.eql".toDottedExpr(),
+            args = listOf(
+                valueArg(expr = compileExpr(v.x!!)),
+                valueArg(expr = compileExpr(v.y!!).convertUntypedMaybe(v.y, v.x))
+            )
+        )
+        Token.NEQ -> call(
+            expr = "go2k.runtime.Ops.neq".toDottedExpr(),
+            args = listOf(
+                valueArg(expr = compileExpr(v.x!!)),
+                valueArg(expr = compileExpr(v.y!!).convertUntypedMaybe(v.y, v.x))
+            )
+        )
         Token.AND_NOT -> binaryOp(
             lhs = compileExpr(v.x!!),
             op = "and".toInfix(),
@@ -99,11 +114,9 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 Token.REM_ASSIGN -> Node.Expr.BinaryOp.Token.MOD_ASSN.toOper()
                 Token.LAND -> Node.Expr.BinaryOp.Token.AND.toOper()
                 Token.LOR -> Node.Expr.BinaryOp.Token.OR.toOper()
-                Token.EQL -> Node.Expr.BinaryOp.Token.EQ.toOper()
                 Token.LSS -> Node.Expr.BinaryOp.Token.LT.toOper()
                 Token.GTR -> Node.Expr.BinaryOp.Token.GT.toOper()
                 Token.ASSIGN -> Node.Expr.BinaryOp.Token.ASSN.toOper()
-                Token.NEQ -> Node.Expr.BinaryOp.Token.NEQ.toOper()
                 Token.LEQ -> Node.Expr.BinaryOp.Token.LTE.toOper()
                 Token.GEQ -> Node.Expr.BinaryOp.Token.GTE.toOper()
                 else -> error("Unrecognized op ${v.op}")
@@ -114,14 +127,32 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
 
     fun compileBlockStmt(v: BlockStmt) = Node.Block(v.list.flatMap { compileStmt(it) })
 
-    fun compileCallExpr(v: CallExpr) = call(
-        expr = compileExpr(v.`fun`!!),
-        args = v.args.map {
-            // We choose to have vararg params be slices instead of supporting
-            // Kotlin splats which only work on arrays
-            Node.ValueArg(name = null, expr = compileExpr(it), asterisk = false)
-        }
-    )
+    fun compileCallExpr(v: CallExpr): Node.Expr {
+        val funType = v.`fun`!!.expr!!.typeRef!!.namedType
+        // If the function is a const type, it's a conversion instead of a function call
+        return if (funType.type is Type_.Type.TypeConst) {
+            // Must be a singular arg
+            val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
+            // If the arg is nil, the expr is nil, otherwise TODO
+            val argExpr =
+                if (arg.expr!!.typeRef!!.namedType.isNil) Node.Expr.Const("null", Node.Expr.Const.Form.NULL)
+                else TODO() // TODO: take underlying out of interface, etc
+            // Now it is just an as
+            // TODO: obviously primitive conversions are different...
+            typeOp(
+                lhs = argExpr,
+                op = Node.Expr.TypeOp.Token.AS,
+                rhs = compileType(funType)
+            )
+        } else call(
+            expr = compileExpr(v.`fun`),
+            args = v.args.map {
+                // We choose to have vararg params be slices instead of supporting
+                // Kotlin splats which only work on arrays
+                Node.ValueArg(name = null, expr = compileExpr(it), asterisk = false)
+            }
+        )
+    }
 
     fun compileConstantValue(v: TypeConst): Node.Expr {
         var constVal = v.value?.value
@@ -198,7 +229,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Expr_.Expr.BasicLit -> compileBasicLit(v.basicLit)
         is Expr_.Expr.FuncLit -> compileFuncLit(v.funcLit)
         is Expr_.Expr.CompositeLit -> TODO()
-        is Expr_.Expr.ParenExpr -> TODO()
+        is Expr_.Expr.ParenExpr -> compileParenExpr(v.parenExpr)
         is Expr_.Expr.SelectorExpr -> TODO()
         is Expr_.Expr.IndexExpr -> TODO()
         is Expr_.Expr.SliceExpr -> TODO()
@@ -231,7 +262,9 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
     }
 
     fun compileFuncDecl(name: String?, type: FuncType, body: BlockStmt?): Node.Decl.Func {
-        var mods = listOf(Node.Modifier.Keyword.SUSPEND.toMod())
+        var mods = emptyList<Node.Modifier>()
+        // TODO: Anon functions sadly can't be suspended yet, ref: https://youtrack.jetbrains.com/issue/KT-18346
+        if (name != null) mods += Node.Modifier.Keyword.SUSPEND.toMod()
         if (name != null && name.first().isLowerCase()) mods += Node.Modifier.Keyword.INTERNAL.toMod()
         return func(
             mods = mods,
@@ -254,19 +287,6 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
     }
 
     fun compileFuncLit(v: FuncLit) = Node.Expr.AnonFunc(compileFuncDecl(null, v.type!!, v.body))
-
-    fun compileFuncType(v: FuncType) = func(
-        mods = listOf(Node.Modifier.Keyword.SUSPEND.toMod())
-    )
-
-    fun compileFuncParams(v: FuncType) = (v.params?.list ?: emptyList()).flatMap { field ->
-        field.names.map { name ->
-            param(
-                name = name.name.javaIdent,
-                type = compileTypeRef(field.type!!.expr!!.typeRef!!)
-            )
-        }
-    }
 
     fun compileGenDecl(v: GenDecl, topLevel: Boolean) = v.specs.flatMap {
         compileSpec(it.spec!!, v.tok == Token.CONST, topLevel)
@@ -385,6 +405,8 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         )
     }
 
+    fun compileParenExpr(v: ParenExpr) = Node.Expr.Paren(compileExpr(v.x!!))
+
     fun compileReturnStmt(v: ReturnStmt) = Node.Stmt.Expr(
         Node.Expr.Return(
             label = null,
@@ -433,12 +455,8 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Type_.Type.TypeBasic -> v.type.typeBasic.kotlinPrimitiveType(v.name).toType()
         is Type_.Type.TypeBuiltin -> TODO()
         is Type_.Type.TypeChan -> TODO()
-        is Type_.Type.TypeConst -> {
-            val iface = v.type.typeConst.type!!.namedType.also {
-                if (it.type !is Type_.Type.TypeInterface) TODO("Only iface consts atm")
-            }
-            compileType(iface)
-        }
+        is Type_.Type.TypeConst ->
+            compileType(v.type.typeConst.type!!.namedType)
         is Type_.Type.TypeFunc -> TODO()
         is Type_.Type.TypeInterface -> {
             if (v.type.typeInterface.embedded.isNotEmpty() || v.type.typeInterface.explicitMethods.isNotEmpty()) {
@@ -446,7 +464,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 // in the same package that matches?)
                 TODO()
             }
-            Any::class.toType().nullable()
+            EmptyInterface::class.toType().nullable()
         }
         is Type_.Type.TypeLabel -> TODO()
         is Type_.Type.TypeMap -> TODO()
@@ -454,12 +472,18 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Type_.Type.TypeNamed -> TODO()
         is Type_.Type.TypeNil -> TODO()
         is Type_.Type.TypePackage -> TODO()
-        is Type_.Type.TypePointer -> TODO()
+        is Type_.Type.TypePointer -> compileTypePointer(v.type.typePointer)
         is Type_.Type.TypeSignature -> TODO()
         is Type_.Type.TypeSlice -> TODO()
         is Type_.Type.TypeStruct -> TODO()
         is Type_.Type.TypeTuple -> TODO()
         is Type_.Type.TypeVar -> compileTypeRef(v.type.typeVar)
+    }
+
+    fun compileTypePointer(v: TypePointer) = compileTypeRef(v.elem!!).let { type ->
+        // Basically compile the underlying type, and if it's already nullable, this is nested
+        if (type.ref !is Node.TypeRef.Nullable) type.nullable()
+        else NESTED_PTR_CLASS.toType(listOf(type))
     }
 
     fun compileTypeRef(v: TypeRef) = compileType(v.namedType)
