@@ -113,13 +113,13 @@ func floats() {
 }
 
 // func interfaces() {
-// var (
-// 	nilN interface{}
+// 	var (
+// nilN interface{}
 // nilI *int
-// five = 5
+// 	five = 5
 
-// _ = nil == interface{}(nil)
-// _ = interface{}(nil) == nil
+// 	_ = nil == interface{}(nil)
+// 	_ = interface{}(nil) == nil
 // )
 // ii := func(i1 interface{}, i2 interface{}) bool { return i1 == i2 }
 // ni := func(n interface{}, i int) bool { return n == i }
@@ -140,10 +140,10 @@ func floats() {
 // assert((interface{}(nil) == &five) == ip(nilN, &five),
 // 	"for interface{}==*int compiler == runtime")
 
-// assert((5 == interface{}(5)) == ni(five, five),
-// 	"for int==interface{} compiler == runtime")
-// assert((interface{}(5) == 5) == in(five, five),
-// 	"for interface{}==int comipiler == runtime")
+// 	assert((5 == interface{}(5)) == ni(five, five),
+// 		"for int==interface{} compiler == runtime")
+// 	assert((interface{}(5) == 5) == in(five, five),
+// 		"for interface{}==int comipiler == runtime")
 // }
 
 func main() {

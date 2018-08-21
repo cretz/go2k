@@ -32,6 +32,8 @@ fun call(
 
 fun Char.toConst() = Node.Expr.Const(toString(), Node.Expr.Const.Form.CHAR)
 
+fun constExpr(value: String, form: Node.Expr.Const.Form) = Node.Expr.Const(value, form)
+
 fun Double.toConst() = Node.Expr.Const(toString(), Node.Expr.Const.Form.FLOAT)
 
 fun Node.Expr.BinaryOp.Token.toOper() = Node.Expr.BinaryOp.Oper.Token(this)
@@ -87,6 +89,8 @@ fun property(
     accessors: Node.Decl.Property.Accessors? = null
 ) = Node.Decl.Property(mods, readOnly, typeParams, receiverType, vars, typeConstraints, delegated, expr, accessors)
 
+fun propVar(name: String, type: Node.Type? = null) = Node.Decl.Property.Var(name, type)
+
 // TODO: escaping and stuff
 fun String.toDottedExpr() = split('.').let {
     it.drop(1).fold(Node.Expr.Name(it.first()) as Node.Expr) { expr, piece ->
@@ -110,6 +114,15 @@ fun String.untypedIntClass(): KClass<out Number> = toBigInteger().let { bigInt -
 }
 
 fun Node.Type.nullable() = copy(ref = Node.TypeRef.Nullable(ref))
+
+fun Node.TypeRef.toDottedExpr(): Node.Expr {
+    if (this !is Node.TypeRef.Simple) error("Expected simple type")
+    require(pieces.first().typeParams.isEmpty())
+    return pieces.drop(1).fold(pieces.first().name.toName() as Node.Expr) { expr, piece ->
+        require(piece.typeParams.isEmpty())
+        expr.dot(piece.name.toName())
+    }
+}
 
 fun typeOp(lhs: Node.Expr, op: Node.Expr.TypeOp.Token, rhs: Node.Type) =
     Node.Expr.TypeOp(lhs, Node.Expr.TypeOp.Oper(op), rhs)

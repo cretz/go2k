@@ -1,16 +1,17 @@
 package go2k.compile
 
 import go2k.compile.dumppb.*
+import go2k.runtime.Ops
 import go2k.runtime.builtin.EmptyInterface
+import go2k.runtime.runMain
 import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
-import kotlin.reflect.KClass
 
 @ExperimentalUnsignedTypes
-open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
+open class Compiler {
 
-    fun compileAssignStmt(v: AssignStmt): Node.Stmt {
+    fun Context.compileAssignStmt(v: AssignStmt): Node.Stmt {
         // For definitions, it's a property instead with no explicit type
         if (v.tok == Token.DEFINE) {
             val singleLhs = v.lhs.singleOrNull() ?: TODO("multi assign")
@@ -18,8 +19,8 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
             val singleRhs = v.rhs.singleOrNull() ?: TODO("multi assign")
             return Node.Stmt.Decl(
                 property(
-                    vars = listOf(Node.Decl.Property.Var(name = ident.name.javaIdent, type = null)),
-                    expr = compileExpr(singleRhs).convertUntypedMaybe(singleRhs, singleLhs)
+                    vars = listOf(propVar(ident.name.javaIdent)),
+                    expr = compileExpr(singleRhs).convertType(singleRhs, singleLhs)
                 )
             )
         }
@@ -52,40 +53,37 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 Token.REM_ASSIGN -> Node.Expr.BinaryOp.Token.MOD_ASSN
                 else -> error("Unrecognized token: $tok")
             },
-            rhs = compileExpr(singleRhs).convertUntypedMaybe(singleRhs, singleLhs)
+            rhs = compileExpr(singleRhs).convertType(singleRhs, singleLhs)
         ))
     }
 
-    fun compileBasicLit(v: BasicLit) = when (v.kind) {
-        Token.INT -> compileConstantValue((v.typeRef?.type as Type_.Type.TypeConst).typeConst)
-        Token.FLOAT -> compileConstantValue((v.typeRef?.type as Type_.Type.TypeConst).typeConst)
+    fun Context.compileBasicLit(v: BasicLit) =  when (v.kind) {
+        Token.INT, Token.FLOAT -> compileConstantValue(v.typeRef?.typeConst!!)
         Token.IMAG -> TODO()
-        Token.CHAR -> Node.Expr.Const(v.value, Node.Expr.Const.Form.CHAR)
-        Token.STRING -> ((v.typeRef?.type as? Type_.Type.TypeConst)?.
-            typeConst?.value?.value as? ConstantValue.Value.String_)?.
-            string?.toStringTmpl() ?: error("Invalid const string")
+        Token.CHAR -> constExpr(v.value, Node.Expr.Const.Form.CHAR)
+        Token.STRING -> v.typeRef?.typeConst?.constString?.toStringTmpl() ?: error("Invalid const string")
         else -> error("Unrecognized lit kind: ${v.kind}")
     }
 
-    fun compileBinaryExpr(v: BinaryExpr) = when (v.op) {
+    fun Context.compileBinaryExpr(v: BinaryExpr) = when (v.op) {
         Token.EQL -> call(
-            expr = "go2k.runtime.Ops.eql".toDottedExpr(),
+            expr = Ops::class.ref().dot("eql".toName()),
             args = listOf(
                 valueArg(expr = compileExpr(v.x!!)),
-                valueArg(expr = compileExpr(v.y!!).convertUntypedMaybe(v.y, v.x))
+                valueArg(expr = compileExpr(v.y!!).convertType(v.y, v.x))
             )
         )
         Token.NEQ -> call(
-            expr = "go2k.runtime.Ops.neq".toDottedExpr(),
+            expr = Ops::class.ref().dot("neq".toName()),
             args = listOf(
                 valueArg(expr = compileExpr(v.x!!)),
-                valueArg(expr = compileExpr(v.y!!).convertUntypedMaybe(v.y, v.x))
+                valueArg(expr = compileExpr(v.y!!).convertType(v.y, v.x))
             )
         )
         Token.AND_NOT -> binaryOp(
             lhs = compileExpr(v.x!!),
             op = "and".toInfix(),
-            rhs = call(compileExpr(v.y!!).dot("inv".toName())).convertUntypedMaybe(v.y, v.x)
+            rhs = call(compileExpr(v.y!!).dot("inv".toName())).convertType(v.y, v.x)
         )
         Token.AND_ASSIGN -> TODO()
         Token.OR_ASSIGN -> TODO()
@@ -121,40 +119,28 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 Token.GEQ -> Node.Expr.BinaryOp.Token.GTE.toOper()
                 else -> error("Unrecognized op ${v.op}")
             },
-            rhs = compileExpr(v.y!!).convertUntypedMaybe(v.y, v.x)
+            rhs = compileExpr(v.y!!).convertType(v.y, v.x)
         )
     }
 
-    fun compileBlockStmt(v: BlockStmt) = Node.Block(v.list.flatMap { compileStmt(it) })
+    fun Context.compileBlockStmt(v: BlockStmt) = Node.Block(v.list.flatMap { compileStmt(it) })
 
-    fun compileCallExpr(v: CallExpr): Node.Expr {
+    fun Context.compileCallExpr(v: CallExpr): Node.Expr {
         val funType = v.`fun`!!.expr!!.typeRef!!.namedType
         // If the function is a const type, it's a conversion instead of a function call
         return if (funType.type is Type_.Type.TypeConst) {
             // Must be a singular arg
             val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
-            // If the arg is nil, the expr is nil, otherwise TODO
-            val argExpr =
-                if (arg.expr!!.typeRef!!.namedType.isNil) Node.Expr.Const("null", Node.Expr.Const.Form.NULL)
-                else TODO() // TODO: take underlying out of interface, etc
-            // Now it is just an as
-            // TODO: obviously primitive conversions are different...
-            typeOp(
-                lhs = argExpr,
-                op = Node.Expr.TypeOp.Token.AS,
-                rhs = compileType(funType)
-            )
+            compileExpr(arg).convertType(arg, funType.type.typeConst.type!!.namedType)
         } else call(
             expr = compileExpr(v.`fun`),
-            args = v.args.map {
-                // We choose to have vararg params be slices instead of supporting
-                // Kotlin splats which only work on arrays
-                Node.ValueArg(name = null, expr = compileExpr(it), asterisk = false)
-            }
+            // We choose to have vararg params be slices instead of supporting
+            // Kotlin splats which only work on arrays
+            args = v.args.map { valueArg(expr = compileExpr(it)) }
         )
     }
 
-    fun compileConstantValue(v: TypeConst): Node.Expr {
+    fun Context.compileConstantValue(v: TypeConst): Node.Expr {
         var constVal = v.value?.value
         val basicType = v.type?.type as? Type_.Type.TypeBasic
         // As a special case, if it's a const float masquerading as an int, treat as a float
@@ -178,7 +164,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                     TypeBasic.Kind.UNTYPED_INT ->
                         if (constVal.int.untypedIntClass() != BigInteger::class) constVal.int.toIntConst()
                         else call(
-                            expr = "go2k.runtime.BigInt".toDottedExpr(),
+                            expr = "go2k.runtime.BigInt".classRef(),
                             args = listOf(valueArg(expr = constVal.int.toStringTmpl()))
                         )
                     else -> error("Unrecognized basic int kind of $basicType")
@@ -188,7 +174,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 // Due to representability rules, we have to sometimes round down if it's too big
                 val reprClass = constVal.float.untypedFloatClass(includeFloatClass = true)
                 val bigDecCall = if (reprClass != BigDecimal::class) null else call(
-                    expr = "go2k.runtime.BigDec".toDottedExpr(),
+                    expr = "go2k.runtime.BigDec".classRef(),
                     args = listOf(valueArg(expr = constVal.float.toStringTmpl()))
                 )
                 val withDec = if (constVal.float.contains('.')) constVal.float else constVal.float + ".0"
@@ -213,16 +199,20 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         }
     }
 
-    fun compileDecl(v: Decl_.Decl, topLevel: Boolean) = when (v) {
+    fun Context.compileDecl(v: Decl_.Decl, topLevel: Boolean) = when (v) {
         is Decl_.Decl.BadDecl -> error("Bad decl: $v")
         is Decl_.Decl.GenDecl -> compileGenDecl(v.genDecl, topLevel)
         is Decl_.Decl.FuncDecl -> listOf(compileFuncDecl(v.funcDecl, topLevel))
     }
 
-    fun compileDeclStmt(v: DeclStmt) = compileDecl(v.decl!!.decl!!, topLevel = false).map { Node.Stmt.Decl(it) }
+    fun Context.compileDeclStmt(v: DeclStmt) = compileDecl(v.decl!!.decl!!, topLevel = false).map {
+        // If it's a single property with the blank identifier, just extract the init expr
+        val blank = (it as? Node.Decl.Property)?.takeIf { it.vars.singleOrNull()?.name == "_" }?.expr
+        if (blank != null) Node.Stmt.Expr(blank) else Node.Stmt.Decl(it)
+    }
 
-    fun compileExpr(v: Expr_) = compileExpr(v.expr!!)
-    fun compileExpr(v: Expr_.Expr): Node.Expr = when (v) {
+    fun Context.compileExpr(v: Expr_) = compileExpr(v.expr!!)
+    fun Context.compileExpr(v: Expr_.Expr): Node.Expr = when (v) {
         is Expr_.Expr.BadExpr -> TODO()
         is Expr_.Expr.Ident -> compileIdent(v.ident)
         is Expr_.Expr.Ellipsis -> TODO()
@@ -247,21 +237,26 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Expr_.Expr.ChanType -> TODO()
     }
 
-    fun compileExprStmt(v: ExprStmt) = Node.Stmt.Expr(compileExpr(v.x!!))
+    fun Context.compileExprStmt(v: ExprStmt) = Node.Stmt.Expr(compileExpr(v.x!!))
 
-    fun compileFile(v: File) = Node.File(
-        anns = emptyList(),
-        pkg = null,
-        imports = emptyList(),
-        decls = v.decls.flatMap { compileDecl(it.decl!!, topLevel = true) }
-    )
+    fun Context.compileFile(v: File) = v.decls.flatMap { compileDecl(it.decl!!, topLevel = true) }.let { decls ->
+        Node.File(
+            anns = emptyList(),
+            // Package and imports are set at a higher level
+            pkg = null,
+            imports = emptyList(),
+            decls = decls
+        )
+    }
 
-    fun compileFuncDecl(v: FuncDecl, topLevel: Boolean): Node.Decl.Func {
+    fun compileFile(pkg: Package, v: File) = Context(pkg).run { this to compileFile(v)  }
+
+    fun Context.compileFuncDecl(v: FuncDecl, topLevel: Boolean): Node.Decl.Func {
         if (!topLevel) TODO()
         return compileFuncDecl(v.name?.name, v.type!!, v.body)
     }
 
-    fun compileFuncDecl(name: String?, type: FuncType, body: BlockStmt?): Node.Decl.Func {
+    fun Context.compileFuncDecl(name: String?, type: FuncType, body: BlockStmt?): Node.Decl.Func {
         var mods = emptyList<Node.Modifier>()
         // TODO: Anon functions sadly can't be suspended yet, ref: https://youtrack.jetbrains.com/issue/KT-18346
         if (name != null) mods += Node.Modifier.Keyword.SUSPEND.toMod()
@@ -286,20 +281,19 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         )
     }
 
-    fun compileFuncLit(v: FuncLit) = Node.Expr.AnonFunc(compileFuncDecl(null, v.type!!, v.body))
+    fun Context.compileFuncLit(v: FuncLit) = Node.Expr.AnonFunc(compileFuncDecl(null, v.type!!, v.body))
 
-    fun compileGenDecl(v: GenDecl, topLevel: Boolean) = v.specs.flatMap {
+    fun Context.compileGenDecl(v: GenDecl, topLevel: Boolean) = v.specs.flatMap {
         compileSpec(it.spec!!, v.tok == Token.CONST, topLevel)
     }
 
-    fun compileIdent(v: Ident): Node.Expr {
-        if (v.typeRef?.type is Type_.Type.TypeBuiltin) {
-            return "go2k.runtime.builtin.${v.name}".toDottedExpr()
-        }
-        return v.name.javaName
+    fun Context.compileIdent(v: Ident) = when {
+        v.name == "nil" -> NullConst
+        v.typeRef?.type is Type_.Type.TypeBuiltin -> "go2k.runtime.builtin.${v.name}".funcRef()
+        else -> v.name.javaName
     }
 
-    fun compileIfStmt(v: IfStmt) = Node.Stmt.Expr(run {
+    fun Context.compileIfStmt(v: IfStmt) = Node.Stmt.Expr(run {
         if (v.init != null) TODO()
         Node.Expr.If(
             expr = compileExpr(v.cond!!),
@@ -310,7 +304,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         )
     })
 
-    fun compileIncDecStmt(v: IncDecStmt) = Node.Stmt.Expr(
+    fun Context.compileIncDecStmt(v: IncDecStmt) = Node.Stmt.Expr(
         Node.Expr.UnaryOp(
             expr = compileExpr(v.x!!),
             oper = Node.Expr.UnaryOp.Oper(
@@ -320,26 +314,50 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         )
     )
 
-    fun compilePackage(overrideName: String? = null): KotlinPackage {
+    fun compilePackage(pkg: Package, overrideName: String? = null): KotlinPackage {
         // Compile all files...
         var initCount = 0
-        val files = pkg.files.map {
-            it.fileName + ".kt" to compileFile(it).let {
-                val pkgName = (overrideName ?: conf.namer.packageName(pkg.path, pkg.name)).split('.')
-                it.copy(
-                    pkg = Node.Package(emptyList(), pkgName),
-                    // Change all init functions to start with dollar sign and numbered
-                    decls = it.decls.map { decl ->
-                        (decl as? Node.Decl.Func)?.takeIf { it.name == "init" }?.copy(
-                            mods = listOf(Node.Modifier.Keyword.PRIVATE.toMod()),
-                            name = "\$init${++initCount}"
-                        ) ?: decl
-                    }
+        var files = pkg.files.map { pkgFile ->
+            compileFile(pkg, pkgFile).let { (ctx, file) ->
+                Triple(
+                    pkgFile.fileName + ".kt",
+                    ctx,
+                    file.copy(
+                        pkg = Node.Package(
+                            mods = emptyList(),
+                            names = (overrideName ?: ctx.namer.packageName(pkg.path, pkg.name)).split('.')
+                        ),
+                        // Change all init functions to start with dollar sign and numbered
+                        decls = file.decls.map { decl ->
+                            (decl as? Node.Decl.Func)?.takeIf { it.name == "init" }?.copy(
+                                mods = listOf(Node.Modifier.Keyword.PRIVATE.toMod()),
+                                name = "\$init${++initCount}"
+                            ) ?: decl
+                        }
+                    )
                 )
             }
         }
 
-        // Create initializers for the top level vars (i.e. non-consts)
+        // Add package initializer and main in last file if necessary
+        files = files.dropLast(1) + files.last().let { (name, ctx, file) ->
+            var extraDecls = emptyList<Node.Decl>()
+            extraDecls += ctx.compilePackageInitializer(initCount)
+            ctx.compilePackageMain()?.also { extraDecls += it }
+            Triple(name, ctx, file.copy(decls = file.decls + extraDecls))
+        }
+
+        // Map by name and update imports
+        return KotlinPackage(files.map { (name, ctx, file) ->
+            name to file.copy(
+                imports = ctx.imports.map { (importPath, alias) ->
+                    Node.Import(names = importPath.split('.'), wildcard = false, alias = alias)
+                }
+            )
+        }.toMap())
+    }
+
+    fun Context.compilePackageInitializer(initCount: Int): Node.Decl.Func {
         val topLevelValueSpecs = pkg.files.flatMap {
             it.decls.flatMap {
                 (it.decl as? Decl_.Decl.GenDecl)?.genDecl?.takeIf { it.tok != Token.CONST }?.specs?.mapNotNull {
@@ -360,9 +378,8 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
             }
         }.toMap()
 
-        // Make a suspendable public package init in the last file that does var inits and calls init funcs
-        var extraDecls = emptyList<Node.Decl>()
-        extraDecls += func(
+        // Make a suspendable public package init that does var inits and calls init funcs
+        return func(
             mods = listOf(Node.Modifier.Keyword.SUSPEND.toMod()),
             name = "init",
             body = Node.Decl.Func.Body.Block(Node.Block(
@@ -371,8 +388,9 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 } + (1..initCount).map { initNum -> Node.Stmt.Expr(call("\$init$initNum".javaName)) }
             ))
         )
+    }
 
-        // If there is a main func and we're in the main package, we make a main with args to call it
+    fun Context.compilePackageMain(): Node.Decl.Func? {
         val hasMain = pkg.name == "main" && pkg.files.any {
             it.decls.any {
                 (it.decl as? Decl_.Decl.FuncDecl)?.funcDecl.let {
@@ -380,14 +398,14 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 }
             }
         }
-        if (hasMain) extraDecls += func(
+        return if (!hasMain) null else func(
             name = "main",
             params = listOf(param(
                 name = "args",
                 type = arrayType(String::class)
             )),
             body = Node.Decl.Func.Body.Expr(call(
-                expr = "go2k.runtime.runMain".toDottedExpr(),
+                expr = ::runMain.ref(),
                 args = listOf(
                     valueArg(expr = "args".javaName),
                     valueArg(expr = Node.Expr.DoubleColonRef.Callable(recv = null, name = "init")),
@@ -397,17 +415,11 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
                 )
             ))
         )
-
-        return KotlinPackage(
-            files = (files.dropLast(1) + files.last().let {
-                it.copy(second = it.second.copy(decls = it.second.decls + extraDecls))
-            }).toMap()
-        )
     }
 
-    fun compileParenExpr(v: ParenExpr) = Node.Expr.Paren(compileExpr(v.x!!))
+    fun Context.compileParenExpr(v: ParenExpr) = Node.Expr.Paren(compileExpr(v.x!!))
 
-    fun compileReturnStmt(v: ReturnStmt) = Node.Stmt.Expr(
+    fun Context.compileReturnStmt(v: ReturnStmt) = Node.Stmt.Expr(
         Node.Expr.Return(
             label = null,
             expr = v.results.let {
@@ -417,15 +429,15 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         )
     )
 
-    fun compileSpec(v: Spec_.Spec, const: Boolean, topLevel: Boolean) = when (v) {
+    fun Context.compileSpec(v: Spec_.Spec, const: Boolean, topLevel: Boolean) = when (v) {
         is Spec_.Spec.ImportSpec -> TODO()
         is Spec_.Spec.ValueSpec ->
             if (const) compileValueSpecConst(v.valueSpec, topLevel) else compileValueSpecVar(v.valueSpec, topLevel)
         is Spec_.Spec.TypeSpec -> TODO()
     }
 
-    fun compileStmt(v: Stmt_) = compileStmt(v.stmt!!)
-    fun compileStmt(v: Stmt_.Stmt): List<Node.Stmt> = when (v) {
+    fun Context.compileStmt(v: Stmt_) = compileStmt(v.stmt!!)
+    fun Context.compileStmt(v: Stmt_.Stmt): List<Node.Stmt> = when (v) {
         is Stmt_.Stmt.BadStmt -> TODO()
         is Stmt_.Stmt.DeclStmt -> compileDeclStmt(v.declStmt)
         is Stmt_.Stmt.EmptyStmt -> TODO()
@@ -449,7 +461,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Stmt_.Stmt.RangeStmt -> TODO()
     }
 
-    fun compileType(v: Type_): Node.Type = when (v.type) {
+    fun Context.compileType(v: Type_): Node.Type = when (v.type) {
         null -> TODO()
         is Type_.Type.TypeArray -> TODO()
         is Type_.Type.TypeBasic -> v.type.typeBasic.kotlinPrimitiveType(v.name).toType()
@@ -480,17 +492,17 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Type_.Type.TypeVar -> compileTypeRef(v.type.typeVar)
     }
 
-    fun compileTypePointer(v: TypePointer) = compileTypeRef(v.elem!!).let { type ->
+    fun Context.compileTypePointer(v: TypePointer) = compileTypeRef(v.elem!!).let { type ->
         // Basically compile the underlying type, and if it's already nullable, this is nested
         if (type.ref !is Node.TypeRef.Nullable) type.nullable()
         else NESTED_PTR_CLASS.toType(listOf(type))
     }
 
-    fun compileTypeRef(v: TypeRef) = compileType(v.namedType)
+    fun Context.compileTypeRef(v: TypeRef) = compileType(v.namedType)
 
-    fun compileTypeRefZeroExpr(v: TypeRef) = compileTypeZeroExpr(v.namedType)
+    fun Context.compileTypeRefZeroExpr(v: TypeRef) = compileTypeZeroExpr(v.namedType)
 
-    fun compileTypeZeroExpr(v: Type_): Node.Expr = when (v.type) {
+    fun Context.compileTypeZeroExpr(v: Type_): Node.Expr = when (v.type) {
         null -> error("No type")
         is Type_.Type.TypeArray -> TODO()
         is Type_.Type.TypeBasic -> when (v.type.typeBasic.kind) {
@@ -527,20 +539,35 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         is Type_.Type.TypeVar -> compileTypeRefZeroExpr(v.type.typeVar)
     }
 
-    fun compileUnaryExpr(v: UnaryExpr) = unaryOp(
-        expr = compileExpr(v.x!!),
-        op = when (v.op) {
-            Token.ADD -> Node.Expr.UnaryOp.Token.POS
-            Token.SUB -> Node.Expr.UnaryOp.Token.NEG
-            Token.INC -> Node.Expr.UnaryOp.Token.INC
-            Token.DEC -> Node.Expr.UnaryOp.Token.DEC
-            Token.NOT -> Node.Expr.UnaryOp.Token.NOT
-            else -> error("Unrecognized op: ${v.op}")
-        },
-        prefix = v.op != Token.INC && v.op != Token.DEC
-    )
+    fun Context.compileUnaryExpr(v: UnaryExpr) = compileExpr(v.x!!).let { xExpr ->
+        // An "AND" op is a pointer deref
+        if (v.op == Token.AND) {
+            // Compile type of expr, and if it's not nullable, a simple "as" nullable form works.
+            // Otherwise, it's a NestedPtr
+            val xType = compileTypeRef(v.x.expr!!.typeRef!!)
+            if (xType.ref !is Node.TypeRef.Nullable) typeOp(
+                lhs = xExpr,
+                op = Node.Expr.TypeOp.Token.AS,
+                rhs = xType.nullable()
+            ) else call(
+                expr = NESTED_PTR_CLASS.ref(),
+                args = listOf(valueArg(expr = xExpr))
+            )
+        } else unaryOp(
+            expr = xExpr,
+            op = when (v.op) {
+                Token.ADD -> Node.Expr.UnaryOp.Token.POS
+                Token.SUB -> Node.Expr.UnaryOp.Token.NEG
+                Token.INC -> Node.Expr.UnaryOp.Token.INC
+                Token.DEC -> Node.Expr.UnaryOp.Token.DEC
+                Token.NOT -> Node.Expr.UnaryOp.Token.NOT
+                else -> error("Unrecognized op: ${v.op}")
+            },
+            prefix = v.op != Token.INC && v.op != Token.DEC
+        )
+    }
 
-    fun compileValueSpecConst(v: ValueSpec, topLevel: Boolean) = v.names.zip(v.values) { id, value ->
+    fun Context.compileValueSpecConst(v: ValueSpec, topLevel: Boolean) = v.names.zip(v.values) { id, value ->
         // Consts are always declared inline, and use a const val if possible
         val typeConst = (value.expr?.typeRef?.type as? Type_.Type.TypeConst)?.typeConst
         typeConst ?: error("Unable to find type const")
@@ -564,7 +591,7 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         )
     }
 
-    fun compileValueSpecVar(v: ValueSpec, topLevel: Boolean): List<Node.Decl> {
+    fun Context.compileValueSpecVar(v: ValueSpec, topLevel: Boolean): List<Node.Decl> {
         return v.names.mapIndexed { index, id ->
             val type = (id.defTypeRef?.type as? Type_.Type.TypeVar)?.typeVar?.namedType ?: error("Can't find var type")
             // Top level vars are never inited on their own. Instead they are inited in a separate init area. Therefore,
@@ -587,96 +614,9 @@ open class Compiler(val pkg: Package, val conf: Conf = Conf()) {
         }
     }
 
-    fun Node.Expr.convertUntypedMaybe(from: Expr_, to: Expr_): Node.Expr {
-        return convertUntypedMaybe(
-            from.expr?.typeRef?.namedType ?: return this,
-            to.expr?.typeRef?.namedType ?: return this
-        )
-    }
-
-    fun Node.Expr.convertUntypedMaybe(from: Type_, to: Type_): Node.Expr {
-        val fromType = from.kotlinPrimitiveType() ?: return this
-        val toType = to.kotlinPrimitiveType() ?: return this
-        if (fromType == toType) return this
-        return when (toType) {
-            Byte::class -> call(dot("toByte".javaName))
-            Short::class -> call(dot("toShort".javaName))
-            Char::class -> call(dot("toChar".javaName))
-            Int::class -> call(dot("toInt".javaName))
-            Long::class -> call(dot("toLong".javaName))
-            UBYTE_CLASS -> call(dot("toUByte".javaName))
-            USHORT_CLASS -> call(dot("toUShort".javaName))
-            UINT_CLASS -> call(dot("toUInt".javaName))
-            ULONG_CLASS -> call(dot("toULong".javaName))
-            BigInteger::class -> call(dot("toBigInteger".javaName))
-            Float::class -> call(dot("toFloat".javaName))
-            Double::class -> call(dot("toDouble".javaName))
-            BigDecimal::class -> call(dot("toBigDecimal".javaName))
-            else -> this
-        }
-    }
-
-    // TODO
-    val String.javaIdent get() = this
-    val String.javaName get() = Node.Expr.Name(javaIdent)
-
-    fun Type_.kotlinPrimitiveType(): KClass<*>? = when (type) {
-        is Type_.Type.TypeBasic -> type.typeBasic.kotlinPrimitiveType(name)
-        is Type_.Type.TypeConst -> type.typeConst.kotlinPrimitiveType()
-        is Type_.Type.TypeVar -> type.typeVar.namedType.kotlinPrimitiveType()
-        else -> null
-    }
-
-    fun TypeConst.kotlinPrimitiveType() = type!!.namedType.kotlinPrimitiveType()?.let { primType ->
-        // Untyped is based on value
-        when (primType) {
-            BigInteger::class -> (value!!.value as ConstantValue.Value.Int_).int.untypedIntClass()
-            BigDecimal::class -> when (val v = value!!.value) {
-                is ConstantValue.Value.Int_ -> v.int.untypedFloatClass()
-                is ConstantValue.Value.Float_ -> v.float.untypedFloatClass()
-                else -> error("Unknown float type of $v")
-            }
-            else -> primType
-        }
-    }
-
-    fun TypeBasic.kotlinPrimitiveType(name: String) = when (kind) {
-        TypeBasic.Kind.BOOL, TypeBasic.Kind.UNTYPED_BOOL -> Boolean::class
-        TypeBasic.Kind.INT -> Int::class
-        TypeBasic.Kind.INT_8 -> Byte::class
-        TypeBasic.Kind.INT_16 -> Short::class
-        TypeBasic.Kind.INT_32 -> if (name == "rune") Char::class else Int::class
-        TypeBasic.Kind.INT_64 -> Long::class
-        TypeBasic.Kind.UINT, TypeBasic.Kind.UINT_32 -> UINT_CLASS
-        TypeBasic.Kind.UINT_8 -> UBYTE_CLASS
-        TypeBasic.Kind.UINT_16 -> USHORT_CLASS
-        // TODO: break this into two
-        TypeBasic.Kind.UINT_64, TypeBasic.Kind.UINT_PTR -> ULONG_CLASS
-        TypeBasic.Kind.FLOAT_32 -> Float::class
-        TypeBasic.Kind.FLOAT_64 -> Double::class
-        TypeBasic.Kind.COMPLEX_64 -> TODO()
-        TypeBasic.Kind.COMPLEX_128, TypeBasic.Kind.UNTYPED_COMPLEX -> TODO()
-        TypeBasic.Kind.STRING, TypeBasic.Kind.UNTYPED_STRING -> String::class
-        TypeBasic.Kind.UNTYPED_INT -> BigInteger::class
-        TypeBasic.Kind.UNTYPED_RUNE -> Char::class
-        TypeBasic.Kind.UNTYPED_FLOAT -> BigDecimal::class
-        TypeBasic.Kind.UNTYPED_NIL -> TODO()
-        else -> error("Unrecognized type kind: $kind")
-    }
-
-    protected val TypeRef.name get() = namedType.name
-    protected val TypeRef.namedType get() = pkg.types[id]
-    protected val TypeRef.type get() = namedType.type
-
     data class KotlinPackage(
         val files: Map<String, Node.File>
     )
 
-    data class Conf(
-        val namer: Namer = Namer.Simple()
-    )
-
-    companion object {
-        fun compilePackage(pkg: Package, overrideName: String? = null) = Compiler(pkg).compilePackage(overrideName)
-    }
+    companion object : Compiler()
 }
