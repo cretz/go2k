@@ -461,45 +461,6 @@ open class Compiler {
         is Stmt_.Stmt.RangeStmt -> TODO()
     }
 
-    fun Context.compileType(v: Type_): Node.Type = when (v.type) {
-        null -> TODO()
-        is Type_.Type.TypeArray -> TODO()
-        is Type_.Type.TypeBasic -> v.type.typeBasic.kotlinPrimitiveType(v.name).toType()
-        is Type_.Type.TypeBuiltin -> TODO()
-        is Type_.Type.TypeChan -> TODO()
-        is Type_.Type.TypeConst ->
-            compileType(v.type.typeConst.type!!.namedType)
-        is Type_.Type.TypeFunc -> TODO()
-        is Type_.Type.TypeInterface -> {
-            if (v.type.typeInterface.embedded.isNotEmpty() || v.type.typeInterface.explicitMethods.isNotEmpty()) {
-                // For anon interfaces in types, we have to create top-level interfaces (or reuse one created earlier
-                // in the same package that matches?)
-                TODO()
-            }
-            EmptyInterface::class.toType().nullable()
-        }
-        is Type_.Type.TypeLabel -> TODO()
-        is Type_.Type.TypeMap -> TODO()
-        is Type_.Type.TypeName -> compileTypeRef(v.type.typeName)
-        is Type_.Type.TypeNamed -> TODO()
-        is Type_.Type.TypeNil -> TODO()
-        is Type_.Type.TypePackage -> TODO()
-        is Type_.Type.TypePointer -> compileTypePointer(v.type.typePointer)
-        is Type_.Type.TypeSignature -> TODO()
-        is Type_.Type.TypeSlice -> TODO()
-        is Type_.Type.TypeStruct -> TODO()
-        is Type_.Type.TypeTuple -> TODO()
-        is Type_.Type.TypeVar -> compileTypeRef(v.type.typeVar)
-    }
-
-    fun Context.compileTypePointer(v: TypePointer) = compileTypeRef(v.elem!!).let { type ->
-        // Basically compile the underlying type, and if it's already nullable, this is nested
-        if (type.ref !is Node.TypeRef.Nullable) type.nullable()
-        else NESTED_PTR_CLASS.toType(listOf(type))
-    }
-
-    fun Context.compileTypeRef(v: TypeRef) = compileType(v.namedType)
-
     fun Context.compileTypeRefZeroExpr(v: TypeRef) = compileTypeZeroExpr(v.namedType)
 
     fun Context.compileTypeZeroExpr(v: Type_): Node.Expr = when (v.type) {

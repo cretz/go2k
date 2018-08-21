@@ -38,7 +38,10 @@ fun Double.toConst() = Node.Expr.Const(toString(), Node.Expr.Const.Form.FLOAT)
 
 fun Node.Expr.BinaryOp.Token.toOper() = Node.Expr.BinaryOp.Oper.Token(this)
 
-fun Node.Expr.dot(rhs: Node.Expr) = binaryOp(this, Node.Expr.BinaryOp.Token.DOT, rhs)
+fun Node.Expr.dot(rhs: Node.Expr, safe: Boolean = false) =
+    binaryOp(this, if (safe) Node.Expr.BinaryOp.Token.DOT_SAFE else Node.Expr.BinaryOp.Token.DOT, rhs)
+
+fun Node.Expr.paren() = Node.Expr.Paren(this)
 
 fun func(
     mods: List<Node.Modifier> = emptyList(),
