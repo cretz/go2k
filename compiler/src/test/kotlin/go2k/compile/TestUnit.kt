@@ -25,7 +25,8 @@ class TestUnit(
             val gopath = System.getenv("GOPATH") ?: error("Missing GOPATH")
             val testDir = Paths.get(gopath, "src/github.com/cretz/go2k/compiler/src/test/go")
             require(Files.isDirectory(testDir)) { "Missing local test dir: $testDir" }
-            Files.list(testDir).filter { it.toString().endsWith(".go") }.map { TestUnit(it) }.toList()
+            testDir.toFile().walkTopDown().
+                filter { it.toString().endsWith(".go") }.map { TestUnit(it.toPath()) }.toList()
         }
 
         val goUnits by lazy {

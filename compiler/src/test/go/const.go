@@ -1,11 +1,17 @@
+// run
+
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Test simple boolean and numeric constants.
+
 package main
 
 const (
-	c0 = 0
-
-	cm1   = -1
-	chuge = 1 << 100
-
+	c0      = 0
+	cm1     = -1
+	chuge   = 1 << 100
 	chuge_1 = chuge - 1
 	c1      = chuge >> 100
 	c3div2  = 3 / 2
@@ -80,7 +86,7 @@ func ints() {
 func floats() {
 	assert(f0 == c0, "f0")
 	assert(f1 == c1, "f1")
-	assert(fhuge == fhuge_1, "fhuge") // float64 can't distinguish fhuge, fhuge_1.
+	assert(fhuge == fhuge_1, "fhuge")
 	assert(fhuge_1+1 == fhuge, "fhuge 1")
 	assert(fhuge+fm1+1 == fhuge, "fm1")
 	assert(f3div2 == 1.5, "3./2.")
@@ -150,4 +156,7 @@ func main() {
 	ints()
 	floats()
 	interfaces()
+
+	assert(ctrue == true, "ctrue == true")
+	assert(cfalse == false, "cfalse == false")
 }

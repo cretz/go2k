@@ -1,8 +1,8 @@
 package go2k.compile
 
 import go2k.compile.dumppb.*
+import go2k.runtime.GoStruct
 import go2k.runtime.Ops
-import go2k.runtime.builtin.EmptyInterface
 import go2k.runtime.runMain
 import kastree.ast.Node
 import java.math.BigDecimal
@@ -296,6 +296,8 @@ open class Compiler {
 
     fun Context.compileIdent(v: Ident) = when {
         v.name == "nil" -> NullConst
+        v.name == "true" -> Node.Expr.Const("true", Node.Expr.Const.Form.BOOLEAN)
+        v.name == "false" -> Node.Expr.Const("false", Node.Expr.Const.Form.BOOLEAN)
         v.typeRef?.type is Type_.Type.TypeBuiltin -> "go2k.runtime.builtin.${v.name}".funcRef()
         else -> v.name.javaName
     }
@@ -306,7 +308,7 @@ open class Compiler {
             expr = compileExpr(v.cond!!),
             body = Node.Expr.Brace(emptyList(), compileBlockStmt(v.body!!)),
             elseBody = v.`else`?.let { elseBody ->
-                (compileStmt(elseBody) as? Node.Stmt.Expr)?.expr ?: error("Expected single expr stmt")
+                (compileStmt(elseBody).firstOrNull() as? Node.Stmt.Expr)?.expr ?: error("Expected single expr stmt")
             }
         )
     })
@@ -440,7 +442,7 @@ open class Compiler {
         is Spec_.Spec.ImportSpec -> TODO()
         is Spec_.Spec.ValueSpec ->
             if (const) compileValueSpecConst(v.valueSpec, topLevel) else compileValueSpecVar(v.valueSpec, topLevel)
-        is Spec_.Spec.TypeSpec -> TODO()
+        is Spec_.Spec.TypeSpec -> listOf(compileTypeSpec(v.typeSpec))
     }
 
     fun Context.compileStmt(v: Stmt_) = compileStmt(v.stmt!!)
@@ -468,7 +470,45 @@ open class Compiler {
         is Stmt_.Stmt.RangeStmt -> TODO()
     }
 
+    // Name is empty string, is not given any visibility modifier one way or another
+    fun Context.compileStructType(v: StructType): Node.Decl.Structured {
+        // TODO: more detail
+        return structured(
+            primaryConstructor = primaryConstructor(
+                params = (v.fields?.list ?: emptyList()).flatMap { field ->
+                    val typeRef = field.type!!.expr!!.typeRef!!
+                    field.names.map { name ->
+                        param(
+                            name = name.name.javaIdent,
+                            type = compileTypeRef(typeRef),
+                            default = compileTypeRefZeroExpr(typeRef)
+                        )
+                    }
+                }
+            ),
+            parents = listOf(Node.Decl.Structured.Parent.Type(
+                type = GoStruct::class.toType().ref as Node.TypeRef.Simple,
+                by = null
+            ))
+        )
+    }
+
     fun Context.compileTypeRefZeroExpr(v: TypeRef) = compileTypeZeroExpr(v.namedType)
+
+    fun Context.compileTypeSpec(v: TypeSpec): Node.Decl {
+        if (v.assign != 0) TODO("Aliases")
+        return compileTypeSpecExpr(v.name!!, v.type!!.expr!!)
+    }
+
+    fun Context.compileTypeSpecExpr(name: Ident, v: Expr_.Expr) = when (v) {
+        is Expr_.Expr.StructType -> compileTypeSpecStructType(name, v.structType)
+        else -> error("Unknown type spec type $v")
+    }
+
+    fun Context.compileTypeSpecStructType(name: Ident, v: StructType) = compileStructType(v).copy(
+        mods = if (name.isExposed) emptyList() else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
+        name = name.name.javaIdent
+    )
 
     fun Context.compileTypeZeroExpr(v: Type_): Node.Expr = when (v.type) {
         null -> error("No type")

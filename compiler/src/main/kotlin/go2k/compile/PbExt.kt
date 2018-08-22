@@ -1,9 +1,6 @@
 package go2k.compile
 
-import go2k.compile.dumppb.Expr_
-import go2k.compile.dumppb.TypeBasic
-import go2k.compile.dumppb.Type_
-import go2k.compile.dumppb.TypeRef
+import go2k.compile.dumppb.*
 
 val Expr_.Expr.typeRef get() = when (this) {
     is Expr_.Expr.BadExpr -> badExpr.typeRef
@@ -29,6 +26,10 @@ val Expr_.Expr.typeRef get() = when (this) {
     is Expr_.Expr.MapType -> mapType.typeRef
     is Expr_.Expr.ChanType -> chanType.typeRef
 }
+
+val Ident.isExposed get() = name.isExposed
+
+val String.isExposed get() = firstOrNull()?.isUpperCase() == true
 
 val Type_.isJavaPrimitive get() =
     type is Type_.Type.TypeBasic && type.typeBasic.kind != TypeBasic.Kind.STRING

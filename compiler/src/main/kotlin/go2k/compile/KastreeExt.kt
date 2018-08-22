@@ -80,6 +80,11 @@ fun param(
     default: Node.Expr? = null
 ) = Node.Decl.Func.Param(mods, readOnly, name, type, default)
 
+fun primaryConstructor(
+    mods: List<Node.Modifier> = emptyList(),
+    params: List<Node.Decl.Func.Param> = emptyList()
+) = Node.Decl.Structured.PrimaryConstructor(mods, params)
+
 fun property(
     mods: List<Node.Modifier> = emptyList(),
     readOnly: Boolean = false,
@@ -115,6 +120,19 @@ fun String.untypedIntClass(): KClass<out Number> = toBigInteger().let { bigInt -
     else if (bigInt >= Long.MIN_VALUE.toBigInteger() && bigInt <= Long.MAX_VALUE.toBigInteger()) Long::class
     else BigInteger::class
 }
+
+fun structured(
+    mods: List<Node.Modifier> = emptyList(),
+    form: Node.Decl.Structured.Form = Node.Decl.Structured.Form.CLASS,
+    name: String = "",
+    typeParams: List<Node.TypeParam> = emptyList(),
+    primaryConstructor: Node.Decl.Structured.PrimaryConstructor? = null,
+    parentAnns: List<Node.Modifier.AnnotationSet> = emptyList(),
+    parents: List<Node.Decl.Structured.Parent> = emptyList(),
+    typeConstraints: List<Node.TypeConstraint> = emptyList(),
+    members: List<Node.Decl> = emptyList()
+) = Node.Decl.Structured(mods, form, name, typeParams, primaryConstructor,
+    parentAnns, parents, typeConstraints, members)
 
 fun Node.Type.nullable() = copy(ref = Node.TypeRef.Nullable(ref))
 
