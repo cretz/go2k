@@ -49,6 +49,6 @@ class CompilerTest : TestBase() {
     companion object {
         @JvmStatic
         @Suppress("unused")
-        fun unitProvider() = TestUnit.localUnits //TestUnit.allUnits.filter { it.toString() == "const.go" }
+        fun unitProvider() = TestUnit.localUnits //.filter { it.toString() == "const.go" }
     }
 }

@@ -136,7 +136,14 @@ open class Compiler {
             expr = compileExpr(v.`fun`),
             // We choose to have vararg params be slices instead of supporting
             // Kotlin splats which only work on arrays
-            args = v.args.map { valueArg(expr = compileExpr(it)) }
+            args = (funType.convType() as TypeConverter.Type.Func).let { funConvType ->
+                v.args.mapIndexed { index, arg ->
+                    val argType = funConvType.params.getOrNull(index) ?:
+                        funConvType.params.lastOrNull()?.takeIf { funConvType.vararg } ?:
+                        error("Missing arg type for index $index")
+                    valueArg(expr = compileExpr(arg).convertType(arg, argType))
+                }
+            }
         )
     }
 

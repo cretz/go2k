@@ -1,8 +1,6 @@
 package go2k.compile
 
-import go2k.compile.dumppb.TypeRef
 import go2k.compile.dumppb.Type_
-import go2k.runtime.builtin.EmptyInterface
 import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -10,15 +8,10 @@ import kotlin.reflect.KClass
 
 open class TypeConverter {
 
-    fun convertType(ctx: Context, expr: Node.Expr, from: Type_, to: Type_) = ctx.run {
-        println("Converting type from $from to $to")
-        convertType(expr, toConvType(from), toConvType(to))
-    }
-
     fun Context.convertType(expr: Node.Expr, from: Type, to: Type): Node.Expr {
-        println("Converting local type from $from to $to")
+        //println("Converting local type from $from to $to (same? ${to == from})")
         return when (to) {
-            from -> expr
+            from, Type.RawParamForBuiltIn -> expr
             is Type.Primitive -> when (from) {
                 is Type.Primitive -> when (to.cls) {
                     from.cls -> expr
@@ -42,7 +35,7 @@ open class TypeConverter {
                         lhs = expr.paren().dot("v".toName(), safe = true),
                         op = Node.Expr.BinaryOp.Token.ELVIS,
                         rhs = NullConst
-                    ),
+                    ).paren(),
                     op = Node.Expr.TypeOp.Token.AS,
                     rhs = compileType(to.type)
                 )
@@ -80,13 +73,32 @@ open class TypeConverter {
 
     fun Context.toConvType(v: Type_): Type = when (v.type) {
         is Type_.Type.TypeBasic -> Type.Primitive(v, v.kotlinPrimitiveType() ?: error("Can't get primitive from $v"))
+        is Type_.Type.TypeBuiltin -> when (v.name) {
+            "panic" -> Type.Func(v, null, listOf(Type.RawParamForBuiltIn), emptyList(), false)
+            "println" -> Type.Func(v, null, listOf(Type.RawParamForBuiltIn), emptyList(), true)
+            else -> error("Unknown built in '${v.name}'")
+        }
         is Type_.Type.TypeConst -> {
             // Try primitive first
             v.kotlinPrimitiveType()?.let { Type.Primitive(v, it) } ?: toConvType(v.type.typeConst.type!!.namedType)
         }
+        is Type_.Type.TypeFunc -> Type.Func(
+            type = v,
+            recv = v.type.typeFunc.recv?.namedType?.let { toConvType(it) },
+            params = v.type.typeFunc.params.map { toConvType(it.namedType) },
+            results = v.type.typeFunc.results.map { toConvType(it.namedType) },
+            vararg = false
+        )
         is Type_.Type.TypeInterface ->  Type.Interface(v)
         is Type_.Type.TypeNil -> Type.Nil(v)
         is Type_.Type.TypePointer -> Type.Pointer(v)
+        is Type_.Type.TypeSignature -> Type.Func(
+            type = v,
+            recv = v.type.typeSignature.recv?.namedType?.let { toConvType(it) },
+            params = v.type.typeSignature.params.map { toConvType(it.namedType) },
+            results = v.type.typeSignature.results.map { toConvType(it.namedType) },
+            vararg = false
+        )
         is Type_.Type.TypeVar -> toConvType(v.type.typeVar.namedType)
         else -> TODO("Unknown type: $v")
     }
@@ -99,6 +111,16 @@ open class TypeConverter {
         data class Interface(override val type: Type_) : Type()
         data class Nil(override val type: Type_) : Type()
         data class Pointer(override val type: Type_) : Type()
+        data class Func(
+            override val type: Type_,
+            val recv: Type?,
+            val params: List<Type>,
+            val results: List<Type>,
+            val vararg: Boolean
+        ) : Type()
+        object RawParamForBuiltIn : Type() {
+            override val type = Type_()
+        }
     }
 
     companion object : TypeConverter()

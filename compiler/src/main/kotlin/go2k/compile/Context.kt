@@ -82,7 +82,14 @@ class Context(
         return convertType(fromTypeOf.expr?.typeRef?.namedType ?: return this, to)
     }
 
-    fun Node.Expr.convertType(from: Type_, to: Type_) = typeConv.convertType(this@Context, this, from, to)
+    fun Node.Expr.convertType(fromTypeOf: Expr_, to: TypeConverter.Type): Node.Expr {
+        return convertType(fromTypeOf.expr?.typeRef?.namedType ?: return this, to)
+    }
+
+    fun Node.Expr.convertType(from: Type_, to: Type_) = convertType(from.convType(), to.convType())
+    fun Node.Expr.convertType(from: Type_, to: TypeConverter.Type) = convertType(from.convType(), to)
+    fun Node.Expr.convertType(from: TypeConverter.Type, to: TypeConverter.Type) =
+        typeConv.run { convertType(this@convertType, from, to) }
 
     val String.javaIdent get() = this
     val String.javaName get() = Node.Expr.Name(javaIdent)
@@ -90,6 +97,7 @@ class Context(
     fun String.classRef() = toDottedExpr()
     fun String.funcRef() = toDottedExpr()
 
+    fun Type_.convType() = typeConv.run { toConvType(this@convType) }
     fun Type_.kotlinPrimitiveType(): KClass<*>? = when (type) {
         is Type_.Type.TypeBasic -> type.typeBasic.kotlinPrimitiveType(name)
         is Type_.Type.TypeConst -> type.typeConst.kotlinPrimitiveType()
