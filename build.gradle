@@ -1,12 +1,8 @@
 buildscript {
-    ext.kotlin_version = '1.3-M1'
+    ext.kotlin_version = '1.3.10'
 
     repositories {
         mavenCentral()
-        // Needed for pre-release of Kotlin, remove when on regular release
-        maven {
-            url 'http://dl.bintray.com/kotlin/kotlin-eap'
-        }
     }
 
     dependencies {
@@ -17,10 +13,6 @@ buildscript {
 allprojects {
     repositories {
         mavenCentral()
-        // Needed for pre-release of Kotlin, remove when on regular release
-        maven { url 'http://dl.bintray.com/kotlin/kotlin-eap' }
-        // Needed for kastree snapshot, remove when on regular release
-        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
     }
 }
 project(':compiler') {
@@ -41,7 +33,7 @@ project(':compiler') {
         compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
         compile 'org.jetbrains.kotlin:kotlin-reflect'
         compile 'org.jetbrains.kotlin:kotlin-compiler'
-        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.2.0-SNAPSHOT'
+        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.2.0'
         compile 'com.github.cretz.pbandk:pbandk-runtime-jvm:0.2.0'
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
         testImplementation 'org.junit.jupiter:junit-jupiter-params:5.1.0'
@@ -103,7 +95,7 @@ project(':runtime:runtime-common') {
     apply plugin: 'kotlin-platform-common'
     dependencies {
         compile "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
-        compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core-common:0.24.0-eap13'
+        compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core-common:1.0.1'
         testCompile "org.jetbrains.kotlin:kotlin-test-annotations-common:$kotlin_version"
         testCompile "org.jetbrains.kotlin:kotlin-test-common:$kotlin_version"
     }
@@ -121,7 +113,7 @@ project(':runtime:runtime-jvm') {
     dependencies {
         expectedBy project(':runtime:runtime-common')
         compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-        compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.24.0-eap13'
+        compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.1'
         testCompile 'junit:junit:4.12'
         testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
         testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"

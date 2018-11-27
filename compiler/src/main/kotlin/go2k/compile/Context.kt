@@ -1,6 +1,7 @@
 package go2k.compile
 
 import go2k.compile.dumppb.*
+import go2k.runtime.Slice
 import go2k.runtime.builtin.EmptyInterface
 import kastree.ast.Node
 import java.math.BigDecimal
@@ -54,7 +55,7 @@ class Context(
         is Type_.Type.TypePackage -> TODO()
         is Type_.Type.TypePointer -> compileTypePointer(v.type.typePointer)
         is Type_.Type.TypeSignature -> TODO()
-        is Type_.Type.TypeSlice -> TODO()
+        is Type_.Type.TypeSlice -> Slice::class.toType(listOf(compileTypeRef(v.type.typeSlice.elem!!))).nullable()
         is Type_.Type.TypeStruct -> TODO()
         is Type_.Type.TypeTuple -> TODO()
         is Type_.Type.TypeVar -> compileTypeRef(v.type.typeVar)

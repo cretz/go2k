@@ -1,3 +1,5 @@
+// Test init order
+
 package main
 
 var (

@@ -67,6 +67,14 @@ open class TypeConverter {
                     rhs = compileType(to.type)
                 )
             }
+            is Type.Slice -> when (from) {
+                is Type.Nil -> typeOp(
+                    lhs = expr,
+                    op = Node.Expr.TypeOp.Token.AS,
+                    rhs = compileType(to.type)
+                )
+                else -> TODO()
+            }
             else -> error("Unable to convert $from to $to")
         }
     }
@@ -74,6 +82,8 @@ open class TypeConverter {
     fun Context.toConvType(v: Type_): Type = when (v.type) {
         is Type_.Type.TypeBasic -> Type.Primitive(v, v.kotlinPrimitiveType() ?: error("Can't get primitive from $v"))
         is Type_.Type.TypeBuiltin -> when (v.name) {
+            "cap", "len" ->
+                Type.Func(v, null, listOf(Type.RawParamForBuiltIn), listOf(Type.Primitive(Type_(), Int::class)), false)
             "panic" -> Type.Func(v, null, listOf(Type.RawParamForBuiltIn), emptyList(), false)
             "println" -> Type.Func(v, null, listOf(Type.RawParamForBuiltIn), emptyList(), true)
             else -> error("Unknown built in '${v.name}'")
@@ -99,6 +109,7 @@ open class TypeConverter {
             results = v.type.typeSignature.results.map { toConvType(it.namedType) },
             vararg = false
         )
+        is Type_.Type.TypeSlice -> Type.Slice(v, toConvType(v.type.typeSlice.elem!!.namedType))
         is Type_.Type.TypeVar -> toConvType(v.type.typeVar.namedType)
         else -> TODO("Unknown type: $v")
     }
@@ -118,6 +129,7 @@ open class TypeConverter {
             val results: List<Type>,
             val vararg: Boolean
         ) : Type()
+        data class Slice(override val type: Type_, val elemType: Type) : Type()
         object RawParamForBuiltIn : Type() {
             override val type = Type_()
         }

@@ -113,3 +113,6 @@ inline fun sliceBooleanArray(arr: BooleanArray, low: Int = 0, high: Int = arr.si
     sliceFactory.newBooleanSlice(arr, low, high, max)
 inline fun sliceCharArray(arr: CharArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newCharSlice(arr, low, high, max)
+
+// TODO
+data class PrimitiveSlicePtr<T>(val slice: Slice<T>, val v: T, val index: Int)

@@ -3,6 +3,7 @@ package go2k.compile
 import go2k.compile.dumppb.*
 import go2k.runtime.GoStruct
 import go2k.runtime.Ops
+import go2k.runtime.builtin.sliceIntArray
 import go2k.runtime.runMain
 import kastree.ast.Node
 import java.math.BigDecimal
@@ -147,63 +148,87 @@ open class Compiler {
         )
     }
 
+    fun Context.compileCompositeLit(v: CompositeLit) = when (v.type?.expr) {
+        is Expr_.Expr.ArrayType -> {
+            if (v.type.expr.arrayType.len != null) TODO("array lit")
+            val sliceType = v.typeRef!!.namedType.convType() as TypeConverter.Type.Slice
+            val (createArrayFun, sliceArrayFun) = when (sliceType.elemType) {
+                is TypeConverter.Type.Primitive -> when (sliceType.elemType.cls) {
+                    Int::class -> "kotlin.intArrayOf".funcRef() to "go2k.runtime.builtin.sliceIntArray".funcRef()
+                    else -> TODO()
+                }
+                else -> TODO()
+            }
+            call(
+                expr = sliceArrayFun,
+                args = listOf(valueArg(expr = call(
+                    expr = createArrayFun,
+                    args = v.elts.map { valueArg(expr = compileExpr(it).convertType(it, sliceType.elemType)) }
+                )))
+            )
+        }
+        else -> error("Unknown composite lit type: ${v.type}")
+    }
+
     fun Context.compileConstantValue(v: TypeConst): Node.Expr {
-        var constVal = v.value?.value
-        val basicType = v.type?.type as? Type_.Type.TypeBasic
+        var constVal = v.value?.value ?: error("Missing const value")
+        val basicType = v.type?.type as? Type_.Type.TypeBasic ?: error("Expected basic type, got ${v.type?.type}")
         // As a special case, if it's a const float masquerading as an int, treat as a float
-        if (constVal is ConstantValue.Value.Int_ && basicType?.typeBasic?.kind == TypeBasic.Kind.UNTYPED_FLOAT) {
+        if (constVal is ConstantValue.Value.Int_ && basicType.typeBasic.kind == TypeBasic.Kind.UNTYPED_FLOAT) {
             constVal = ConstantValue.Value.Float_(float = constVal.int)
         }
-        return when (constVal) {
-            null -> error("Unknown constant type")
-            is ConstantValue.Value.Bool ->
-                Node.Expr.Const(if (constVal.bool) "true" else "false", Node.Expr.Const.Form.BOOLEAN)
-            is ConstantValue.Value.Int_ -> {
-                when (basicType?.typeBasic?.kind) {
-                    TypeBasic.Kind.INT, TypeBasic.Kind.INT_32 -> constVal.int.toIntConst()
-                    TypeBasic.Kind.INT_8 -> call(constVal.int.toIntConst().dot("toByte".toName()))
-                    TypeBasic.Kind.INT_16 -> call(constVal.int.toIntConst().dot("toShort".toName()))
-                    TypeBasic.Kind.INT_64 -> (constVal.int + "L").toIntConst()
-                    TypeBasic.Kind.UINT, TypeBasic.Kind.UINT_32 -> (constVal.int + "u").toIntConst()
-                    TypeBasic.Kind.UINT_8 -> call((constVal.int + "u").toIntConst().dot("toUByte".toName()))
-                    TypeBasic.Kind.UINT_16 -> call((constVal.int + "u").toIntConst().dot("toUShort".toName()))
-                    TypeBasic.Kind.UINT_64 -> (constVal.int + "uL").toIntConst()
-                    TypeBasic.Kind.UNTYPED_INT ->
-                        if (constVal.int.untypedIntClass() != BigInteger::class) constVal.int.toIntConst()
-                        else call(
-                            expr = "go2k.runtime.BigInt".classRef(),
-                            args = listOf(valueArg(expr = constVal.int.toStringTmpl()))
-                        )
-                    else -> error("Unrecognized basic int kind of $basicType")
-                }
+        return compileConstantValue(basicType.typeBasic.kind, constVal)
+    }
+
+    fun Context.compileConstantValue(kind: TypeBasic.Kind, v: ConstantValue.Value) = when (v) {
+        is ConstantValue.Value.Bool ->
+            Node.Expr.Const(if (v.bool) "true" else "false", Node.Expr.Const.Form.BOOLEAN)
+        is ConstantValue.Value.Int_ -> {
+            when (kind) {
+                TypeBasic.Kind.INT, TypeBasic.Kind.INT_32 -> v.int.toIntConst()
+                TypeBasic.Kind.INT_8 -> call(v.int.toIntConst().dot("toByte".toName()))
+                TypeBasic.Kind.INT_16 -> call(v.int.toIntConst().dot("toShort".toName()))
+                TypeBasic.Kind.INT_64 -> (v.int + "L").toIntConst()
+                TypeBasic.Kind.UINT, TypeBasic.Kind.UINT_32 -> (v.int + "u").toIntConst()
+                TypeBasic.Kind.UINT_8 -> call((v.int + "u").toIntConst().dot("toUByte".toName()))
+                TypeBasic.Kind.UINT_16 -> call((v.int + "u").toIntConst().dot("toUShort".toName()))
+                TypeBasic.Kind.UINT_64 -> (v.int + "uL").toIntConst()
+                TypeBasic.Kind.UNTYPED_INT ->
+                    if (v.int.untypedIntClass() != BigInteger::class) v.int.toIntConst()
+                    else call(
+                        expr = "go2k.runtime.BigInt".classRef(),
+                        args = listOf(valueArg(expr = v.int.toStringTmpl()))
+                    )
+                else -> error("Unrecognized basic int kind of $kind")
             }
-            is ConstantValue.Value.Float_ -> {
-                // Due to representability rules, we have to sometimes round down if it's too big
-                val reprClass = constVal.float.untypedFloatClass(includeFloatClass = true)
-                val bigDecCall = if (reprClass != BigDecimal::class) null else call(
-                    expr = "go2k.runtime.BigDec".classRef(),
-                    args = listOf(valueArg(expr = constVal.float.toStringTmpl()))
-                )
-                val withDec = if (constVal.float.contains('.')) constVal.float else constVal.float + ".0"
-                when (basicType?.typeBasic?.kind) {
-                    TypeBasic.Kind.FLOAT_32 -> when (reprClass) {
-                        Float::class -> (withDec + "f").toFloatConst()
-                        Double::class -> call(withDec.toFloatConst().dot("toFloat".toName()))
-                        else -> call(bigDecCall!!.dot("toFloat".toName()))
-                    }
-                    TypeBasic.Kind.FLOAT_64 -> when (reprClass) {
-                        Float::class, Double::class -> withDec.toFloatConst()
-                        else -> call(bigDecCall!!.dot("toDouble".toName()))
-                    }
-                    TypeBasic.Kind.UNTYPED_FLOAT -> when (reprClass) {
-                        Float::class, Double::class -> withDec.toFloatConst()
-                        else -> bigDecCall!!
-                    }
-                    else -> error("Unrecognized basic float kind of $basicType")
-                }
-            }
-            else -> TODO("$constVal")
         }
+        is ConstantValue.Value.Float_ -> {
+            // Due to representability rules, we have to sometimes round down if it's too big
+            val reprClass = v.float.untypedFloatClass(includeFloatClass = true)
+            val bigDecCall = if (reprClass != BigDecimal::class) null else call(
+                expr = "go2k.runtime.BigDec".classRef(),
+                args = listOf(valueArg(expr = v.float.toStringTmpl()))
+            )
+            val withDec = if (v.float.contains('.')) v.float else v.float + ".0"
+            when (kind) {
+                TypeBasic.Kind.FLOAT_32 -> when (reprClass) {
+                    Float::class -> (withDec + "f").toFloatConst()
+                    Double::class -> call(withDec.toFloatConst().dot("toFloat".toName()))
+                    else -> call(bigDecCall!!.dot("toFloat".toName()))
+                }
+                TypeBasic.Kind.FLOAT_64 -> when (reprClass) {
+                    Float::class, Double::class -> withDec.toFloatConst()
+                    else -> call(bigDecCall!!.dot("toDouble".toName()))
+                }
+                TypeBasic.Kind.UNTYPED_FLOAT -> when (reprClass) {
+                    Float::class, Double::class -> withDec.toFloatConst()
+                    else -> bigDecCall!!
+                }
+                else -> error("Unrecognized basic float kind of $kind")
+            }
+        }
+        is ConstantValue.Value.String_ -> v.string.toStringTmpl()
+        else -> TODO("$v")
     }
 
     fun Context.compileDecl(v: Decl_.Decl, topLevel: Boolean) = when (v) {
@@ -225,10 +250,10 @@ open class Compiler {
         is Expr_.Expr.Ellipsis -> TODO()
         is Expr_.Expr.BasicLit -> compileBasicLit(v.basicLit)
         is Expr_.Expr.FuncLit -> compileFuncLit(v.funcLit)
-        is Expr_.Expr.CompositeLit -> TODO()
+        is Expr_.Expr.CompositeLit -> compileCompositeLit(v.compositeLit)
         is Expr_.Expr.ParenExpr -> compileParenExpr(v.parenExpr)
         is Expr_.Expr.SelectorExpr -> TODO()
-        is Expr_.Expr.IndexExpr -> TODO()
+        is Expr_.Expr.IndexExpr -> compileIndexExpr(v.indexExpr)
         is Expr_.Expr.SliceExpr -> TODO()
         is Expr_.Expr.TypeAssertExpr -> TODO()
         is Expr_.Expr.CallExpr -> compileCallExpr(v.callExpr)
@@ -322,6 +347,8 @@ open class Compiler {
             prefix = false
         )
     )
+
+    fun Context.compileIndexExpr(v: IndexExpr): Node.Expr = TODO()
 
     fun compilePackage(pkg: Package, overrideName: String? = null): KotlinPackage {
         // Compile all files...
@@ -479,6 +506,7 @@ open class Compiler {
                     val typeRef = field.type!!.expr!!.typeRef!!
                     field.names.map { name ->
                         param(
+                            readOnly = false,
                             name = name.name.javaIdent,
                             type = compileTypeRef(typeRef),
                             default = compileTypeRefZeroExpr(typeRef)
@@ -515,17 +543,16 @@ open class Compiler {
         is Type_.Type.TypeArray -> TODO()
         is Type_.Type.TypeBasic -> when (v.type.typeBasic.kind) {
             TypeBasic.Kind.BOOL, TypeBasic.Kind.UNTYPED_BOOL ->
-                false.toConst()
+                compileConstantValue(v.type.typeBasic.kind, ConstantValue.Value.Bool(false))
             TypeBasic.Kind.INT, TypeBasic.Kind.INT_8, TypeBasic.Kind.INT_16, TypeBasic.Kind.INT_32,
                 TypeBasic.Kind.INT_64, TypeBasic.Kind.UINT, TypeBasic.Kind.UINT_8, TypeBasic.Kind.UINT_16,
-                TypeBasic.Kind.UINT_32, TypeBasic.Kind.UINT_64, TypeBasic.Kind.UINT_PTR, TypeBasic.Kind.UNTYPED_INT ->
-                0.toConst()
+                TypeBasic.Kind.UINT_32, TypeBasic.Kind.UINT_64, TypeBasic.Kind.UINT_PTR,
+                TypeBasic.Kind.UNTYPED_INT, TypeBasic.Kind.UNTYPED_RUNE ->
+                compileConstantValue(v.type.typeBasic.kind, ConstantValue.Value.Int_("0"))
             TypeBasic.Kind.FLOAT_32, TypeBasic.Kind.FLOAT_64, TypeBasic.Kind.UNTYPED_FLOAT ->
-                0.0.toConst()
+                compileConstantValue(v.type.typeBasic.kind, ConstantValue.Value.Float_("0.0"))
             TypeBasic.Kind.STRING, TypeBasic.Kind.UNTYPED_STRING ->
-                "".toStringTmpl()
-            TypeBasic.Kind.UNTYPED_RUNE ->
-                0.toChar().toConst()
+                compileConstantValue(v.type.typeBasic.kind, ConstantValue.Value.String_(""))
             TypeBasic.Kind.UNTYPED_NIL ->
                 NullConst
             else ->

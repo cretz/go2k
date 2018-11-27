@@ -5,10 +5,11 @@ import kastree.ast.ExtrasMap
 import kastree.ast.Node
 import kastree.ast.Writer
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
+import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoot
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageLocation
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.cli.common.messages.MessageRenderer
-import org.jetbrains.kotlin.cli.common.output.outputUtils.writeAllTo
+import org.jetbrains.kotlin.cli.common.output.writeAllTo
 import org.jetbrains.kotlin.cli.jvm.compiler.CompileEnvironmentUtil
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
@@ -20,8 +21,7 @@ import org.jetbrains.kotlin.codegen.GeneratedClassLoader
 import org.jetbrains.kotlin.codegen.state.GenerationState
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.config.JVMConfigurationKeys
-import org.jetbrains.kotlin.config.addKotlinSourceRoot
+import org.jetbrains.kotlin.config.languageVersionSettings
 import org.jetbrains.kotlin.fileClasses.JvmFileClassUtil
 import org.jetbrains.kotlin.idea.MainFunctionDetector
 import org.jetbrains.kotlin.load.java.JvmAbi
@@ -101,7 +101,7 @@ open class JvmCompiler(
 
         class FromKotlinCompiler(val env: KotlinCoreEnvironment, val state: GenerationState) : Compiled {
             val mainClassFqName by lazy {
-                MainFunctionDetector(state.bindingContext).let { detect ->
+                MainFunctionDetector(state.bindingContext, env.configuration.languageVersionSettings).let { detect ->
                     env.getSourceFiles().singleOrNull { detect.hasMain(it.declarations) }?.let {
                         JvmFileClassUtil.getFileClassInfoNoResolve(it).facadeClassFqName
                     }
@@ -112,7 +112,7 @@ open class JvmCompiler(
 
             override fun newClassLoader(parent: ClassLoader?): ClassLoader {
                 val parentLoader = parent ?: URLClassLoader(
-                    env.configuration.getList(JVMConfigurationKeys.CONTENT_ROOTS).mapNotNull {
+                    env.configuration.getList(CLIConfigurationKeys.CONTENT_ROOTS).mapNotNull {
                         when (it) {
                             is JvmModulePathRoot -> it.file.toURI().toURL()
                             is JvmClasspathRoot -> it.file.toURI().toURL()
