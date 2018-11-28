@@ -41,6 +41,8 @@ fun Node.Expr.BinaryOp.Token.toOper() = Node.Expr.BinaryOp.Oper.Token(this)
 fun Node.Expr.dot(rhs: Node.Expr, safe: Boolean = false) =
     binaryOp(this, if (safe) Node.Expr.BinaryOp.Token.DOT_SAFE else Node.Expr.BinaryOp.Token.DOT, rhs)
 
+fun Node.Expr.nullDeref() = unaryOp(this, Node.Expr.UnaryOp.Token.NULL_DEREF, false)
+
 fun Node.Expr.paren() = Node.Expr.Paren(this)
 
 fun func(

@@ -18,7 +18,7 @@ class Context(
     // Key is the full path, value is the alias value if necessary
     val imports = mutableMapOf<String, String?>()
 
-    fun Context.typeClassRef(v: Type_): Node.Expr = when (v.type) {
+    fun typeClassRef(v: Type_): Node.Expr = when (v.type) {
         is Type_.Type.TypeInterface -> {
             if (v.type.typeInterface.embedded.isNotEmpty() || v.type.typeInterface.explicitMethods.isNotEmpty()) {
                 // For anon interfaces in types, we have to create top-level interfaces (or reuse one created earlier
@@ -30,7 +30,7 @@ class Context(
         else -> TODO()
     }
 
-    fun Context.compileType(v: Type_): Node.Type = when (v.type) {
+    fun compileType(v: Type_): Node.Type = when (v.type) {
         null -> TODO()
         is Type_.Type.TypeArray -> TODO()
         is Type_.Type.TypeBasic -> v.type.typeBasic.kotlinPrimitiveType(v.name).toType()
@@ -61,13 +61,13 @@ class Context(
         is Type_.Type.TypeVar -> compileTypeRef(v.type.typeVar)
     }
 
-    fun Context.compileTypePointer(v: TypePointer) = compileTypeRef(v.elem!!).let { type ->
+    fun compileTypePointer(v: TypePointer) = compileTypeRef(v.elem!!).let { type ->
         // Basically compile the underlying type, and if it's already nullable, this is nested
         if (type.ref !is Node.TypeRef.Nullable) type.nullable()
         else NESTED_PTR_CLASS.toType(listOf(type))
     }
 
-    fun Context.compileTypeRef(v: TypeRef) = compileType(v.namedType)
+    fun compileTypeRef(v: TypeRef) = compileType(v.namedType)
 
     fun KClass<*>.ref() = qualifiedName!!.classRef()
     fun KFunction<*>.ref() = (javaMethod!!.declaringClass.`package`.name + ".$name").funcRef()

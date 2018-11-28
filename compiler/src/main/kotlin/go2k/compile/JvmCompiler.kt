@@ -34,7 +34,8 @@ import java.nio.file.Paths
 @ExperimentalUnsignedTypes
 open class JvmCompiler(
     val baseTempDir: Path = Paths.get(System.getProperty("java.io.tmpdir")!!),
-    val writer: (Node, ExtrasMap?) -> String = Writer.Companion::write
+    val writer: (Node, ExtrasMap?) -> String = Writer.Companion::write,
+    val printNonError: Boolean = true
 ) {
     fun compilePackages(pkgs: List<Compiler.KotlinPackage>): Compiled {
         // Create a temp dir with all the files then delete the dir
@@ -54,7 +55,7 @@ open class JvmCompiler(
     fun compileFiles(files: List<Path>): Compiled {
         val disposable = Disposer.newDisposable()
         try {
-            val messageCollector = MessageCollector()
+            val messageCollector = MessageCollector(printNonError)
             // Create config
             val conf = CompilerConfiguration()
             conf.put(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, messageCollector)
@@ -79,7 +80,7 @@ open class JvmCompiler(
         }
     }
 
-    class MessageCollector : org.jetbrains.kotlin.cli.common.messages.MessageCollector {
+    class MessageCollector(val printNonError: Boolean = true) : org.jetbrains.kotlin.cli.common.messages.MessageCollector {
         var hasErrors = false
 
         override fun clear() { hasErrors = true }
@@ -88,7 +89,8 @@ open class JvmCompiler(
 
         override fun report(severity: CompilerMessageSeverity, message: String, location: CompilerMessageLocation?) {
             if (!hasErrors && severity.isError) hasErrors = true
-            println("[LOG] " + MessageRenderer.PLAIN_RELATIVE_PATHS.render(severity, message, location))
+            if (printNonError || severity.isError)
+                println("[LOG] " + MessageRenderer.PLAIN_RELATIVE_PATHS.render(severity, message, location))
         }
 
     }

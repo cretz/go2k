@@ -84,6 +84,9 @@ open class TypeConverter {
         is Type_.Type.TypeBuiltin -> when (v.name) {
             "cap", "len" ->
                 Type.Func(v, null, listOf(Type.RawParamForBuiltIn), listOf(Type.Primitive(Type_(), Int::class)), false)
+            "make" -> {
+                Type.Func(v, null, listOf(Type.RawParamForBuiltIn), listOf(Type.Slice(Type_(), Type.RawParamForBuiltIn)), true)
+            }
             "panic" -> Type.Func(v, null, listOf(Type.RawParamForBuiltIn), emptyList(), false)
             "println" -> Type.Func(v, null, listOf(Type.RawParamForBuiltIn), emptyList(), true)
             else -> error("Unknown built in '${v.name}'")

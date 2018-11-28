@@ -26,7 +26,7 @@ class CompilerTest : TestBase() {
                 it.files.forEach { (name, code) -> debug { "Code for $name:\n" + Writer.write(code) } }
             }
         }
-        val jvmCompiled = JvmCompiler.compilePackages(compiled)
+        val jvmCompiled = compiler.compilePackages(compiled)
         debug { "Main class: ${jvmCompiled.mainClassName}" }
         // Run and capture output
         val mainClass = jvmCompiled.newClassLoader().loadClass(jvmCompiled.mainClassName ?: error("No main class"))
@@ -47,8 +47,10 @@ class CompilerTest : TestBase() {
     }
 
     companion object {
+        val compiler = JvmCompiler(printNonError = false)
+
         @JvmStatic
         @Suppress("unused")
-        fun unitProvider() = TestUnit.localUnits //.filter { it.toString() == "const.go" }
+        fun unitProvider() = TestUnit.localUnits//.filter { it.toString() == "slice.go" }
     }
 }

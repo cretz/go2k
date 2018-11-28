@@ -3,10 +3,6 @@ package go2k.runtime
 import kotlinx.coroutines.runBlocking
 
 actual object Platform {
-    actual inline fun arrayCopy(src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) {
-        System.arraycopy(src, srcPos, dest, destPos, length)
-    }
-
     actual suspend fun print(vararg args: Any?) {
         args.forEachIndexed { i, arg ->
             if (i > 0) System.err.print(' ')

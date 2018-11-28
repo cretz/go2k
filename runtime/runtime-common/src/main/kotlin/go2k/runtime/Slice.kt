@@ -39,25 +39,21 @@ interface Slice<T> {
         protected abstract val arraySize: Int
         protected abstract fun newArray(size: Int): ARR
         protected abstract fun newInst(array: ARR, low: Int, high: Int, max: Int): ArrayBased<T, ARR>
-        protected open fun arrayCopy(src: ARR, srcPos: Int, dest: ARR, destPos: Int, len: Int) {
-            // TODO: this is no good for the unsigned ones, ref:
-            //  https://github.com/Kotlin/KEEP/issues/135#issuecomment-410143162
-            //  ...it's coming in the form of asWhateverArray
-            Platform.arrayCopy(src, srcPos, dest, destPos, len)
-        }
+        protected abstract fun ARR.copy(dest: ARR, destOff: Int, start: Int, end: Int)
 
         override suspend fun append(other: Slice<T>): Slice<T> {
             val other = other as ArrayBased<T, ARR>
             val total = len + other.len
             if (total <= cap) {
-                arrayCopy(other.array, other.low, array, high, other.len)
+                other.array.copy(array, high, other.low, other.low + other.len)
                 high += other.len
                 return this
             }
             val newSize = ((total * 3) / 2) + 1
             val newArrayInst = newArray(newSize)
-            arrayCopy(array, low, newArrayInst, 0, len)
-            arrayCopy(other.array, other.low, newArrayInst, len, other.len)
+            array.copy(newArrayInst, 0, low, low + len)
+            other.array.copy(newArrayInst, len, other.low, other.low + other.len)
+
             return newInst(newArrayInst, 0, total, newSize)
         }
 
@@ -67,7 +63,7 @@ interface Slice<T> {
         override suspend fun copyTo(slice: Slice<T>): Int {
             slice as ArrayBased<T, ARR>
             val amount = if (len < slice.len) len else slice.len
-            arrayCopy(array, low, slice.array, slice.low, amount)
+            array.copy(slice.array, slice.low, low, low + amount)
             return amount
         }
 
@@ -115,6 +111,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = arrayOfNulls<Any?>(size) as Array<T>
         override fun newInst(array: Array<T>, low: Int, high: Int, max: Int) = ObjectArr(array, low, high, max)
+        override fun Array<T>.copy(dest: Array<T>, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -123,6 +122,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = ByteArray(size)
         override fun newInst(array: ByteArray, low: Int, high: Int, max: Int) = ByteArr(array, low, high, max)
+        override fun ByteArray.copy(dest: ByteArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -132,6 +134,9 @@ interface Slice<T> {
         // TODO: in a newer version of Kotlin, we'll be able to create a byte array of size and turn it
         override fun newArray(size: Int) = UByteArray(size) { 0.toUByte() }
         override fun newInst(array: UByteArray, low: Int, high: Int, max: Int) = UByteArr(array, low, high, max)
+        override fun UByteArray.copy(dest: UByteArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -140,6 +145,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = ShortArray(size)
         override fun newInst(array: ShortArray, low: Int, high: Int, max: Int) = ShortArr(array, low, high, max)
+        override fun ShortArray.copy(dest: ShortArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -148,6 +156,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = UShortArray(size) { 0.toUShort() }
         override fun newInst(array: UShortArray, low: Int, high: Int, max: Int) = UShortArr(array, low, high, max)
+        override fun UShortArray.copy(dest: UShortArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -156,6 +167,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = IntArray(size)
         override fun newInst(array: IntArray, low: Int, high: Int, max: Int) = IntArr(array, low, high, max)
+        override fun IntArray.copy(dest: IntArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -164,6 +178,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = UIntArray(size) { 0.toUInt() }
         override fun newInst(array: UIntArray, low: Int, high: Int, max: Int) = UIntArr(array, low, high, max)
+        override fun UIntArray.copy(dest: UIntArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -172,6 +189,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = LongArray(size)
         override fun newInst(array: LongArray, low: Int, high: Int, max: Int) = LongArr(array, low, high, max)
+        override fun LongArray.copy(dest: LongArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -180,6 +200,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = ULongArray(size) { 0.toULong() }
         override fun newInst(array: ULongArray, low: Int, high: Int, max: Int) = ULongArr(array, low, high, max)
+        override fun ULongArray.copy(dest: ULongArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -188,6 +211,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = FloatArray(size)
         override fun newInst(array: FloatArray, low: Int, high: Int, max: Int) = FloatArr(array, low, high, max)
+        override fun FloatArray.copy(dest: FloatArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -196,6 +222,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = DoubleArray(size)
         override fun newInst(array: DoubleArray, low: Int, high: Int, max: Int) = DoubleArr(array, low, high, max)
+        override fun DoubleArray.copy(dest: DoubleArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -204,6 +233,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = BooleanArray(size)
         override fun newInst(array: BooleanArray, low: Int, high: Int, max: Int) = BooleanArr(array, low, high, max)
+        override fun BooleanArray.copy(dest: BooleanArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 
@@ -212,6 +244,9 @@ interface Slice<T> {
         override val arraySize get() = array.size
         override fun newArray(size: Int) = CharArray(size)
         override fun newInst(array: CharArray, low: Int, high: Int, max: Int) = CharArr(array, low, high, max)
+        override fun CharArray.copy(dest: CharArray, destOff: Int, start: Int, end: Int) {
+            copyInto(dest, destOff, start, end)
+        }
         override suspend fun get(index: Int) = array[low + index]
     }
 }

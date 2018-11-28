@@ -5,22 +5,23 @@ import go2k.runtime.Panic
 import go2k.runtime.Platform
 import go2k.runtime.Slice
 
-fun <T> append(slice: Slice<T>?, elems: Slice<T>?): Slice<T>? = TODO()
+suspend inline fun <T> append(slice: Slice<T>?, elems: Slice<T>?) =
+    slice?.append(elems!!) ?: elems?.slice(0, null, null)
 
 inline fun cap(v: Array<*>) = v.size
 inline fun cap(v: ByteArray) = v.size
-//inline fun cap(v: UByteArray) = v.size
+inline fun cap(v: UByteArray) = v.size
 inline fun cap(v: ShortArray) = v.size
-//inline fun cap(v: UShortArray) = v.size
+inline fun cap(v: UShortArray) = v.size
 inline fun cap(v: IntArray) = v.size
-//inline fun cap(v: UIntArray) = v.size
+inline fun cap(v: UIntArray) = v.size
 inline fun cap(v: LongArray) = v.size
-//inline fun cap(v: ULongArray) = v.size
+inline fun cap(v: ULongArray) = v.size
 inline fun cap(v: FloatArray) = v.size
 inline fun cap(v: DoubleArray) = v.size
 inline fun cap(v: BooleanArray) = v.size
 inline fun cap(v: CharArray) = v.size
-suspend inline fun cap(v: Slice<*>) = v.cap()
+suspend inline fun cap(v: Slice<*>?) = v?.cap() ?: 0
 
 suspend inline fun <T> copy(dst: Slice<T>?, src: Slice<T>?) = dst?.let { src?.copyTo(it) } ?: 0
 suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, sliceByteArray(Platform.stringToBytes(src)))
@@ -35,18 +36,18 @@ inline class EmptyInterfaceImpl(override val v: Any?) : EmptyInterface
 
 inline fun len(v: Array<*>) = v.size
 inline fun len(v: ByteArray) = v.size
-//inline fun len(v: UByteArray) = v.size
+inline fun len(v: UByteArray) = v.size
 inline fun len(v: ShortArray) = v.size
-//inline fun len(v: UShortArray) = v.size
+inline fun len(v: UShortArray) = v.size
 inline fun len(v: IntArray) = v.size
-//inline fun len(v: UIntArray) = v.size
+inline fun len(v: UIntArray) = v.size
 inline fun len(v: LongArray) = v.size
-//inline fun len(v: ULongArray) = v.size
+inline fun len(v: ULongArray) = v.size
 inline fun len(v: FloatArray) = v.size
 inline fun len(v: DoubleArray) = v.size
 inline fun len(v: BooleanArray) = v.size
 inline fun len(v: CharArray) = v.size
-suspend inline fun len(v: Slice<*>) = v.len()
+suspend inline fun len(v: Slice<*>?) = v?.len() ?: 0
 inline fun len(v: String) = v.length
 
 var sliceFactory: Slice.Factory = Slice.ArrayBased
@@ -55,22 +56,20 @@ inline fun <T> makeObjectSlice(len: Int, cap: Int? = null) =
     sliceObjectArray(arrayOfNulls<Any?>(cap ?: len) as Array<T>, high = len)
 inline fun makeByteSlice(len: Int, cap: Int? = null) =
     sliceByteArray(ByteArray(cap ?: len), high = len)
-// TODO: this is not really an acceptable way to construct this array
-// Ref: https://youtrack.jetbrains.com/issue/KT-25875
 inline fun makeUByteSlice(len: Int, cap: Int? = null) =
-    sliceUByteArray(UByteArray(cap ?: len) { 0.toUByte() }, high = len)
+    sliceUByteArray(UByteArray(cap ?: len), high = len)
 inline fun makeShortSlice(len: Int, cap: Int? = null) =
     sliceShortArray(ShortArray(cap ?: len), high = len)
 inline fun makeUShortSlice(len: Int, cap: Int? = null) =
-    sliceUShortArray(UShortArray(cap ?: len) { 0.toUShort() }, high = len)
+    sliceUShortArray(UShortArray(cap ?: len), high = len)
 inline fun makeIntSlice(len: Int, cap: Int? = null) =
     sliceIntArray(IntArray(cap ?: len), high = len)
 inline fun makeUIntSlice(len: Int, cap: Int? = null) =
-    sliceUIntArray(UIntArray(cap ?: len) { 0.toUInt() }, high = len)
+    sliceUIntArray(UIntArray(cap ?: len), high = len)
 inline fun makeLongSlice(len: Int, cap: Int? = null) =
     sliceLongArray(LongArray(cap ?: len), high = len)
 inline fun makeULongSlice(len: Int, cap: Int? = null) =
-    sliceULongArray(ULongArray(cap ?: len) { 0.toULong() }, high = len)
+    sliceULongArray(ULongArray(cap ?: len), high = len)
 inline fun makeFloatSlice(len: Int, cap: Int? = null) =
     sliceFloatArray(FloatArray(cap ?: len), high = len)
 inline fun makeDoubleSlice(len: Int, cap: Int? = null) =
@@ -79,6 +78,8 @@ inline fun makeBooleanSlice(len: Int, cap: Int? = null) =
     sliceBooleanArray(BooleanArray(cap ?: len), high = len)
 inline fun makeCharSlice(len: Int, cap: Int? = null) =
     sliceCharArray(CharArray(cap ?: len), high = len)
+inline fun makeStringSlice(len: Int, cap: Int? = null) =
+    sliceObjectArray(Array(cap ?: len) { "" }, high = len)
 
 inline fun panic(v: Any?): Nothing = throw Panic(v)
 
@@ -86,6 +87,8 @@ inline fun panic(v: Any?): Nothing = throw Panic(v)
 // and Go handles them differently (e.g. you can't splat the args)
 suspend inline fun print(vararg args: Any?) = Platform.print(*args)
 suspend inline fun println(vararg args: Any?) = Platform.println(*args)
+
+suspend inline fun <T> slice(s: Slice<T>, low: Int = 0, high: Int? = null, max: Int? = null) = s.slice(low, high, max)
 
 inline fun <T> sliceObjectArray(arr: Array<T>, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newObjectSlice(arr, low, high, max)

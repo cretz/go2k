@@ -12,6 +12,8 @@ import java.math.BigInteger
 @ExperimentalUnsignedTypes
 open class Compiler {
 
+    // All functions herein start with "compile" and are alphabetically ordered
+
     fun Context.compileAssignStmt(v: AssignStmt): Node.Stmt {
         // For definitions, it's a property instead with no explicit type
         if (v.tok == Token.DEFINE) {
@@ -128,44 +130,82 @@ open class Compiler {
 
     fun Context.compileCallExpr(v: CallExpr): Node.Expr {
         val funType = v.`fun`!!.expr!!.typeRef!!.namedType
-        // If the function is a const type, it's a conversion instead of a function call
-        return if (funType.type is Type_.Type.TypeConst) {
-            // Must be a singular arg
-            val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
-            compileExpr(arg).convertType(arg, funType.type.typeConst.type!!.namedType)
-        } else call(
-            expr = compileExpr(v.`fun`),
-            // We choose to have vararg params be slices instead of supporting
-            // Kotlin splats which only work on arrays
-            args = (funType.convType() as TypeConverter.Type.Func).let { funConvType ->
-                v.args.mapIndexed { index, arg ->
-                    val argType = funConvType.params.getOrNull(index) ?:
-                        funConvType.params.lastOrNull()?.takeIf { funConvType.vararg } ?:
-                        error("Missing arg type for index $index")
-                    valueArg(expr = compileExpr(arg).convertType(arg, argType))
-                }
+        return when (funType.type) {
+            // If the function is a const type, it's a conversion instead of a function call
+            is Type_.Type.TypeConst -> {
+                // Must be a singular arg
+                val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
+                compileExpr(arg).convertType(arg, funType.type.typeConst.type!!.namedType)
             }
-        )
+            is Type_.Type.TypeBuiltin -> when (funType.name) {
+                "append" -> {
+                    // First arg is the slice
+                    val sliceType = v.args.first().expr!!.typeRef!!.namedType.convType() as TypeConverter.Type.Slice
+                    // If ellipsis is present, only second arg is allowed and it's passed explicitly,
+                    // otherwise a slice literal is created (TODO: kinda slow to create those unnecessarily)
+                    val arg =
+                        if (v.ellipsis > 0) compileExpr(v.args.apply { require(size == 2) }.last())
+                        else compileSliceLiteral(sliceType, v.args.drop(1))
+                    call(
+                        expr = "go2k.runtime.builtin.append".funcRef(),
+                        args = listOf(valueArg(expr = compileExpr(v.args.first())), valueArg(expr = arg))
+                    )
+                }
+                "make" -> {
+                    // First arg is the type to make
+                    val argType = v.args.first().expr!!.typeRef!!.typeConst!!.type!!.namedType.convType()
+                    when (argType) {
+                        is TypeConverter.Type.Slice -> {
+                            val elemType = (argType.elemType as? TypeConverter.Type.Primitive)?.cls
+                            val createSliceFnName = when (elemType) {
+                                Byte::class -> "makeByteSlice"
+                                Char::class -> "makeCharSlice"
+                                Double::class -> "makeDoubleSlice"
+                                Float::class -> "makeFloatSlice"
+                                Int::class -> "makeIntSlice"
+                                Long::class -> "makeLongSlice"
+                                Short::class -> "makeShortSlice"
+                                String::class -> "makeStringSlice"
+                                UBYTE_CLASS -> "makeUByteSlice"
+                                UINT_CLASS -> "makeUIntSlice"
+                                ULONG_CLASS -> "makeULongSlice"
+                                USHORT_CLASS -> "makeUShortSlice"
+                                else -> "makeObjectSlice"
+                            }
+                            call(
+                                expr = "go2k.runtime.builtin.$createSliceFnName".funcRef(),
+                                args = v.args.drop(1).map { valueArg(expr = compileExpr(it)) }
+                            )
+                        }
+                        else -> TODO()
+                    }
+                }
+                else -> call(
+                    expr = compileExpr(v.`fun`),
+                    args = v.args.map { valueArg(expr = compileExpr(it)) }
+                )
+            }
+            else -> call(
+                expr = compileExpr(v.`fun`),
+                // We choose to have vararg params be slices instead of supporting
+                // Kotlin splats which only work on arrays
+                args = (funType.convType() as TypeConverter.Type.Func).let { funConvType ->
+                    v.args.mapIndexed { index, arg ->
+                        val argType = funConvType.params.getOrNull(index)
+                            ?: funConvType.params.lastOrNull()?.takeIf { funConvType.vararg }
+                            ?: error("Missing arg type for index $index")
+                        valueArg(expr = compileExpr(arg).convertType(arg, argType))
+                    }
+                }
+            )
+        }
     }
 
     fun Context.compileCompositeLit(v: CompositeLit) = when (v.type?.expr) {
         is Expr_.Expr.ArrayType -> {
             if (v.type.expr.arrayType.len != null) TODO("array lit")
             val sliceType = v.typeRef!!.namedType.convType() as TypeConverter.Type.Slice
-            val (createArrayFun, sliceArrayFun) = when (sliceType.elemType) {
-                is TypeConverter.Type.Primitive -> when (sliceType.elemType.cls) {
-                    Int::class -> "kotlin.intArrayOf".funcRef() to "go2k.runtime.builtin.sliceIntArray".funcRef()
-                    else -> TODO()
-                }
-                else -> TODO()
-            }
-            call(
-                expr = sliceArrayFun,
-                args = listOf(valueArg(expr = call(
-                    expr = createArrayFun,
-                    args = v.elts.map { valueArg(expr = compileExpr(it).convertType(it, sliceType.elemType)) }
-                )))
-            )
+            compileSliceLiteral(sliceType, v.elts)
         }
         else -> error("Unknown composite lit type: ${v.type}")
     }
@@ -254,7 +294,7 @@ open class Compiler {
         is Expr_.Expr.ParenExpr -> compileParenExpr(v.parenExpr)
         is Expr_.Expr.SelectorExpr -> TODO()
         is Expr_.Expr.IndexExpr -> compileIndexExpr(v.indexExpr)
-        is Expr_.Expr.SliceExpr -> TODO()
+        is Expr_.Expr.SliceExpr -> compileSliceExpr(v.sliceExpr)
         is Expr_.Expr.TypeAssertExpr -> TODO()
         is Expr_.Expr.CallExpr -> compileCallExpr(v.callExpr)
         is Expr_.Expr.StarExpr -> TODO()
@@ -348,7 +388,10 @@ open class Compiler {
         )
     )
 
-    fun Context.compileIndexExpr(v: IndexExpr): Node.Expr = TODO()
+    fun Context.compileIndexExpr(v: IndexExpr) = call(
+        expr = compileExpr(v.x!!).nullDeref().dot("get".toName()),
+        args = listOf(valueArg(expr = compileExpr(v.index!!)))
+    )
 
     fun compilePackage(pkg: Package, overrideName: String? = null): KotlinPackage {
         // Compile all files...
@@ -464,6 +507,43 @@ open class Compiler {
             }
         )
     )
+
+    fun Context.compileSliceExpr(v: SliceExpr): Node.Expr.Call {
+        val type = v.x!!.expr!!.typeRef!!.namedType.convType()
+        type as? TypeConverter.Type.Slice ?: TODO()
+        var args = listOf(valueArg(expr = compileExpr(v.x!!).nullDeref()))
+        if (v.low != null) args += valueArg(name = "low", expr = compileExpr(v.low))
+        if (v.high != null) args += valueArg(name = "high", expr = compileExpr(v.high))
+        if (v.max != null) args += valueArg(name = "max", expr = compileExpr(v.max))
+        return call(expr = "go2k.runtime.builtin.slice".funcRef(), args = args)
+    }
+
+    fun Context.compileSliceLiteral(type: TypeConverter.Type.Slice, elems: List<Expr_>): Node.Expr.Call {
+        val (createArrayFun, sliceArrayFun) = when (type.elemType) {
+            is TypeConverter.Type.Primitive -> when (type.elemType.cls) {
+                Byte::class -> "kotlin.byteArrayOf".funcRef() to "go2k.runtime.builtin.sliceByteArray".funcRef()
+                Char::class -> "kotlin.charArrayOf".funcRef() to "go2k.runtime.builtin.sliceCharArray".funcRef()
+                Double::class -> "kotlin.doubleArrayOf".funcRef() to "go2k.runtime.builtin.sliceDoubleArray".funcRef()
+                Float::class -> "kotlin.floatArrayOf".funcRef() to "go2k.runtime.builtin.sliceFloatArray".funcRef()
+                Int::class -> "kotlin.intArrayOf".funcRef() to "go2k.runtime.builtin.sliceIntArray".funcRef()
+                Long::class -> "kotlin.longArrayOf".funcRef() to "go2k.runtime.builtin.sliceLongArray".funcRef()
+                Short::class -> "kotlin.shortArrayOf".funcRef() to "go2k.runtime.builtin.sliceShortArray".funcRef()
+                UBYTE_CLASS -> "kotlin.ubyteArrayOf".funcRef() to "go2k.runtime.builtin.sliceUByteArray".funcRef()
+                UINT_CLASS -> "kotlin.uintArrayOf".funcRef() to "go2k.runtime.builtin.sliceUIntArray".funcRef()
+                ULONG_CLASS -> "kotlin.ulongArrayOf".funcRef() to "go2k.runtime.builtin.sliceULongArray".funcRef()
+                USHORT_CLASS -> "kotlin.ushortArrayOf".funcRef() to "go2k.runtime.builtin.sliceUShortArray".funcRef()
+                else -> "kotlin.arrayOf".funcRef() to "go2k.runtime.builtin.sliceObjectArray".funcRef()
+            }
+            else -> TODO()
+        }
+        return call(
+            expr = sliceArrayFun,
+            args = listOf(valueArg(expr = call(
+                expr = createArrayFun,
+                args = elems.map { valueArg(expr = compileExpr(it).convertType(it, type.elemType)) }
+            )))
+        )
+    }
 
     fun Context.compileSpec(v: Spec_.Spec, const: Boolean, topLevel: Boolean) = when (v) {
         is Spec_.Spec.ImportSpec -> TODO()
