@@ -6,7 +6,8 @@ interface Slice<T> {
     suspend fun append(other: Slice<T>): Slice<T>
     suspend fun cap(): Int
     suspend fun copyTo(slice: Slice<T>): Int
-    suspend fun get(index: Int): T
+    operator fun get(index: Int): T
+    operator fun set(index: Int, v: T)
     suspend fun len(): Int
     suspend fun slice(low: Int, high: Int?, max: Int?): Slice<T>
 
@@ -114,7 +115,8 @@ interface Slice<T> {
         override fun Array<T>.copy(dest: Array<T>, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: T) { array[low + index] = v }
     }
 
     open class ByteArr(array: ByteArray, low: Int, high: Int, max: Int) :
@@ -125,7 +127,8 @@ interface Slice<T> {
         override fun ByteArray.copy(dest: ByteArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: Byte) { array[low + index] = v }
     }
 
     open class UByteArr(array: UByteArray, low: Int, high: Int, max: Int) :
@@ -137,7 +140,8 @@ interface Slice<T> {
         override fun UByteArray.copy(dest: UByteArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: UByte) { array[low + index] = v }
     }
 
     open class ShortArr(array: ShortArray, low: Int, high: Int, max: Int) :
@@ -148,7 +152,8 @@ interface Slice<T> {
         override fun ShortArray.copy(dest: ShortArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: Short) { array[low + index] = v }
     }
 
     open class UShortArr(array: UShortArray, low: Int, high: Int, max: Int) :
@@ -159,7 +164,8 @@ interface Slice<T> {
         override fun UShortArray.copy(dest: UShortArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: UShort) { array[low + index] = v }
     }
 
     open class IntArr(array: IntArray, low: Int, high: Int, max: Int) :
@@ -170,7 +176,8 @@ interface Slice<T> {
         override fun IntArray.copy(dest: IntArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: Int) { array[low + index] = v }
     }
 
     open class UIntArr(array: UIntArray, low: Int, high: Int, max: Int) :
@@ -181,7 +188,8 @@ interface Slice<T> {
         override fun UIntArray.copy(dest: UIntArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: UInt) { array[low + index] = v }
     }
 
     open class LongArr(array: LongArray, low: Int, high: Int, max: Int) :
@@ -192,7 +200,8 @@ interface Slice<T> {
         override fun LongArray.copy(dest: LongArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: Long) { array[low + index] = v }
     }
 
     open class ULongArr(array: ULongArray, low: Int, high: Int, max: Int) :
@@ -203,7 +212,8 @@ interface Slice<T> {
         override fun ULongArray.copy(dest: ULongArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: ULong) { array[low + index] = v }
     }
 
     open class FloatArr(array: FloatArray, low: Int, high: Int, max: Int) :
@@ -214,7 +224,8 @@ interface Slice<T> {
         override fun FloatArray.copy(dest: FloatArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: Float) { array[low + index] = v }
     }
 
     open class DoubleArr(array: DoubleArray, low: Int, high: Int, max: Int) :
@@ -225,7 +236,8 @@ interface Slice<T> {
         override fun DoubleArray.copy(dest: DoubleArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: Double) { array[low + index] = v }
     }
 
     open class BooleanArr(array: BooleanArray, low: Int, high: Int, max: Int) :
@@ -236,7 +248,8 @@ interface Slice<T> {
         override fun BooleanArray.copy(dest: BooleanArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: Boolean) { array[low + index] = v }
     }
 
     open class CharArr(array: CharArray, low: Int, high: Int, max: Int) :
@@ -247,6 +260,7 @@ interface Slice<T> {
         override fun CharArray.copy(dest: CharArray, destOff: Int, start: Int, end: Int) {
             copyInto(dest, destOff, start, end)
         }
-        override suspend fun get(index: Int) = array[low + index]
+        override fun get(index: Int) = array[low + index]
+        override fun set(index: Int, v: Char) { array[low + index] = v }
     }
 }

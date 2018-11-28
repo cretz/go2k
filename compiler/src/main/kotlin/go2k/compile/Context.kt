@@ -32,7 +32,18 @@ class Context(
 
     fun compileType(v: Type_): Node.Type = when (v.type) {
         null -> TODO()
-        is Type_.Type.TypeArray -> TODO()
+        is Type_.Type.TypeArray -> {
+            val elemPrim = v.type.typeArray.elem!!.namedType.convType() as? TypeConverter.Type.Primitive
+            elemPrim?.cls?.primitiveArrayClass()?.toType() ?: Node.Type(
+                mods = emptyList(),
+                ref = Node.TypeRef.Simple(
+                    pieces = listOf(
+                        Node.TypeRef.Simple.Piece("kotlin", emptyList()),
+                        Node.TypeRef.Simple.Piece("Array", listOf(compileTypeRef(v.type.typeArray.elem)))
+                    )
+                )
+            )
+        }
         is Type_.Type.TypeBasic -> v.type.typeBasic.kotlinPrimitiveType(v.name).toType()
         is Type_.Type.TypeBuiltin -> TODO()
         is Type_.Type.TypeChan -> TODO()

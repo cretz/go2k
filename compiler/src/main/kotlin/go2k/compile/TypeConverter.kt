@@ -80,6 +80,7 @@ open class TypeConverter {
     }
 
     fun Context.toConvType(v: Type_): Type = when (v.type) {
+        is Type_.Type.TypeArray -> Type.Array(v, toConvType(v.type.typeArray.elem!!.namedType), v.type.typeArray.len)
         is Type_.Type.TypeBasic -> Type.Primitive(v, v.kotlinPrimitiveType() ?: error("Can't get primitive from $v"))
         is Type_.Type.TypeBuiltin -> when (v.name) {
             "cap", "len" ->
@@ -132,6 +133,7 @@ open class TypeConverter {
             val results: List<Type>,
             val vararg: Boolean
         ) : Type()
+        data class Array(override val type: Type_, val elemType: Type, val len: Long) : Type()
         data class Slice(override val type: Type_, val elemType: Type) : Type()
         object RawParamForBuiltIn : Type() {
             override val type = Type_()

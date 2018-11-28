@@ -24,7 +24,7 @@ inline fun cap(v: CharArray) = v.size
 suspend inline fun cap(v: Slice<*>?) = v?.cap() ?: 0
 
 suspend inline fun <T> copy(dst: Slice<T>?, src: Slice<T>?) = dst?.let { src?.copyTo(it) } ?: 0
-suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, sliceByteArray(Platform.stringToBytes(src)))
+suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, slice(Platform.stringToBytes(src)))
 
 interface EmptyInterface : GoInterface {
     companion object {
@@ -52,34 +52,35 @@ inline fun len(v: String) = v.length
 
 var sliceFactory: Slice.Factory = Slice.ArrayBased
 
+// TODO: no, this is wrong, they have to be instantiated to zero vals instead of nil
 inline fun <T> makeObjectSlice(len: Int, cap: Int? = null) =
-    sliceObjectArray(arrayOfNulls<Any?>(cap ?: len) as Array<T>, high = len)
+    slice(arrayOfNulls<Any?>(cap ?: len) as Array<T>, high = len)
 inline fun makeByteSlice(len: Int, cap: Int? = null) =
-    sliceByteArray(ByteArray(cap ?: len), high = len)
+    slice(ByteArray(cap ?: len), high = len)
 inline fun makeUByteSlice(len: Int, cap: Int? = null) =
-    sliceUByteArray(UByteArray(cap ?: len), high = len)
+    slice(UByteArray(cap ?: len), high = len)
 inline fun makeShortSlice(len: Int, cap: Int? = null) =
-    sliceShortArray(ShortArray(cap ?: len), high = len)
+    slice(ShortArray(cap ?: len), high = len)
 inline fun makeUShortSlice(len: Int, cap: Int? = null) =
-    sliceUShortArray(UShortArray(cap ?: len), high = len)
+    slice(UShortArray(cap ?: len), high = len)
 inline fun makeIntSlice(len: Int, cap: Int? = null) =
-    sliceIntArray(IntArray(cap ?: len), high = len)
+    slice(IntArray(cap ?: len), high = len)
 inline fun makeUIntSlice(len: Int, cap: Int? = null) =
-    sliceUIntArray(UIntArray(cap ?: len), high = len)
+    slice(UIntArray(cap ?: len), high = len)
 inline fun makeLongSlice(len: Int, cap: Int? = null) =
-    sliceLongArray(LongArray(cap ?: len), high = len)
+    slice(LongArray(cap ?: len), high = len)
 inline fun makeULongSlice(len: Int, cap: Int? = null) =
-    sliceULongArray(ULongArray(cap ?: len), high = len)
+    slice(ULongArray(cap ?: len), high = len)
 inline fun makeFloatSlice(len: Int, cap: Int? = null) =
-    sliceFloatArray(FloatArray(cap ?: len), high = len)
+    slice(FloatArray(cap ?: len), high = len)
 inline fun makeDoubleSlice(len: Int, cap: Int? = null) =
-    sliceDoubleArray(DoubleArray(cap ?: len), high = len)
+    slice(DoubleArray(cap ?: len), high = len)
 inline fun makeBooleanSlice(len: Int, cap: Int? = null) =
-    sliceBooleanArray(BooleanArray(cap ?: len), high = len)
+    slice(BooleanArray(cap ?: len), high = len)
 inline fun makeCharSlice(len: Int, cap: Int? = null) =
-    sliceCharArray(CharArray(cap ?: len), high = len)
+    slice(CharArray(cap ?: len), high = len)
 inline fun makeStringSlice(len: Int, cap: Int? = null) =
-    sliceObjectArray(Array(cap ?: len) { "" }, high = len)
+    slice(Array(cap ?: len) { "" }, high = len)
 
 inline fun panic(v: Any?): Nothing = throw Panic(v)
 
@@ -90,31 +91,31 @@ suspend inline fun println(vararg args: Any?) = Platform.println(*args)
 
 suspend inline fun <T> slice(s: Slice<T>, low: Int = 0, high: Int? = null, max: Int? = null) = s.slice(low, high, max)
 
-inline fun <T> sliceObjectArray(arr: Array<T>, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun <T> slice(arr: Array<T>, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newObjectSlice(arr, low, high, max)
-inline fun sliceByteArray(arr: ByteArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: ByteArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newByteSlice(arr, low, high, max)
-inline fun sliceUByteArray(arr: UByteArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: UByteArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newUByteSlice(arr, low, high, max)
-inline fun sliceShortArray(arr: ShortArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: ShortArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newShortSlice(arr, low, high, max)
-inline fun sliceUShortArray(arr: UShortArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: UShortArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newUShortSlice(arr, low, high, max)
-inline fun sliceIntArray(arr: IntArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: IntArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newIntSlice(arr, low, high, max)
-inline fun sliceUIntArray(arr: UIntArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: UIntArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newUIntSlice(arr, low, high, max)
-inline fun sliceLongArray(arr: LongArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: LongArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newLongSlice(arr, low, high, max)
-inline fun sliceULongArray(arr: ULongArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: ULongArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newULongSlice(arr, low, high, max)
-inline fun sliceFloatArray(arr: FloatArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: FloatArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newFloatSlice(arr, low, high, max)
-inline fun sliceDoubleArray(arr: DoubleArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: DoubleArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newDoubleSlice(arr, low, high, max)
-inline fun sliceBooleanArray(arr: BooleanArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: BooleanArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newBooleanSlice(arr, low, high, max)
-inline fun sliceCharArray(arr: CharArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+inline fun slice(arr: CharArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newCharSlice(arr, low, high, max)
 
 // TODO

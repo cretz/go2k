@@ -42,6 +42,8 @@ val Type_.isNullable get() =
     type is Type_.Type.TypeInterface ||
     type is Type_.Type.TypeMap ||
     type is Type_.Type.TypeChan
+val Type_.isArray get() =
+    type is Type_.Type.TypeArray
 
 val TypeBasic.Kind.normalized get() = when (this) {
     TypeBasic.Kind.INT -> TypeBasic.Kind.INT_32

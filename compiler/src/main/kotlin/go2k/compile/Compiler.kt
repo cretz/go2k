@@ -3,7 +3,6 @@ package go2k.compile
 import go2k.compile.dumppb.*
 import go2k.runtime.GoStruct
 import go2k.runtime.Ops
-import go2k.runtime.builtin.sliceIntArray
 import go2k.runtime.runMain
 import kastree.ast.Node
 import java.math.BigDecimal
@@ -388,9 +387,9 @@ open class Compiler {
         )
     )
 
-    fun Context.compileIndexExpr(v: IndexExpr) = call(
-        expr = compileExpr(v.x!!).nullDeref().dot("get".toName()),
-        args = listOf(valueArg(expr = compileExpr(v.index!!)))
+    fun Context.compileIndexExpr(v: IndexExpr) = Node.Expr.ArrayAccess(
+        expr = compileExpr(v.x!!).nullDeref(),
+        indices = listOf(compileExpr(v.index!!))
     )
 
     fun compilePackage(pkg: Package, overrideName: String? = null): KotlinPackage {
@@ -445,13 +444,12 @@ open class Compiler {
             }
         }
         val varInitStmtsByName = topLevelValueSpecs.flatMap {
-            // TODO: what about values that are not there or are zero?
             it.names.zip(it.values) { name, value ->
                 name.name to Node.Stmt.Expr(
                     binaryOp(
                         lhs = compileIdent(name),
                         op = Node.Expr.BinaryOp.Token.ASSN,
-                        rhs = compileExpr(value)
+                        rhs = compileExpr(value!!)
                     )
                 )
             }
@@ -508,38 +506,41 @@ open class Compiler {
         )
     )
 
-    fun Context.compileSliceExpr(v: SliceExpr): Node.Expr.Call {
-        val type = v.x!!.expr!!.typeRef!!.namedType.convType()
-        type as? TypeConverter.Type.Slice ?: TODO()
-        var args = listOf(valueArg(expr = compileExpr(v.x!!).nullDeref()))
-        if (v.low != null) args += valueArg(name = "low", expr = compileExpr(v.low))
-        if (v.high != null) args += valueArg(name = "high", expr = compileExpr(v.high))
-        if (v.max != null) args += valueArg(name = "max", expr = compileExpr(v.max))
-        return call(expr = "go2k.runtime.builtin.slice".funcRef(), args = args)
+    fun Context.compileSliceExpr(v: SliceExpr) = when (val type = v.x!!.expr!!.typeRef!!.namedType.convType()) {
+        is TypeConverter.Type.Slice, is TypeConverter.Type.Array -> {
+            var subject = compileExpr(v.x)
+            if (type is TypeConverter.Type.Slice) subject = subject.nullDeref()
+            var args = listOf(valueArg(expr = subject))
+            if (v.low != null) args += valueArg(name = "low", expr = compileExpr(v.low))
+            if (v.high != null) args += valueArg(name = "high", expr = compileExpr(v.high))
+            if (v.max != null) args += valueArg(name = "max", expr = compileExpr(v.max))
+            call(expr = "go2k.runtime.builtin.slice".funcRef(), args = args)
+        }
+        else -> TODO()
     }
 
     fun Context.compileSliceLiteral(type: TypeConverter.Type.Slice, elems: List<Expr_>): Node.Expr.Call {
-        val (createArrayFun, sliceArrayFun) = when (type.elemType) {
+        val createArrayFun = when (type.elemType) {
             is TypeConverter.Type.Primitive -> when (type.elemType.cls) {
-                Byte::class -> "kotlin.byteArrayOf".funcRef() to "go2k.runtime.builtin.sliceByteArray".funcRef()
-                Char::class -> "kotlin.charArrayOf".funcRef() to "go2k.runtime.builtin.sliceCharArray".funcRef()
-                Double::class -> "kotlin.doubleArrayOf".funcRef() to "go2k.runtime.builtin.sliceDoubleArray".funcRef()
-                Float::class -> "kotlin.floatArrayOf".funcRef() to "go2k.runtime.builtin.sliceFloatArray".funcRef()
-                Int::class -> "kotlin.intArrayOf".funcRef() to "go2k.runtime.builtin.sliceIntArray".funcRef()
-                Long::class -> "kotlin.longArrayOf".funcRef() to "go2k.runtime.builtin.sliceLongArray".funcRef()
-                Short::class -> "kotlin.shortArrayOf".funcRef() to "go2k.runtime.builtin.sliceShortArray".funcRef()
-                UBYTE_CLASS -> "kotlin.ubyteArrayOf".funcRef() to "go2k.runtime.builtin.sliceUByteArray".funcRef()
-                UINT_CLASS -> "kotlin.uintArrayOf".funcRef() to "go2k.runtime.builtin.sliceUIntArray".funcRef()
-                ULONG_CLASS -> "kotlin.ulongArrayOf".funcRef() to "go2k.runtime.builtin.sliceULongArray".funcRef()
-                USHORT_CLASS -> "kotlin.ushortArrayOf".funcRef() to "go2k.runtime.builtin.sliceUShortArray".funcRef()
-                else -> "kotlin.arrayOf".funcRef() to "go2k.runtime.builtin.sliceObjectArray".funcRef()
+                Byte::class -> "kotlin.byteArrayOf"
+                Char::class -> "kotlin.charArrayOf"
+                Double::class -> "kotlin.doubleArrayOf"
+                Float::class -> "kotlin.floatArrayOf"
+                Int::class -> "kotlin.intArrayOf"
+                Long::class -> "kotlin.longArrayOf"
+                Short::class -> "kotlin.shortArrayOf"
+                UBYTE_CLASS -> "kotlin.ubyteArrayOf"
+                UINT_CLASS -> "kotlin.uintArrayOf"
+                ULONG_CLASS -> "kotlin.ulongArrayOf"
+                USHORT_CLASS -> "kotlin.ushortArrayOf"
+                else -> "kotlin.arrayOf"
             }
             else -> TODO()
         }
         return call(
-            expr = sliceArrayFun,
+            expr = "go2k.runtime.builtin.slice".funcRef(),
             args = listOf(valueArg(expr = call(
-                expr = createArrayFun,
+                expr = createArrayFun.funcRef(),
                 args = elems.map { valueArg(expr = compileExpr(it).convertType(it, type.elemType)) }
             )))
         )
@@ -620,7 +621,26 @@ open class Compiler {
 
     fun Context.compileTypeZeroExpr(v: Type_): Node.Expr = when (v.type) {
         null -> error("No type")
-        is Type_.Type.TypeArray -> TODO()
+        is Type_.Type.TypeArray -> listOf(valueArg(expr = v.type.typeArray.len.toConst())).let { sizeArgs ->
+            // Primitive is PrimArray(size), string is Array(size) { "" }, other is arrayOfNulls<Type>(size)
+            val primElemType = v.type.typeArray.elem!!.namedType.convType() as? TypeConverter.Type.Primitive
+            when {
+                primElemType == null -> call(
+                    expr = "kotlin.collection.arrayOfNulls".toDottedExpr(),
+                    typeArgs = listOf(compileTypeRef(v.type.typeArray.elem)),
+                    args = sizeArgs
+                )
+                primElemType.cls == String::class -> call(
+                    expr = "kotlin.Array".toDottedExpr(),
+                    args = sizeArgs,
+                    lambda = trailLambda(stmts = listOf("".toStringTmpl().toStmt()))
+                )
+                else -> call(
+                    expr = primElemType.cls.primitiveArrayClass()!!.qualifiedName!!.toDottedExpr(),
+                    args = sizeArgs
+                )
+            }
+        }
         is Type_.Type.TypeBasic -> when (v.type.typeBasic.kind) {
             TypeBasic.Kind.BOOL, TypeBasic.Kind.UNTYPED_BOOL ->
                 compileConstantValue(v.type.typeBasic.kind, ConstantValue.Value.Bool(false))
@@ -712,8 +732,10 @@ open class Compiler {
             // Top level vars are never inited on their own. Instead they are inited in a separate init area. Therefore,
             // we must mark 'em lateinit. But lateinit is only for non-primitive, non-null types. Otherwise we just init
             // to the 0 value.
-            val needsLateinit = topLevel && !type.isJavaPrimitive && !type.isNullable
+            var needsLateinit = topLevel && !type.isJavaPrimitive && !type.isNullable
             val value = v.values.getOrNull(index)
+            // It also doesn't need late init if it's an array w/ no value
+            if (needsLateinit && type.isArray && value == null) needsLateinit = false
             property(
                 mods = if (needsLateinit) listOf(Node.Modifier.Keyword.LATEINIT.toMod()) else emptyList(),
                 // We only put the type if it's top level or explicitly specified

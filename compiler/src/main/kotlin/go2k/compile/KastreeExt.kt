@@ -5,15 +5,7 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
 
-fun arrayType(of: KClass<*>) = Node.Type(
-    mods = emptyList(),
-    ref = Node.TypeRef.Simple(
-        pieces = listOf(
-            Node.TypeRef.Simple.Piece("kotlin", emptyList()),
-            Node.TypeRef.Simple.Piece("Array", listOf(of.toType()))
-        )
-    )
-)
+fun arrayType(of: KClass<*>) = "kotlin.Array".toDottedType(of.toType())
 
 fun binaryOp(lhs: Node.Expr, op: Node.Expr.BinaryOp.Token, rhs: Node.Expr) =
     Node.Expr.BinaryOp(lhs, op.toOper(), rhs)
@@ -45,6 +37,8 @@ fun Node.Expr.nullDeref() = unaryOp(this, Node.Expr.UnaryOp.Token.NULL_DEREF, fa
 
 fun Node.Expr.paren() = Node.Expr.Paren(this)
 
+fun Node.Expr.toStmt() = Node.Stmt.Expr(this)
+
 fun func(
     mods: List<Node.Modifier> = emptyList(),
     typeParams: List<Node.TypeParam> = emptyList(),
@@ -69,6 +63,8 @@ fun KClass<*>.toType(typeParams: List<Node.Type?> = emptyList()) = Node.Type(
         }
     )
 )
+
+fun Long.toConst() = toString().toLongConst()
 
 val NullConst = Node.Expr.Const("null", Node.Expr.Const.Form.NULL)
 
@@ -107,9 +103,27 @@ fun String.toDottedExpr() = split('.').let {
         binaryOp(expr, Node.Expr.BinaryOp.Token.DOT, piece.toName())
     }
 }
+fun String.toDottedType(trailingTypeParam: Node.Type? = null) = Node.Type(
+    mods = emptyList(),
+    ref = Node.TypeRef.Simple(
+        pieces = split('.').let {
+            it.mapIndexed { index, s ->
+                // Last index has type param
+                Node.TypeRef.Simple.Piece(
+                    name = s,
+                    typeParams =
+                        if (index == it.size - 1 && trailingTypeParam != null) listOf(trailingTypeParam)
+                        else emptyList()
+                )
+            }
+        }
+    )
+)
+
 fun String.toFloatConst() = Node.Expr.Const(this, Node.Expr.Const.Form.FLOAT)
 fun String.toInfix() = Node.Expr.BinaryOp.Oper.Infix(this)
 fun String.toIntConst() = Node.Expr.Const(this, Node.Expr.Const.Form.INT)
+fun String.toLongConst() = Node.Expr.Const(this, Node.Expr.Const.Form.INT)
 fun String.toName() = Node.Expr.Name(this)
 fun String.toStringTmpl() = Node.Expr.StringTmpl(elems = listOf(Node.Expr.StringTmpl.Elem.Regular(this)), raw = false)
 fun String.untypedFloatClass(includeFloatClass: Boolean = false): KClass<out Number> = toBigDecimal().let { bigDec ->
@@ -146,6 +160,15 @@ fun Node.TypeRef.toDottedExpr(): Node.Expr {
         expr.dot(piece.name.toName())
     }
 }
+
+fun trailLambda(
+    params: List<Node.Expr.Brace.Param> = emptyList(),
+    stmts: List<Node.Stmt> = emptyList()
+) = Node.Expr.Call.TrailLambda(
+    anns = emptyList(),
+    label = null,
+    func = Node.Expr.Brace(params = params, block = Node.Block(stmts))
+)
 
 fun typeOp(lhs: Node.Expr, op: Node.Expr.TypeOp.Token, rhs: Node.Type) =
     Node.Expr.TypeOp(lhs, Node.Expr.TypeOp.Oper(op), rhs)
