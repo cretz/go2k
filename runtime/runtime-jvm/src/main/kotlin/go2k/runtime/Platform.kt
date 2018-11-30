@@ -6,16 +6,17 @@ actual object Platform {
     actual suspend fun print(vararg args: Any?) {
         args.forEachIndexed { i, arg ->
             if (i > 0) System.err.print(' ')
-            System.err.print(arg)
+            System.err.print(when (arg) {
+                // To match Go version, chars are ints
+                is Char -> arg.toInt()
+                else -> arg
+            })
         }
     }
 
     actual suspend fun println(vararg args: Any?) {
-        args.forEachIndexed { i, arg ->
-            if (i > 0) System.err.print(' ')
-            System.err.print(arg)
-            if (i == args.size - 1) System.err.print('\n')
-        }
+        print(*args)
+        System.err.print('\n')
     }
 
     actual fun <T> runSuspended(fn: suspend () -> T, cb: ((T) -> Unit)?) {

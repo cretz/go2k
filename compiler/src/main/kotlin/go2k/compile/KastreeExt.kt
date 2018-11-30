@@ -125,7 +125,10 @@ fun String.toInfix() = Node.Expr.BinaryOp.Oper.Infix(this)
 fun String.toIntConst() = Node.Expr.Const(this, Node.Expr.Const.Form.INT)
 fun String.toLongConst() = Node.Expr.Const(this, Node.Expr.Const.Form.INT)
 fun String.toName() = Node.Expr.Name(this)
-fun String.toStringTmpl() = Node.Expr.StringTmpl(elems = listOf(Node.Expr.StringTmpl.Elem.Regular(this)), raw = false)
+fun String.toStringTmpl(raw: Boolean = false) = Node.Expr.StringTmpl(
+    elems = listOf(Node.Expr.StringTmpl.Elem.Regular(this)),
+    raw = raw
+)
 fun String.untypedFloatClass(includeFloatClass: Boolean = false): KClass<out Number> = toBigDecimal().let { bigDec ->
     if (includeFloatClass && bigDec.compareTo(bigDec.toFloat().toBigDecimal()) == 0) Float::class
     else if (bigDec.compareTo(bigDec.toDouble().toBigDecimal()) == 0) Double::class

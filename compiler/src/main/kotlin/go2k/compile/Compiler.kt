@@ -62,10 +62,34 @@ open class Compiler {
     fun Context.compileBasicLit(v: BasicLit) =  when (v.kind) {
         Token.INT, Token.FLOAT -> compileConstantValue(v.typeRef?.typeConst!!)
         Token.IMAG -> TODO()
-        Token.CHAR -> constExpr(v.value, Node.Expr.Const.Form.CHAR)
-        Token.STRING -> v.typeRef?.typeConst?.constString?.toStringTmpl() ?: error("Invalid const string")
+        Token.CHAR -> (v.typeRef?.typeConst?.constInt ?: error("Invalid const int")).let { int ->
+            constExpr("'" + compileBasicLitChar(int.toChar()) + "'", Node.Expr.Const.Form.CHAR)
+        }
+        Token.STRING -> (v.typeRef?.typeConst?.constString ?: error("Invalid const string")).let { str ->
+            val raw = v.value.startsWith('`')
+            str.fold("") { str, char ->
+                str + compileBasicLitChar(char, str = true, raw = raw)
+            }.toStringTmpl(raw)
+        }
         else -> error("Unrecognized lit kind: ${v.kind}")
     }
+
+    fun Context.compileBasicLitChar(v: Char, str: Boolean = false, raw: Boolean = false) =
+        if (raw) { if (v == '$') "\${'\$'}" else v.toString() }
+        else when (v) {
+            '\\' -> "\\\\"
+            '\t' -> "\\t"
+            '\b' -> "\\b"
+            '\n' -> "\\n"
+            '\r' -> "\\r"
+            '"' -> if (str) "\\\"" else v.toString()
+            '\'' -> if (str) v.toString() else "\\'"
+            '$' -> "\\\$"
+            // Escape unprintables
+            else ->
+                if (raw || v >= ' ') v.toString()
+                else "\\u00" + v.toInt().toString(16).toUpperCase().let { if (it.length == 2) it else "0$it" }
+        }
 
     fun Context.compileBinaryExpr(v: BinaryExpr) = when (v.op) {
         Token.EQL -> call(
@@ -507,7 +531,7 @@ open class Compiler {
     )
 
     fun Context.compileSliceExpr(v: SliceExpr) = when (val type = v.x!!.expr!!.typeRef!!.namedType.convType()) {
-        is TypeConverter.Type.Slice, is TypeConverter.Type.Array -> {
+        is TypeConverter.Type.Slice, is TypeConverter.Type.Array, is TypeConverter.Type.Primitive -> {
             var subject = compileExpr(v.x)
             if (type is TypeConverter.Type.Slice) subject = subject.nullDeref()
             var args = listOf(valueArg(expr = subject))

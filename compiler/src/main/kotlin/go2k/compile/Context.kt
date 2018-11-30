@@ -160,5 +160,6 @@ class Context(
     val TypeRef.typeConst get() = (type as? Type_.Type.TypeConst)?.typeConst
 
     // Others...need to refactor these to somewhere cleaner
+    val TypeConst.constInt get() = (value?.value as? ConstantValue.Value.Int_)?.int?.toInt()
     val TypeConst.constString get() = (value?.value as? ConstantValue.Value.String_)?.string
 }

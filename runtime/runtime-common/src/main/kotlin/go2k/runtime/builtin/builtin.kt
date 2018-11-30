@@ -85,10 +85,11 @@ inline fun makeStringSlice(len: Int, cap: Int? = null) =
 inline fun panic(v: Any?): Nothing = throw Panic(v)
 
 // Usually these would be "args: Slice<*>" like other Go varargs, but these are special builtins
-// and Go handles them differently (e.g. you can't splat the args)
+// and Go handles them differently (e.g. you can't splat the args).
 suspend inline fun print(vararg args: Any?) = Platform.print(*args)
 suspend inline fun println(vararg args: Any?) = Platform.println(*args)
 
+suspend inline fun slice(s: String, low: Int = 0, high: Int = s.length) = s.substring(low, high)
 suspend inline fun <T> slice(s: Slice<T>, low: Int = 0, high: Int? = null, max: Int? = null) = s.slice(low, high, max)
 
 inline fun <T> slice(arr: Array<T>, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
