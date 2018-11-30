@@ -104,6 +104,9 @@ open class TypeConverter {
             vararg = false
         )
         is Type_.Type.TypeInterface ->  Type.Interface(v)
+        is Type_.Type.TypeMap ->
+            Type.Map(v, toConvType(v.type.typeMap.key!!.namedType), toConvType(v.type.typeMap.elem!!.namedType))
+        is Type_.Type.TypeName -> toConvType(v.type.typeName.namedType)
         is Type_.Type.TypeNil -> Type.Nil(v)
         is Type_.Type.TypePointer -> Type.Pointer(v)
         is Type_.Type.TypeSignature -> Type.Func(
@@ -135,6 +138,7 @@ open class TypeConverter {
         ) : Type()
         data class Array(override val type: Type_, val elemType: Type, val len: Long) : Type()
         data class Slice(override val type: Type_, val elemType: Type) : Type()
+        data class Map(override val type: Type_, val keyType: Type, val valType: Type) : Type()
         object RawParamForBuiltIn : Type() {
             override val type = Type_()
         }

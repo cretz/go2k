@@ -178,6 +178,22 @@ open class Compiler {
                     // First arg is the type to make
                     val argType = v.args.first().expr!!.typeRef!!.typeConst!!.type!!.namedType.convType()
                     when (argType) {
+                        is TypeConverter.Type.Map -> {
+                            // Primitive means the first arg is the zero val
+                            val firstArgs =
+                                if (argType.valType !is TypeConverter.Type.Primitive) emptyList()
+                                else listOf(valueArg(expr = compileTypeZeroExpr(argType.valType.type)))
+                            call(
+                                expr = "go2k.runtime.builtin.makeMap".toDottedExpr(),
+                                typeArgs = listOf(
+                                    compileType(argType.keyType.type),
+                                    compileType(argType.valType.type)
+                                ),
+                                args = firstArgs +
+                                    if (v.args.size == 1) emptyList()
+                                    else listOf(valueArg(name = "size", expr = compileExpr(v.args[1])))
+                            )
+                        }
                         is TypeConverter.Type.Slice -> {
                             val elemType = (argType.elemType as? TypeConverter.Type.Primitive)?.cls
                             val createSliceFnName = when (elemType) {
@@ -224,11 +240,29 @@ open class Compiler {
         }
     }
 
-    fun Context.compileCompositeLit(v: CompositeLit) = when (v.type?.expr) {
+    fun Context.compileCompositeLit(v: CompositeLit) = when (val type = v.type?.expr) {
         is Expr_.Expr.ArrayType -> {
-            if (v.type.expr.arrayType.len != null) TODO("array lit")
+            if (type.arrayType.len != null) TODO("array lit")
             val sliceType = v.typeRef!!.namedType.convType() as TypeConverter.Type.Slice
             compileSliceLiteral(sliceType, v.elts)
+        }
+        is Expr_.Expr.MapType -> {
+            val mapType = type.typeRef?.namedType?.convType() as? TypeConverter.Type.Map ?: error("Unknown value type")
+            // Primitive types have defaults
+            val firstArgs =
+                if (mapType.valType !is TypeConverter.Type.Primitive) emptyList()
+                else listOf(valueArg(expr = compileTypeZeroExpr(mapType.valType.type)))
+            call(
+                expr = "go2k.runtime.builtin.mapOf".toDottedExpr(),
+                typeArgs = listOf(compileType(mapType.keyType.type), compileType(mapType.valType.type)),
+                args = firstArgs + v.elts.map { elt ->
+                    val kv = (elt.expr as Expr_.Expr.KeyValueExpr).keyValueExpr
+                    valueArg(expr = call(
+                        expr = "kotlin.Pair".toDottedExpr(),
+                        args = listOf(valueArg(expr = compileExpr(kv.key!!)), valueArg(expr = compileExpr(kv.value!!)))
+                    ))
+                }
+            )
         }
         else -> error("Unknown composite lit type: ${v.type}")
     }

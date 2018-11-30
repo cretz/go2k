@@ -103,7 +103,7 @@ fun String.toDottedExpr() = split('.').let {
         binaryOp(expr, Node.Expr.BinaryOp.Token.DOT, piece.toName())
     }
 }
-fun String.toDottedType(trailingTypeParam: Node.Type? = null) = Node.Type(
+fun String.toDottedType(vararg trailingTypeParams: Node.Type?) = Node.Type(
     mods = emptyList(),
     ref = Node.TypeRef.Simple(
         pieces = split('.').let {
@@ -111,9 +111,7 @@ fun String.toDottedType(trailingTypeParam: Node.Type? = null) = Node.Type(
                 // Last index has type param
                 Node.TypeRef.Simple.Piece(
                     name = s,
-                    typeParams =
-                        if (index == it.size - 1 && trailingTypeParam != null) listOf(trailingTypeParam)
-                        else emptyList()
+                    typeParams = if (index == it.size - 1) trailingTypeParams.toList() else emptyList()
                 )
             }
         }

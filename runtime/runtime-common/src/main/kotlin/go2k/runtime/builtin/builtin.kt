@@ -26,6 +26,8 @@ suspend inline fun cap(v: Slice<*>?) = v?.cap() ?: 0
 suspend inline fun <T> copy(dst: Slice<T>?, src: Slice<T>?) = dst?.let { src?.copyTo(it) } ?: 0
 suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, slice(Platform.stringToBytes(src)))
 
+inline fun <K> delete(m: go2k.runtime.Map<K, *>, k: K) { m.remove(k) }
+
 interface EmptyInterface : GoInterface {
     companion object {
         inline fun impl(v: Any?): EmptyInterface = EmptyInterfaceImpl(v)
@@ -49,6 +51,14 @@ inline fun len(v: BooleanArray) = v.size
 inline fun len(v: CharArray) = v.size
 suspend inline fun len(v: Slice<*>?) = v?.len() ?: 0
 inline fun len(v: String) = v.length
+inline fun len(v: go2k.runtime.Map<*, *>) = v.size
+
+var mapFactory: go2k.runtime.Map.Factory = go2k.runtime.Map.WithDefault
+
+inline fun <K, V> makeMap(defaultValue: V? = null, size: Int? = null) =
+    mapFactory.make<K, V>(defaultValue as V, size)
+inline fun <K, V> mapOf(defaultValue: V? = null, vararg pairs: Pair<K, V>) =
+    mapFactory.make(defaultValue as V, *pairs)
 
 var sliceFactory: Slice.Factory = Slice.ArrayBased
 

@@ -26,6 +26,7 @@ class CompilerTest : TestBase() {
                 it.files.forEach { (name, code) -> debug { "Code for $name:\n" + Writer.write(code) } }
             }
         }
+        debug { "Compiled: $compiled" }
         val jvmCompiled = compiler.compilePackages(compiled)
         debug { "Main class: ${jvmCompiled.mainClassName}" }
         // Run and capture output
@@ -33,7 +34,7 @@ class CompilerTest : TestBase() {
         val method = mainClass.getMethod("main", Array<String>::class.java)
         val out = (System.out to System.err).let { (oldOut, oldErr) ->
             ByteArrayOutputStream().also {
-                PrintStream(it).also { System.setOut(it); System.setErr(it) }
+                PrintStream(it, true, "UTF-8").also { System.setOut(it); System.setErr(it) }
                 try {
                     method.invoke(null, emptyArray<String>())
                 } finally {
@@ -51,6 +52,6 @@ class CompilerTest : TestBase() {
 
         @JvmStatic
         @Suppress("unused")
-        fun unitProvider() = TestUnit.localUnits//.filter { it.toString() == "slice.go" }
+        fun unitProvider() = TestUnit.localUnits//.filter { it.toString() == "map.go" }
     }
 }
