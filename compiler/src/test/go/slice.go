@@ -42,4 +42,7 @@ func main() {
 	newStrings := []string{"one", "two", "three"}
 	println("copy 1", copy(newStrings[1:], stringsLit[3:]))
 	println("copy 2", newStrings[0], newStrings[1], newStrings[2])
+	// Keyed literal
+	foo := []string{2: "two", "three", 5: "five"}
+	println("lit 1", foo[0], foo[2], foo[3], foo[5], len(foo))
 }

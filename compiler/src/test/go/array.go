@@ -29,4 +29,13 @@ func main() {
 	// Cap
 	println("cap 1", cap(uint32s))
 	println("cap 2", cap(strings[:1:2]))
+	// Literal
+	foo := [6]int{1, 2, 3, 5}
+	println("lit 1", len(foo), foo[2], foo[5])
+	bar := [...]int{1, 2, 3, 5}
+	println("lit 2", len(bar), bar[2])
+	baz := [150]bool{'f': true}
+	println("lit 3", len(baz), baz['a'], baz['f'])
+	qux := [...]int{3: 4, 2, 12: 15}
+	println("lit 4", len(qux), qux[3], qux[4], qux[11], qux[12])
 }

@@ -7,11 +7,87 @@ import go2k.runtime.runMain
 import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
+import kotlin.math.max
 
 @ExperimentalUnsignedTypes
 open class Compiler {
 
     // All functions herein start with "compile" and are alphabetically ordered
+
+    fun Context.compileArrayCreate(elemType: TypeConverter.Type, len: Int) = when {
+        // Primitive is PrimArray(size), string is Array(size) { "" }, other is arrayOfNulls<Type>(size)
+        elemType !is TypeConverter.Type.Primitive -> call(
+            expr = "kotlin.collection.arrayOfNulls".toDottedExpr(),
+            typeArgs = listOf(compileType(elemType.type)),
+            args = listOf(valueArg(expr = len.toConst()))
+        )
+        elemType.cls == String::class -> call(
+            expr = "kotlin.Array".toDottedExpr(),
+            args = listOf(valueArg(expr = len.toConst())),
+            lambda = trailLambda(stmts = listOf("".toStringTmpl().toStmt()))
+        )
+        else -> call(
+            expr = elemType.cls.primitiveArrayClass()!!.qualifiedName!!.toDottedExpr(),
+            args = listOf(valueArg(expr = len.toConst()))
+        )
+    }
+
+    fun Context.compileArrayLiteral(type: TypeConverter.Type.Array, elems: List<Expr_>) =
+        compileArrayLiteral(type.elemType, type.len.toInt(), elems)
+
+    fun Context.compileArrayLiteral(
+        elemType: TypeConverter.Type,
+        explicitLen: Int?,
+        elems: List<Expr_>
+    ): Node.Expr {
+        // There are two types of array literals here. One that has no indexes,
+        // uses every slot, and the length of literals matches the given length
+        // (or there is no given length). The other creates for a certain length
+        // and then sets explicit indexes in an "apply" block.
+        val simpleArrayLiteral = (explicitLen == null || elems.size == explicitLen) &&
+            elems.all { it.expr !is Expr_.Expr.KeyValueExpr }
+        return if (simpleArrayLiteral) {
+            call(
+                expr = when ((elemType as? TypeConverter.Type.Primitive)?.cls) {
+                    Byte::class -> "kotlin.byteArrayOf"
+                    Char::class -> "kotlin.charArrayOf"
+                    Double::class -> "kotlin.doubleArrayOf"
+                    Float::class -> "kotlin.floatArrayOf"
+                    Int::class -> "kotlin.intArrayOf"
+                    Long::class -> "kotlin.longArrayOf"
+                    Short::class -> "kotlin.shortArrayOf"
+                    UBYTE_CLASS -> "kotlin.ubyteArrayOf"
+                    UINT_CLASS -> "kotlin.uintArrayOf"
+                    ULONG_CLASS -> "kotlin.ulongArrayOf"
+                    USHORT_CLASS -> "kotlin.ushortArrayOf"
+                    else -> "kotlin.arrayOf"
+                }.funcRef(),
+                args = elems.map { valueArg(expr = compileExpr(it).convertType(it, elemType)) }
+            )
+        } else {
+            // Get the pairs, in order, and the overall len
+            val elemPairs = elems.fold(emptyList<Pair<Int, Node.Expr>>()) { pairs, elem ->
+                pairs + if (elem.expr is Expr_.Expr.KeyValueExpr) {
+                    val key = elem.expr.keyValueExpr.key?.expr?.typeRef?.typeConst?.constInt ?: error("Missing key")
+                    key to compileExpr(elem.expr.keyValueExpr.value!!)
+                } else {
+                    val key = pairs.lastOrNull()?.first?.plus(1) ?: 0
+                    key to compileExpr(elem)
+                }
+            }
+            val len = explicitLen ?: elemPairs.fold(0) { len, (index, _) -> max(len, index + 1) }
+            // Create the array and then set the specific indices in the apply block
+            call(
+                expr = compileArrayCreate(elemType, len).dot("apply".toName()),
+                lambda = trailLambda(stmts = elemPairs.map { (index, elem) ->
+                    call(
+                        expr = "set".toName(),
+                        args = listOf(valueArg(expr = index.toConst()), valueArg(expr = elem))
+                    ).toStmt()
+                })
+            )
+        }
+    }
 
     fun Context.compileAssignStmt(v: AssignStmt): Node.Stmt {
         // For definitions, it's a property instead with no explicit type
@@ -62,8 +138,14 @@ open class Compiler {
     fun Context.compileBasicLit(v: BasicLit) =  when (v.kind) {
         Token.INT, Token.FLOAT -> compileConstantValue(v.typeRef?.typeConst!!)
         Token.IMAG -> TODO()
-        Token.CHAR -> (v.typeRef?.typeConst?.constInt ?: error("Invalid const int")).let { int ->
-            constExpr("'" + compileBasicLitChar(int.toChar()) + "'", Node.Expr.Const.Form.CHAR)
+        Token.CHAR -> v.typeRef!!.namedType.convType().let { expectedType ->
+            // Sometimes a char is used as an int (e.g. an array index), so if the type
+            // is int, we have to treat it as such.
+            if (expectedType is TypeConverter.Type.Primitive && expectedType.cls == Int::class)
+                compileConstantValue(v.typeRef.typeConst!!)
+            else (v.typeRef.typeConst?.constInt ?: error("Invalid const int")).let { int ->
+                constExpr("'" + compileBasicLitChar(int.toChar()) + "'", Node.Expr.Const.Form.CHAR)
+            }
         }
         Token.STRING -> (v.typeRef?.typeConst?.constString ?: error("Invalid const string")).let { str ->
             val raw = v.value.startsWith('`')
@@ -241,10 +323,10 @@ open class Compiler {
     }
 
     fun Context.compileCompositeLit(v: CompositeLit) = when (val type = v.type?.expr) {
-        is Expr_.Expr.ArrayType -> {
-            if (type.arrayType.len != null) TODO("array lit")
-            val sliceType = v.typeRef!!.namedType.convType() as TypeConverter.Type.Slice
-            compileSliceLiteral(sliceType, v.elts)
+        is Expr_.Expr.ArrayType -> when (val convType = v.typeRef!!.namedType.convType()) {
+            is TypeConverter.Type.Array -> compileArrayLiteral(convType, v.elts)
+            is TypeConverter.Type.Slice -> compileSliceLiteral(convType, v.elts)
+            else -> error("Unknown array type $convType")
         }
         is Expr_.Expr.MapType -> {
             val mapType = type.typeRef?.namedType?.convType() as? TypeConverter.Type.Map ?: error("Unknown value type")
@@ -577,32 +659,10 @@ open class Compiler {
         else -> TODO()
     }
 
-    fun Context.compileSliceLiteral(type: TypeConverter.Type.Slice, elems: List<Expr_>): Node.Expr.Call {
-        val createArrayFun = when (type.elemType) {
-            is TypeConverter.Type.Primitive -> when (type.elemType.cls) {
-                Byte::class -> "kotlin.byteArrayOf"
-                Char::class -> "kotlin.charArrayOf"
-                Double::class -> "kotlin.doubleArrayOf"
-                Float::class -> "kotlin.floatArrayOf"
-                Int::class -> "kotlin.intArrayOf"
-                Long::class -> "kotlin.longArrayOf"
-                Short::class -> "kotlin.shortArrayOf"
-                UBYTE_CLASS -> "kotlin.ubyteArrayOf"
-                UINT_CLASS -> "kotlin.uintArrayOf"
-                ULONG_CLASS -> "kotlin.ulongArrayOf"
-                USHORT_CLASS -> "kotlin.ushortArrayOf"
-                else -> "kotlin.arrayOf"
-            }
-            else -> TODO()
-        }
-        return call(
-            expr = "go2k.runtime.builtin.slice".funcRef(),
-            args = listOf(valueArg(expr = call(
-                expr = createArrayFun.funcRef(),
-                args = elems.map { valueArg(expr = compileExpr(it).convertType(it, type.elemType)) }
-            )))
-        )
-    }
+    fun Context.compileSliceLiteral(type: TypeConverter.Type.Slice, elems: List<Expr_>) = call(
+        expr = "go2k.runtime.builtin.slice".funcRef(),
+        args = listOf(valueArg(expr = compileArrayLiteral(type.elemType, null, elems)))
+    )
 
     fun Context.compileSpec(v: Spec_.Spec, const: Boolean, topLevel: Boolean) = when (v) {
         is Spec_.Spec.ImportSpec -> TODO()
@@ -679,26 +739,8 @@ open class Compiler {
 
     fun Context.compileTypeZeroExpr(v: Type_): Node.Expr = when (v.type) {
         null -> error("No type")
-        is Type_.Type.TypeArray -> listOf(valueArg(expr = v.type.typeArray.len.toConst())).let { sizeArgs ->
-            // Primitive is PrimArray(size), string is Array(size) { "" }, other is arrayOfNulls<Type>(size)
-            val primElemType = v.type.typeArray.elem!!.namedType.convType() as? TypeConverter.Type.Primitive
-            when {
-                primElemType == null -> call(
-                    expr = "kotlin.collection.arrayOfNulls".toDottedExpr(),
-                    typeArgs = listOf(compileTypeRef(v.type.typeArray.elem)),
-                    args = sizeArgs
-                )
-                primElemType.cls == String::class -> call(
-                    expr = "kotlin.Array".toDottedExpr(),
-                    args = sizeArgs,
-                    lambda = trailLambda(stmts = listOf("".toStringTmpl().toStmt()))
-                )
-                else -> call(
-                    expr = primElemType.cls.primitiveArrayClass()!!.qualifiedName!!.toDottedExpr(),
-                    args = sizeArgs
-                )
-            }
-        }
+        is Type_.Type.TypeArray ->
+            compileArrayCreate(v.type.typeArray.elem!!.namedType.convType(), v.type.typeArray.len.toInt())
         is Type_.Type.TypeBasic -> when (v.type.typeBasic.kind) {
             TypeBasic.Kind.BOOL, TypeBasic.Kind.UNTYPED_BOOL ->
                 compileConstantValue(v.type.typeBasic.kind, ConstantValue.Value.Bool(false))

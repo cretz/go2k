@@ -15,6 +15,7 @@ val ULONG_ARRAY_CLASS = Class.forName("kotlin.ULongArray").kotlin as KClass<ULon
 val NESTED_PTR_CLASS = Class.forName("go2k.runtime.NestedPtr").kotlin as KClass<NestedPtr<*>>
 
 fun KClass<*>.primitiveArrayClass() = when (this) {
+    Boolean::class -> BooleanArray::class
     Byte::class -> ByteArray::class
     Char::class -> CharArray::class
     Double::class -> DoubleArray::class
