@@ -93,17 +93,42 @@ open class Compiler {
         // Single defines are normal properties. Multi-defines as results of
         // functions are destructurings. Multi-defines with multi-rhs are just
         // one at a time.
-        val idents = v.lhs.map { (it.expr as Expr_.Expr.Ident).ident.name.javaIdent }
-        val multiDefineSingleRhs = idents.size > 1 && v.rhs.size == 1
-        return v.rhs.mapIndexed { index, expr ->
-            // If the ident is an underscore, we only do the RHS
-            if (idents[index] == "_") compileExpr(expr).toStmt()
-            else Node.Stmt.Decl(property(
-                vars = if (multiDefineSingleRhs) idents.map { propVar(it) } else listOf(propVar(idents[index])),
-                expr = compileExpr(expr).let {
-                    if (multiDefineSingleRhs) it else it.convertType(expr, v.lhs[index])
-                }
-            ))
+        // Identifiers already defined and as a result of a function use temps
+        val multiDefineSingleRhs = v.lhs.size > 1 && v.rhs.size == 1
+        var identsUsingTemps = emptyList<String>()
+        val idents = v.lhs.map {
+            val ident = (it.expr as Expr_.Expr.Ident).ident
+            if (multiDefineSingleRhs && ident.defTypeRef == null) {
+                identsUsingTemps += ident.name.javaIdent
+                ident.name.javaIdent + "\$temp"
+            } else ident.name.javaIdent
+        }
+        val stmts = v.rhs.mapIndexed { index, expr ->
+            when {
+                // If the ident is an underscore, we only do the RHS
+                idents[index] == "_" -> compileExpr(expr).toStmt()
+                // If we're not a multi-on-single and we didn't define it here, just assign it
+                !multiDefineSingleRhs && (v.lhs[index].expr as Expr_.Expr.Ident).ident.defTypeRef == null -> binaryOp(
+                    lhs = idents[index].javaIdent.toName(),
+                    op = Node.Expr.BinaryOp.Token.ASSN,
+                    rhs = compileExpr(expr).convertType(expr, v.lhs[index])
+                ).toStmt()
+                // Otherwise, just a property
+                else -> Node.Stmt.Decl(property(
+                    vars = if (multiDefineSingleRhs) idents.map { propVar(it) } else listOf(propVar(idents[index])),
+                    expr = compileExpr(expr).let {
+                        if (multiDefineSingleRhs) it else it.convertType(expr, v.lhs[index])
+                    }
+                ))
+            }
+        }
+        // Now assign the temps
+        return stmts + identsUsingTemps.map {
+            binaryOp(
+                lhs = it.toName(),
+                op = Node.Expr.BinaryOp.Token.ASSN,
+                rhs = "$it\$temp".toName()
+            ).toStmt()
         }
     }
 

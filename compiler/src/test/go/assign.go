@@ -6,6 +6,9 @@ func main() {
 	println("simple 1", a)
 	a = 6
 	println("simple 2", a)
+	// Redefine
+	a, i := a*a, 'i'
+	println("redefine 1", a, i)
 	// Simple multi
 	b, c, d := 'b', 4, 'd'
 	println("simple multi 1", b, c, d)
@@ -25,6 +28,7 @@ func main() {
 
 	// TODO:
 	// LHS with fn call, advanced index exprs, etc (see some commented out code below)
+	// LHS from fn call for redefines
 }
 
 // type foo struct {
