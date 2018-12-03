@@ -13,6 +13,8 @@ buildscript {
 allprojects {
     repositories {
         mavenCentral()
+        // For Kastree 0.3.0-SNAPSHOT, remove when on stable
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
     }
 }
 project(':compiler') {
@@ -33,7 +35,7 @@ project(':compiler') {
         compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
         compile 'org.jetbrains.kotlin:kotlin-reflect'
         compile 'org.jetbrains.kotlin:kotlin-compiler'
-        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.2.0'
+        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.3.0-SNAPSHOT'
         compile 'com.github.cretz.pbandk:pbandk-runtime-jvm:0.2.0'
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'
         testImplementation 'org.junit.jupiter:junit-jupiter-params:5.1.0'

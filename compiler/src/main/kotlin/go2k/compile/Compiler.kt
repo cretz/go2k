@@ -89,19 +89,104 @@ open class Compiler {
         }
     }
 
-    fun Context.compileAssignStmt(v: AssignStmt): Node.Stmt {
-        // For definitions, it's a property instead with no explicit type
-        if (v.tok == Token.DEFINE) {
-            val singleLhs = v.lhs.singleOrNull() ?: TODO("multi assign")
-            val ident = (singleLhs.expr as? Expr_.Expr.Ident)?.ident ?: TODO("multi assign")
-            val singleRhs = v.rhs.singleOrNull() ?: TODO("multi assign")
-            return Node.Stmt.Decl(
-                property(
-                    vars = listOf(propVar(ident.name.javaIdent)),
-                    expr = compileExpr(singleRhs).convertType(singleRhs, singleLhs)
-                )
-            )
+    fun Context.compileAssignDefineStmt(v: AssignStmt): List<Node.Stmt> {
+        // Single defines are normal properties. Multi-defines as results of
+        // functions are destructurings. Multi-defines with multi-rhs are just
+        // one at a time.
+        val idents = v.lhs.map { (it.expr as Expr_.Expr.Ident).ident.name.javaIdent }
+        val multiDefineSingleRhs = idents.size > 1 && v.rhs.size == 1
+        return v.rhs.mapIndexed { index, expr ->
+            // If the ident is an underscore, we only do the RHS
+            if (idents[index] == "_") compileExpr(expr).toStmt()
+            else Node.Stmt.Decl(property(
+                vars = if (multiDefineSingleRhs) idents.map { propVar(it) } else listOf(propVar(idents[index])),
+                expr = compileExpr(expr).let {
+                    if (multiDefineSingleRhs) it else it.convertType(expr, v.lhs[index])
+                }
+            ))
         }
+    }
+
+    fun Context.compileAssignMultiStmt(v: AssignStmt): List<Node.Stmt> {
+        // If the multiple assignment is a result of a function, we make a temp var later
+        // and do the destructuring ourselves
+        val rhsExprs = if (v.rhs.size == 1) v.lhs.indices.map {
+            call("\$temp".toName().dot("component${it + 1}".toName()))
+        } else v.rhs.map { compileExpr(it) }
+        // For multi-assign we use our helpers. They are based on whether there needs to be
+        // an eager LHS and what it is.
+        val multiAssignCall = call(
+            expr = "go2k.runtime.Assign.multi".toDottedExpr(),
+            args = v.lhs.zip(rhsExprs) { lhs, rhsExpr ->
+                val eagerLhsExpr: Node.Expr?
+                val assignLambdaParams: List<List<String>>
+                val assignLambdaLhsExpr: Node.Expr?
+                when (lhs.expr) {
+                    // For LHS selects, we eagerly eval the LHS
+                    is Expr_.Expr.SelectorExpr -> {
+                        eagerLhsExpr = compileExpr(lhs.expr.selectorExpr.x!!)
+                        assignLambdaParams = listOf(listOf("\$lhs"), listOf("\$rhs"))
+                        assignLambdaLhsExpr = "\$lhs".toName().dot(lhs.expr.selectorExpr.sel!!.name.javaIdent.toName())
+                    }
+                    // For indexes, we eagerly eval the LHS and the index and then reference
+                    is Expr_.Expr.IndexExpr -> {
+                        eagerLhsExpr = binaryOp(
+                            lhs = compileExpr(lhs.expr.indexExpr.x!!),
+                            op = Node.Expr.BinaryOp.Oper.Infix("to"),
+                            rhs = compileExpr(lhs.expr.indexExpr.index!!)
+                        )
+                        assignLambdaParams = listOf(listOf("\$lhs", "\$index"), listOf("\$rhs"))
+                        assignLambdaLhsExpr = "\$lhs".toName().index("\$index".toName())
+                    }
+                    // For the rest, there is no eager LHS
+                    else -> {
+                        eagerLhsExpr = null
+                        assignLambdaParams = emptyList()
+                        // If this is an underscore, there is no assignment
+                        assignLambdaLhsExpr =
+                            if ((lhs.expr as? Expr_.Expr.Ident)?.ident?.name == "_") null
+                            else compileExpr(lhs.expr!!)
+                    }
+                }
+                // Now that we have configured the assignment, call it
+                var assignParams = emptyList<Node.Expr>()
+                if (eagerLhsExpr != null) assignParams += eagerLhsExpr
+                assignParams += Node.Expr.Brace(
+                    params = assignLambdaParams.map {
+                        Node.Expr.Brace.Param(it.map { Node.Decl.Property.Var(it, null) }, null)
+                    },
+                    block = assignLambdaLhsExpr?.let { lhs ->
+                        Node.Block(listOf(
+                            binaryOp(
+                                lhs = lhs,
+                                op = Node.Expr.BinaryOp.Token.ASSN,
+                                rhs = (if (assignLambdaParams.isEmpty()) "it" else "\$rhs").toName()
+                            ).toStmt()
+                        ))
+                    }
+                )
+                assignParams += Node.Expr.Brace(emptyList(), Node.Block(listOf(rhsExpr.toStmt())))
+                valueArg(expr = call(
+                    expr = "go2k.runtime.Assign.assign".toDottedExpr(),
+                    args = assignParams.map { valueArg(expr = it) }
+                ))
+            }
+        )
+        // Wrap in a also if it's a function result instead of normal multi assign
+        return if (v.rhs.size > 1) listOf(multiAssignCall.toStmt()) else listOf(call(
+            expr = compileExpr(v.rhs.single()).dot("also".toName()),
+            lambda = trailLambda(
+                params = listOf(Node.Expr.Brace.Param(listOf(Node.Decl.Property.Var("\$temp", null)), null)),
+                stmts = listOf(multiAssignCall.toStmt())
+            )
+        ).toStmt())
+    }
+
+    fun Context.compileAssignStmt(v: AssignStmt): List<Node.Stmt> {
+        // Handle decls elsewhere
+        if (v.tok == Token.DEFINE) return compileAssignDefineStmt(v)
+        // Handle multi-assign elsewhere
+        if (v.lhs.size > 1) return compileAssignMultiStmt(v)
 
         // For cases where we have non-arith-binary-op assigns, just unwrap it to regular assign
         fun unwrapRhs(newOp: Token) = Token.ASSIGN to v.lhs.zip(v.rhs) { lhs, rhs ->
@@ -117,11 +202,8 @@ open class Compiler {
             else -> v.tok to v.rhs
         }
 
-        val singleLhs = v.lhs.singleOrNull() ?: TODO("multi assign")
-        val singleRhs = rhs.singleOrNull() ?: TODO("multi assign")
-
-        return Node.Stmt.Expr(binaryOp(
-            lhs = compileExpr(singleLhs),
+        return listOf(Node.Stmt.Expr(binaryOp(
+            lhs = compileExpr(v.lhs.single()),
             op = when (tok) {
                 Token.ASSIGN -> Node.Expr.BinaryOp.Token.ASSN
                 Token.ADD_ASSIGN -> Node.Expr.BinaryOp.Token.ADD_ASSN
@@ -131,8 +213,8 @@ open class Compiler {
                 Token.REM_ASSIGN -> Node.Expr.BinaryOp.Token.MOD_ASSN
                 else -> error("Unrecognized token: $tok")
             },
-            rhs = compileExpr(singleRhs).convertType(singleRhs, singleLhs)
-        ))
+            rhs = compileExpr(rhs.single()).convertType(rhs.single(), v.lhs.single())
+        )))
     }
 
     fun Context.compileBasicLit(v: BasicLit) =  when (v.kind) {
@@ -680,7 +762,7 @@ open class Compiler {
         is Stmt_.Stmt.ExprStmt -> listOf(compileExprStmt(v.exprStmt))
         is Stmt_.Stmt.SendStmt -> TODO()
         is Stmt_.Stmt.IncDecStmt -> listOf(compileIncDecStmt(v.incDecStmt))
-        is Stmt_.Stmt.AssignStmt -> listOf(compileAssignStmt(v.assignStmt))
+        is Stmt_.Stmt.AssignStmt -> compileAssignStmt(v.assignStmt)
         is Stmt_.Stmt.GoStmt -> TODO()
         is Stmt_.Stmt.DeferStmt -> TODO()
         is Stmt_.Stmt.ReturnStmt -> listOf(compileReturnStmt(v.returnStmt))
@@ -788,6 +870,9 @@ open class Compiler {
                 expr = NESTED_PTR_CLASS.ref(),
                 args = listOf(valueArg(expr = xExpr))
             )
+        } else if (v.op == Token.XOR) {
+            // ^ is a bitwise complement
+            call(expr = xExpr.dot("inv".toName()))
         } else unaryOp(
             expr = xExpr,
             op = when (v.op) {
