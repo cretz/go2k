@@ -166,10 +166,11 @@ fun Node.TypeRef.toDottedExpr(): Node.Expr {
 
 fun trailLambda(
     params: List<Node.Expr.Brace.Param> = emptyList(),
-    stmts: List<Node.Stmt> = emptyList()
+    stmts: List<Node.Stmt> = emptyList(),
+    label: String? = null
 ) = Node.Expr.Call.TrailLambda(
     anns = emptyList(),
-    label = null,
+    label = label,
     func = Node.Expr.Brace(params = params, block = Node.Block(stmts))
 )
 

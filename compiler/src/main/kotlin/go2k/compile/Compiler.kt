@@ -340,6 +340,15 @@ open class Compiler {
 
     fun Context.compileBlockStmt(v: BlockStmt) = Node.Block(v.list.flatMap { compileStmt(it) })
 
+    fun Context.compileBranchStmt(v: BranchStmt): Node.Stmt {
+        if (v.label != null) TODO()
+        return when (v.tok) {
+            Token.BREAK -> Node.Expr.Return("\$loopBreak", null).toStmt()
+            Token.CONTINUE -> Node.Expr.Return("\$loopContinue", null).toStmt()
+            else -> TODO()
+        }
+    }
+
     fun Context.compileCallExpr(v: CallExpr): Node.Expr {
         val funType = v.`fun`!!.expr!!.typeRef!!.namedType
         return when (funType.type) {
@@ -569,6 +578,41 @@ open class Compiler {
 
     fun compileFile(pkg: Package, v: File) = Context(pkg).run { this to compileFile(v)  }
 
+    fun Context.compileForStmt(v: ForStmt): Node.Stmt {
+        // Non-range for loops, due to their requirement to support break/continue and that break/continue
+        // may be in another run clause or something, we have to use our own style akin to what is explained
+        // at https://stackoverflow.com/a/34642869/547546. So we have a run around everything that is where
+        // a break breaks out of. Then we have a forLoop fn where a continue returns.
+        // TODO: have the body compile check if anything breaks or continues before assuming so in here
+        return call(
+            expr = "run".toName(),
+            lambda = trailLambda(
+                label = "\$loopBreak",
+                stmts = run {
+                    var stmts = emptyList<Node.Stmt>()
+                    if (v.init != null) stmts += compileStmt(v.init)
+                    stmts + call(
+                        expr = "go2k.runtime.forLoop".toDottedExpr(),
+                        args = listOf(
+                            // Condition or "true"
+                            valueArg(expr = Node.Expr.Brace(emptyList(), Node.Block(
+                                listOf((v.cond?.let { compileExpr(it) } ?: true.toConst()).toStmt())
+                            ))),
+                            // Post or nothing
+                            valueArg(expr = Node.Expr.Brace(emptyList(), Node.Block(
+                                if (v.post == null) emptyList() else compileStmt(v.post)
+                            )))
+                        ),
+                        lambda = trailLambda(
+                            label = "\$loopContinue",
+                            stmts = compileBlockStmt(v.body!!).stmts
+                        )
+                    ).toStmt()
+                }
+            )
+        ).toStmt()
+    }
+
     fun Context.compileFuncDecl(v: FuncDecl, topLevel: Boolean): Node.Decl.Func {
         if (!topLevel) TODO()
         return compileFuncDecl(v.name?.name, v.type!!, v.body)
@@ -613,16 +657,25 @@ open class Compiler {
         else -> v.name.javaName
     }
 
-    fun Context.compileIfStmt(v: IfStmt) = Node.Stmt.Expr(run {
-        if (v.init != null) TODO()
-        Node.Expr.If(
+    fun Context.compileIfStmt(v: IfStmt): Node.Stmt.Expr {
+        var expr: Node.Expr = Node.Expr.If(
             expr = compileExpr(v.cond!!),
             body = Node.Expr.Brace(emptyList(), compileBlockStmt(v.body!!)),
-            elseBody = v.`else`?.let { elseBody ->
-                (compileStmt(elseBody).firstOrNull() as? Node.Stmt.Expr)?.expr ?: error("Expected single expr stmt")
+            elseBody = v.`else`?.let {
+                when (it.stmt) {
+                    is Stmt_.Stmt.BlockStmt -> Node.Expr.Brace(emptyList(), compileBlockStmt(it.stmt.blockStmt))
+                    is Stmt_.Stmt.IfStmt -> compileIfStmt(it.stmt.ifStmt).expr
+                    else -> error("Unknown else statement type: ${it.stmt}")
+                }
             }
         )
-    })
+        // If there is an init, we are going to do it inside of a run block and then do the if
+        if (v.init != null) expr = call(
+            expr = "run".toName(),
+            lambda = trailLambda(stmts = compileStmt(v.init) + expr.toStmt())
+        )
+        return expr.toStmt()
+    }
 
     fun Context.compileIncDecStmt(v: IncDecStmt) = Node.Stmt.Expr(
         Node.Expr.UnaryOp(
@@ -743,6 +796,67 @@ open class Compiler {
 
     fun Context.compileParenExpr(v: ParenExpr) = Node.Expr.Paren(compileExpr(v.x!!))
 
+    fun Context.compileRangeStmt(v: RangeStmt): Node.Stmt {
+        // Range loops are first surrounded by a run for breaking and then labeled for continuing.
+        // They are iterated via forEach and forEachIndexed depending upon what is ranged on.
+        var keyParam = (v.key?.expr as? Expr_.Expr.Ident)?.ident?.name?.takeIf { it != "_" }
+        var valParam = (v.value?.expr as? Expr_.Expr.Ident)?.ident?.name?.takeIf { it != "_" }
+        val keyValDestructured: Boolean
+        val forEachFnName: String
+        val rangeExprType = v.x!!.expr!!.typeRef!!.namedType.convType()
+        when (rangeExprType) {
+            is TypeConverter.Type.Array, is TypeConverter.Type.Slice -> {
+                forEachFnName = if (keyParam != null) "forEachIndexed" else "forEach"
+                keyValDestructured = false
+            }
+            is TypeConverter.Type.Map -> {
+                forEachFnName = "forEach"
+                keyValDestructured = true
+            }
+            else -> TODO()
+        }
+        // Build lambda params
+        var initStmts = emptyList<Node.Stmt>()
+        // Define uses lambda params, otherwise we set from temp vars
+        if (v.tok == Token.ASSIGN) {
+            if (keyParam != null) {
+                initStmts += binaryOp(keyParam.toName(), Node.Expr.BinaryOp.Token.ASSN, "\$tempKey".toName()).toStmt()
+                keyParam = "\$tempKey"
+            }
+            if (valParam != null) {
+                initStmts += binaryOp(valParam.toName(), Node.Expr.BinaryOp.Token.ASSN, "\$tempVal".toName()).toStmt()
+                valParam = "\$tempVal"
+            }
+        }
+        var params = emptyList<Node.Expr.Brace.Param>()
+        if (keyValDestructured) {
+            params += Node.Expr.Brace.Param(listOf(
+                keyParam?.let { Node.Decl.Property.Var(it, null) },
+                valParam?.let { Node.Decl.Property.Var(it, null) }
+            ), null)
+        } else {
+            if (keyParam != null)
+                params += Node.Expr.Brace.Param(listOf(Node.Decl.Property.Var(keyParam, null)), null)
+            if (keyParam != null || valParam != null)
+                params += Node.Expr.Brace.Param(listOf(valParam?.let { Node.Decl.Property.Var(it, null) }), null)
+        }
+
+        return call(
+            expr = "run".toName(),
+            lambda = trailLambda(
+                label = "\$loopBreak",
+                stmts = listOf(call(
+                    expr = compileExpr(v.x).dot(forEachFnName.toName()),
+                    lambda = trailLambda(
+                        label = "\$loopContinue",
+                        params = params,
+                        stmts = initStmts + compileBlockStmt(v.body!!).stmts
+                    )
+                ).toStmt())
+            )
+        ).toStmt()
+    }
+
     fun Context.compileReturnStmt(v: ReturnStmt) = Node.Stmt.Expr(
         Node.Expr.Return(
             label = null,
@@ -791,7 +905,7 @@ open class Compiler {
         is Stmt_.Stmt.GoStmt -> TODO()
         is Stmt_.Stmt.DeferStmt -> TODO()
         is Stmt_.Stmt.ReturnStmt -> listOf(compileReturnStmt(v.returnStmt))
-        is Stmt_.Stmt.BranchStmt -> TODO()
+        is Stmt_.Stmt.BranchStmt -> listOf(compileBranchStmt(v.branchStmt))
         is Stmt_.Stmt.BlockStmt -> TODO()
         is Stmt_.Stmt.IfStmt -> listOf(compileIfStmt(v.ifStmt))
         is Stmt_.Stmt.CaseClause -> TODO()
@@ -799,8 +913,8 @@ open class Compiler {
         is Stmt_.Stmt.TypeSwitchStmt -> TODO()
         is Stmt_.Stmt.CommClause -> TODO()
         is Stmt_.Stmt.SelectStmt -> TODO()
-        is Stmt_.Stmt.ForStmt -> TODO()
-        is Stmt_.Stmt.RangeStmt -> TODO()
+        is Stmt_.Stmt.ForStmt -> listOf(compileForStmt(v.forStmt))
+        is Stmt_.Stmt.RangeStmt -> listOf(compileRangeStmt(v.rangeStmt))
     }
 
     // Name is empty string, is not given any visibility modifier one way or another

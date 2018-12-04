@@ -7,3 +7,17 @@ fun runMain(args: Array<String>, packageInit: suspend () -> Unit, main: suspend 
         main()
     })
 }
+
+suspend inline fun forLoop(
+    cond: suspend () -> Boolean,
+    post: suspend () -> Unit,
+    body: suspend () -> Unit
+) {
+    var runPost = false
+    while (run {
+        if (runPost) post() else runPost = true
+        cond()
+    }) {
+        body()
+    }
+}
