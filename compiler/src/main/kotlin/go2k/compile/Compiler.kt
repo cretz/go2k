@@ -805,7 +805,9 @@ open class Compiler {
         val forEachFnName: String
         val rangeExprType = v.x!!.expr!!.typeRef!!.namedType.convType()
         when (rangeExprType) {
-            is TypeConverter.Type.Array, is TypeConverter.Type.Slice -> {
+            is TypeConverter.Type.Array, is TypeConverter.Type.Primitive, is TypeConverter.Type.Slice -> {
+                if (rangeExprType is TypeConverter.Type.Primitive)
+                    require(rangeExprType.cls == String::class) { "Unknown range type $rangeExprType" }
                 forEachFnName = if (keyParam != null) "forEachIndexed" else "forEach"
                 keyValDestructured = false
             }
@@ -813,7 +815,7 @@ open class Compiler {
                 forEachFnName = "forEach"
                 keyValDestructured = true
             }
-            else -> TODO()
+            else -> error("Unknown range type $rangeExprType")
         }
         // Build lambda params
         var initStmts = emptyList<Node.Stmt>()
