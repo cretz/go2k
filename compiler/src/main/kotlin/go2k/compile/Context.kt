@@ -172,7 +172,7 @@ class Context(
 
         fun labelName(labelPrefix: String) = "\$$labelPrefix\$$labelPostfix"
 
-        fun push(labelPrefix: String = "\$") { used += labelName(labelPrefix) to false }
+        fun push(labelPrefix: String? = null) { used += labelName(labelPrefix ?: "\$") to false }
         fun pop() = used.removeAt(used.size - 1)
         fun mark(labelPrefix: String? = null) = (labelPrefix?.let(::labelName) ?: used.last().first).also { label ->
             used[used.indexOfLast { it.first == label }] = label to true

@@ -11,10 +11,6 @@ interface Slice<T> {
     suspend fun len(): Int
     suspend fun slice(low: Int, high: Int?, max: Int?): Slice<T>
 
-    // TODO: would love to inline, but cannot atm
-    suspend fun forEach(action: suspend (T) -> Unit) { for (i in 0 until len()) action(get(i)) }
-    suspend fun forEachIndexed(action: suspend (index: Int, T) -> Unit)  { for (i in 0 until len()) action(i, get(i)) }
-
     interface Factory {
         fun <T> newObjectSlice(arr: Array<T>, low: Int, high: Int, max: Int): Slice<T>
         fun newByteSlice(arr: ByteArray, low: Int, high: Int, max: Int): Slice<Byte>

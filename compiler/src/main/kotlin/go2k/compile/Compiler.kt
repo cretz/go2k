@@ -341,10 +341,9 @@ open class Compiler {
     fun Context.compileBlockStmt(v: BlockStmt) = Node.Block(v.list.flatMap { compileStmt(it) })
 
     fun Context.compileBranchStmt(v: BranchStmt): Node.Stmt {
-        if (v.label != null) TODO()
         return when (v.tok) {
-            Token.BREAK -> Node.Expr.Return(breakables.mark(), null).toStmt()
-            Token.CONTINUE -> Node.Expr.Return(continuables.mark(), null).toStmt()
+            Token.BREAK -> Node.Expr.Return(breakables.mark(v.label?.name), null).toStmt()
+            Token.CONTINUE -> Node.Expr.Return(continuables.mark(v.label?.name), null).toStmt()
             else -> TODO()
         }
     }
@@ -578,16 +577,15 @@ open class Compiler {
 
     fun compileFile(pkg: Package, v: File) = Context(pkg).run { this to compileFile(v)  }
 
-    fun Context.compileForStmt(v: ForStmt): Node.Stmt {
+    fun Context.compileForStmt(v: ForStmt, label: String? = null): Node.Stmt {
         // Non-range for loops, due to their requirement to support break/continue and that break/continue
         // may be in another run clause or something, we have to use our own style akin to what is explained
         // at https://stackoverflow.com/a/34642869/547546. So we have a run around everything that is where
         // a break breaks out of. Then we have a forLoop fn where a continue returns.
 
         // Compile the block and see if anything had break/continue
-        // TODO: explicitly labeled
-        breakables.push()
-        continuables.push()
+        breakables.push(label)
+        continuables.push(label)
         val bodyStmts = compileBlockStmt(v.body!!).stmts
         val (breakLabel, breakCalled) = breakables.pop()
         val (continueLabel, continueCalled) = continuables.pop()
@@ -700,6 +698,16 @@ open class Compiler {
         indices = listOf(compileExpr(v.index!!))
     )
 
+    fun Context.compileLabeledStmt(v: LabeledStmt): Node.Stmt {
+        // Labels on some constructs mean certain things
+        return when (val stmt = v.stmt!!.stmt) {
+            is Stmt_.Stmt.ForStmt -> compileForStmt(stmt.forStmt, v.label!!.name)
+            is Stmt_.Stmt.RangeStmt -> compileRangeStmt(stmt.rangeStmt, v.label!!.name)
+            is Stmt_.Stmt.SwitchStmt -> compileSwitchStmt(stmt.switchStmt, v.label!!.name)
+            else -> TODO()
+        }
+    }
+
     fun compilePackage(pkg: Package, overrideName: String? = null): KotlinPackage {
         // Compile all files...
         var initCount = 0
@@ -804,23 +812,29 @@ open class Compiler {
 
     fun Context.compileParenExpr(v: ParenExpr) = Node.Expr.Paren(compileExpr(v.x!!))
 
-    fun Context.compileRangeStmt(v: RangeStmt): Node.Stmt {
+    fun Context.compileRangeStmt(v: RangeStmt, label: String? = null): Node.Stmt {
         // Range loops are first surrounded by a run for breaking and then labeled for continuing.
         // They are iterated via forEach and forEachIndexed depending upon what is ranged on.
         var keyParam = (v.key?.expr as? Expr_.Expr.Ident)?.ident?.name?.takeIf { it != "_" }
         var valParam = (v.value?.expr as? Expr_.Expr.Ident)?.ident?.name?.takeIf { it != "_" }
         val keyValDestructured: Boolean
         val forEachFnName: String
+        val forEachFnIsMember: Boolean
         val rangeExprType = v.x!!.expr!!.typeRef!!.namedType.convType()
         when (rangeExprType) {
-            is TypeConverter.Type.Array, is TypeConverter.Type.Primitive, is TypeConverter.Type.Slice -> {
-                if (rangeExprType is TypeConverter.Type.Primitive)
-                    require(rangeExprType.cls == String::class) { "Unknown range type $rangeExprType" }
+            is TypeConverter.Type.Array, is TypeConverter.Type.Primitive -> {
                 forEachFnName = if (keyParam != null) "forEachIndexed" else "forEach"
+                forEachFnIsMember = true
+                keyValDestructured = false
+            }
+            is TypeConverter.Type.Slice -> {
+                forEachFnName = "go2k.runtime." + if (keyParam != null) "forEachIndexed" else "forEach"
+                forEachFnIsMember = false
                 keyValDestructured = false
             }
             is TypeConverter.Type.Map -> {
                 forEachFnName = "forEach"
+                forEachFnIsMember = true
                 keyValDestructured = true
             }
             else -> error("Unknown range type $rangeExprType")
@@ -852,15 +866,17 @@ open class Compiler {
         }
 
         // Check body for any break/continue calls
-        // TODO: explicit labels
-        breakables.push()
-        continuables.push()
+        breakables.push(label)
+        continuables.push(label)
         val bodyStmts = compileBlockStmt(v.body!!).stmts
         val (breakLabel, breakCalled) = breakables.pop()
         val (continueLabel, continueCalled) = continuables.pop()
 
         var stmt = call(
-            expr = compileExpr(v.x).dot(forEachFnName.toName()),
+            expr = forEachFnName.toDottedExpr().let {
+                if (forEachFnIsMember) compileExpr(v.x).dot(it) else it
+            },
+            args = if (forEachFnIsMember) emptyList() else listOf(valueArg(expr = compileExpr(v.x))),
             lambda = trailLambda(
                 label = continueLabel.takeIf { continueCalled },
                 params = params,
@@ -917,7 +933,7 @@ open class Compiler {
         is Stmt_.Stmt.BadStmt -> TODO()
         is Stmt_.Stmt.DeclStmt -> compileDeclStmt(v.declStmt)
         is Stmt_.Stmt.EmptyStmt -> TODO()
-        is Stmt_.Stmt.LabeledStmt -> TODO()
+        is Stmt_.Stmt.LabeledStmt -> listOf(compileLabeledStmt(v.labeledStmt))
         is Stmt_.Stmt.ExprStmt -> listOf(compileExprStmt(v.exprStmt))
         is Stmt_.Stmt.SendStmt -> TODO()
         is Stmt_.Stmt.IncDecStmt -> listOf(compileIncDecStmt(v.incDecStmt))
@@ -961,11 +977,11 @@ open class Compiler {
         )
     }
 
-    fun Context.compileSwitchStmt(v: SwitchStmt): Node.Stmt {
+    fun Context.compileSwitchStmt(v: SwitchStmt, label: String? = null): Node.Stmt {
         // All cases are when entries
         val cases = (v.body?.list ?: emptyList()).map { (it.stmt as Stmt_.Stmt.CaseClause).caseClause }
         // Track break usage
-        breakables.push()
+        breakables.push(label)
         val entries = cases.mapIndexed { index, case ->
             // Body includes all fallthroughs as duplicate code in run blocks
             var body = listOf(case.body)
