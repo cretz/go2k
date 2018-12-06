@@ -18,6 +18,9 @@ class Context(
     // Key is the full path, value is the alias value if necessary
     val imports = mutableMapOf<String, String?>()
 
+    val breakables = Branchable("break")
+    val continuables = Branchable("continue")
+
     fun typeClassRef(v: Type_): Node.Expr = when (v.type) {
         is Type_.Type.TypeInterface -> {
             if (v.type.typeInterface.embedded.isNotEmpty() || v.type.typeInterface.explicitMethods.isNotEmpty()) {
@@ -162,4 +165,17 @@ class Context(
     // Others...need to refactor these to somewhere cleaner
     val TypeConst.constInt get() = (value?.value as? ConstantValue.Value.Int_)?.int?.toInt()
     val TypeConst.constString get() = (value?.value as? ConstantValue.Value.String_)?.string
+
+    class Branchable(val labelPostfix: String) {
+        // First in pair is label, second is whether it's used
+        val used = mutableListOf<Pair<String, Boolean>>()
+
+        fun labelName(labelPrefix: String) = "\$$labelPrefix\$$labelPostfix"
+
+        fun push(labelPrefix: String = "\$") { used += labelName(labelPrefix) to false }
+        fun pop() = used.removeAt(used.size - 1)
+        fun mark(labelPrefix: String? = null) = (labelPrefix?.let(::labelName) ?: used.last().first).also { label ->
+            used[used.indexOfLast { it.first == label }] = label to true
+        }
+    }
 }

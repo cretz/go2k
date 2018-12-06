@@ -343,8 +343,8 @@ open class Compiler {
     fun Context.compileBranchStmt(v: BranchStmt): Node.Stmt {
         if (v.label != null) TODO()
         return when (v.tok) {
-            Token.BREAK -> Node.Expr.Return("\$loopBreak", null).toStmt()
-            Token.CONTINUE -> Node.Expr.Return("\$loopContinue", null).toStmt()
+            Token.BREAK -> Node.Expr.Return(breakables.mark(), null).toStmt()
+            Token.CONTINUE -> Node.Expr.Return(continuables.mark(), null).toStmt()
             else -> TODO()
         }
     }
@@ -583,32 +583,40 @@ open class Compiler {
         // may be in another run clause or something, we have to use our own style akin to what is explained
         // at https://stackoverflow.com/a/34642869/547546. So we have a run around everything that is where
         // a break breaks out of. Then we have a forLoop fn where a continue returns.
-        // TODO: have the body compile check if anything breaks or continues before assuming so in here
-        return call(
+
+        // Compile the block and see if anything had break/continue
+        // TODO: explicitly labeled
+        breakables.push()
+        continuables.push()
+        val bodyStmts = compileBlockStmt(v.body!!).stmts
+        val (breakLabel, breakCalled) = breakables.pop()
+        val (continueLabel, continueCalled) = continuables.pop()
+
+        var stmts = emptyList<Node.Stmt>()
+        if (v.init != null) stmts += compileStmt(v.init)
+        stmts += call(
+            expr = "go2k.runtime.forLoop".toDottedExpr(),
+            args = listOf(
+                // Condition or "true"
+                valueArg(expr = Node.Expr.Brace(emptyList(), Node.Block(
+                    listOf((v.cond?.let { compileExpr(it) } ?: true.toConst()).toStmt())
+                ))),
+                // Post or nothing
+                valueArg(expr = Node.Expr.Brace(emptyList(), Node.Block(
+                    if (v.post == null) emptyList() else compileStmt(v.post)
+                )))
+            ),
+            lambda = trailLambda(
+                label = continueLabel.takeIf { continueCalled },
+                stmts = bodyStmts
+            )
+        ).toStmt()
+        // If there is an init or a break label, we have to wrap in a run
+        return if (stmts.size == 1 && !breakCalled) stmts.single() else call(
             expr = "run".toName(),
             lambda = trailLambda(
-                label = "\$loopBreak",
-                stmts = run {
-                    var stmts = emptyList<Node.Stmt>()
-                    if (v.init != null) stmts += compileStmt(v.init)
-                    stmts + call(
-                        expr = "go2k.runtime.forLoop".toDottedExpr(),
-                        args = listOf(
-                            // Condition or "true"
-                            valueArg(expr = Node.Expr.Brace(emptyList(), Node.Block(
-                                listOf((v.cond?.let { compileExpr(it) } ?: true.toConst()).toStmt())
-                            ))),
-                            // Post or nothing
-                            valueArg(expr = Node.Expr.Brace(emptyList(), Node.Block(
-                                if (v.post == null) emptyList() else compileStmt(v.post)
-                            )))
-                        ),
-                        lambda = trailLambda(
-                            label = "\$loopContinue",
-                            stmts = compileBlockStmt(v.body!!).stmts
-                        )
-                    ).toStmt()
-                }
+                label = breakLabel.takeIf { breakCalled },
+                stmts = stmts
             )
         ).toStmt()
     }
@@ -843,20 +851,30 @@ open class Compiler {
                 params += Node.Expr.Brace.Param(listOf(valParam?.let { Node.Decl.Property.Var(it, null) }), null)
         }
 
-        return call(
-            expr = "run".toName(),
+        // Check body for any break/continue calls
+        // TODO: explicit labels
+        breakables.push()
+        continuables.push()
+        val bodyStmts = compileBlockStmt(v.body!!).stmts
+        val (breakLabel, breakCalled) = breakables.pop()
+        val (continueLabel, continueCalled) = continuables.pop()
+
+        var stmt = call(
+            expr = compileExpr(v.x).dot(forEachFnName.toName()),
             lambda = trailLambda(
-                label = "\$loopBreak",
-                stmts = listOf(call(
-                    expr = compileExpr(v.x).dot(forEachFnName.toName()),
-                    lambda = trailLambda(
-                        label = "\$loopContinue",
-                        params = params,
-                        stmts = initStmts + compileBlockStmt(v.body!!).stmts
-                    )
-                ).toStmt())
+                label = continueLabel.takeIf { continueCalled },
+                params = params,
+                stmts = initStmts + bodyStmts
             )
         ).toStmt()
+        if (breakCalled) stmt = call(
+            expr = "run".toName(),
+            lambda = trailLambda(
+                label = breakLabel,
+                stmts = listOf(stmt)
+            )
+        ).toStmt()
+        return stmt
     }
 
     fun Context.compileReturnStmt(v: ReturnStmt) = Node.Stmt.Expr(
@@ -911,7 +929,7 @@ open class Compiler {
         is Stmt_.Stmt.BlockStmt -> TODO()
         is Stmt_.Stmt.IfStmt -> listOf(compileIfStmt(v.ifStmt))
         is Stmt_.Stmt.CaseClause -> TODO()
-        is Stmt_.Stmt.SwitchStmt -> TODO()
+        is Stmt_.Stmt.SwitchStmt -> listOf(compileSwitchStmt(v.switchStmt))
         is Stmt_.Stmt.TypeSwitchStmt -> TODO()
         is Stmt_.Stmt.CommClause -> TODO()
         is Stmt_.Stmt.SelectStmt -> TODO()
@@ -941,6 +959,60 @@ open class Compiler {
                 by = null
             ))
         )
+    }
+
+    fun Context.compileSwitchStmt(v: SwitchStmt): Node.Stmt {
+        // All cases are when entries
+        val cases = (v.body?.list ?: emptyList()).map { (it.stmt as Stmt_.Stmt.CaseClause).caseClause }
+        // Track break usage
+        breakables.push()
+        val entries = cases.mapIndexed { index, case ->
+            // Body includes all fallthroughs as duplicate code in run blocks
+            var body = listOf(case.body)
+            for (i in index + 1 until cases.size) {
+                val lastStmt = body.last().lastOrNull()?.stmt
+                if ((lastStmt as? Stmt_.Stmt.BranchStmt)?.branchStmt?.tok != Token.FALLTHROUGH) break
+                body = body.dropLast(1).plusElement(body.last().dropLast(1)).plusElement(cases[i].body)
+            }
+            Node.Expr.When.Entry(
+                conds = case.list.map { compileExpr(it) }.let { conds ->
+                    // If there is no expr, the expressions are separated with || in a single cond
+                    if (v.tag != null || conds.isEmpty()) conds.map { Node.Expr.When.Cond.Expr(it) }
+                    else listOf(Node.Expr.When.Cond.Expr(
+                        conds.drop(1).fold(conds.first()) { lhs, rhs ->
+                            binaryOp(lhs, Node.Expr.BinaryOp.Token.OR, rhs)
+                        }
+                    ))
+                },
+                body = Node.Expr.Brace(emptyList(), Node.Block(
+                    body.first().flatMap { compileStmt(it) } + body.drop(1).map {
+                        // Fallthrough
+                        call(
+                            expr = "run".toName(),
+                            lambda = trailLambda(stmts = it.flatMap { compileStmt(it) })
+                        ).toStmt()
+                    }
+                ))
+            )
+        }.toMutableList()
+        val (breakLabel, breakCalled) = breakables.pop()
+        // Put default at the end
+        entries.indexOfFirst { it.conds.isEmpty() }.also { if (it >= 0) entries += entries.removeAt(it) }
+        // Create the when
+        var stmt = Node.Expr.When(
+            expr = v.tag?.let { compileExpr(it) },
+            entries = entries
+        ).toStmt()
+        // If there is an init or break, we do it in a run clause. Note, we cannot use when-with-subject-decl
+        // here when it applies because Kotlin only allows "val" whereas Go allows mutable var.
+        if (v.init != null || breakCalled) stmt = call(
+            expr = "run".toName(),
+            lambda = trailLambda(
+                label = breakLabel.takeIf { breakCalled },
+                stmts = (v.init?.let { compileStmt(it) } ?: emptyList()) + stmt
+            )
+        ).toStmt()
+        return stmt
     }
 
     fun Context.compileTypeRefZeroExpr(v: TypeRef) = compileTypeZeroExpr(v.namedType)
