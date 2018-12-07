@@ -338,13 +338,133 @@ open class Compiler {
         )
     }
 
-    fun Context.compileBlockStmt(v: BlockStmt) = Node.Block(v.list.flatMap { compileStmt(it) })
+    fun Context.compileBlockStmt(v: BlockStmt): Node.Block {
+        // Due to how labels work, we have to do some special work here. Goto labels become just a
+        // huge lambda (with next labels inside them). Basically, we first find out whether any label
+        // we might have is invoked via goto (as opposed to just break or continue). Then, we compile
+        // all the statements putting them in statement sets of either the top level or as a child of
+        // the last seen goto label. Then, for each nested statement set we split the label definitions
+        // from where they are first called and if a goto needs the label before it appears, move its
+        // definition above that goto (but still leave it's first invocation down where it was
+        // originally defined).
+
+        // We need to know all labels that are goto asked for ahead of time to skip ones that are
+        // never asked for (i.e. are only for break/continue).
+        val gotoRefLabels = mutableSetOf<String>()
+        v.visitStmts {
+            if (it is Stmt_.Stmt.BranchStmt && it.branchStmt.tok == Token.GOTO)
+                gotoRefLabels += it.branchStmt.label!!.name
+        }
+
+        val multi = Context.LabelNode.Multi(null, mutableListOf())
+        v.list.fold(multi) { multi, stmt ->
+            // Compile the stmts
+            val prevGotoLabels = seenGotoLabelStack.last().toSet()
+            if (multi.label != null) returnLabelStack += multi.label
+            val stmts = compileStmt(stmt).map { Context.LabelNode.Stmt(it) }
+            if (multi.label != null) returnLabelStack.removeAt(returnLabelStack.lastIndex)
+            // Mark which labels are needed before this set
+            multi.children += seenGotoLabelStack.last().mapNotNull {
+                if (prevGotoLabels.contains(it)) null
+                else Context.LabelNode.LabelNeeded(it)
+            }
+            // If the statement is labeled in use for goto, change it to its own multi
+            val newLabel = (stmt.stmt as? Stmt_.Stmt.LabeledStmt)?.labeledStmt?.label?.name
+            if (newLabel == null || !gotoRefLabels.contains(newLabel)) multi.apply { children += stmts }
+            else Context.LabelNode.Multi(newLabel, stmts.toMutableList()).also { multi.children += it }
+        }
+
+        // There will only be one no-label multi and one label multi. We just need to make sure that one label multi
+        // is before the first time it is needed.
+        fun labelsNeeded(n: Context.LabelNode): Set<String> = when (n) {
+            is Context.LabelNode.Stmt -> emptySet()
+            is Context.LabelNode.LabelNeeded -> setOf(n.label)
+            is Context.LabelNode.Multi -> n.children.fold(emptySet()) { set, n -> set + labelsNeeded(n) }
+        }
+
+        // For multis, replace the first needed label that we have with the defined one and put it's definition
+        // as a call.
+        fun reorderChildLabels(multi: Context.LabelNode.Multi) {
+            // Break the label up into define and call
+            val labelsInMulti = multi.children.mapNotNull { (it as? Context.LabelNode.Multi)?.label }
+            val indexOfFirstNeeded = multi.children.indexOfFirst { labelsNeeded(it).any(labelsInMulti::contains) }
+            if (indexOfFirstNeeded >= 0) {
+                val last = multi.children.removeAt(multi.children.lastIndex)
+                if (last !is Context.LabelNode.Multi || last.label == null) error("Expected to end with labeled stuff")
+                multi.children.add(indexOfFirstNeeded, last.copy(callLabelToo = false))
+                multi.children += Context.LabelNode.Stmt(call(expr = "\$${last.label}\$label".toName()).toStmt())
+            } else multi.children.lastOrNull()?.also { last ->
+                // Not needed, just used for break/continue, just embed the contents
+                if (last is Context.LabelNode.Multi && last.label != null) {
+                    reorderChildLabels(last)
+                    multi.children.apply { removeAt(multi.children.lastIndex) }.addAll(last.children)
+                }
+            }
+            // Recurse into child multis
+            multi.children.forEach { if (it is Context.LabelNode.Multi) reorderChildLabels(it) }
+        }
+        reorderChildLabels(multi)
+
+        fun stmts(n: Context.LabelNode): List<Node.Stmt> = when (n) {
+            is Context.LabelNode.Stmt -> listOf(n.stmt)
+            is Context.LabelNode.LabelNeeded -> emptyList()
+            is Context.LabelNode.Multi -> n.children.flatMap(::stmts).let { children ->
+                // If it was needed via a goto, define it, otherwise just use the stmts
+                if (n.label == null) children else {
+                    // Define it
+                    var stmts: List<Node.Stmt> = listOf(Node.Stmt.Decl(property(
+                        readOnly = true,
+                        vars = listOf(propVar(
+                            name = labelIdent(n.label),
+                            type = Node.Type(
+                                mods = listOf(Node.Modifier.Lit(Node.Modifier.Keyword.SUSPEND)),
+                                ref = Node.TypeRef.Func(
+                                    receiverType = null,
+                                    params = emptyList(),
+                                    // TODO: multi return type
+                                    type = funcTypeStack.last().results?.let {
+                                        val temp = compileTypeRef(
+                                            it.list.singleOrNull()?.type?.expr?.typeRef ?: TODO("multi-return")
+                                        )
+                                        println("TYPE: $temp")
+                                        TODO()
+                                    } ?: Unit::class.toType()
+                                )
+                            )
+                        )),
+                        expr = Node.Expr.Labeled(
+                            label = labelIdent(n.label),
+                            expr = Node.Expr.Brace(emptyList(), Node.Block(children))
+                        )
+                    )))
+                    // Call if necessary
+                    if (n.callLabelToo) stmts += call(expr = labelIdent(n.label).toName()).toStmt()
+                    stmts
+
+                }
+            }
+        }
+
+        return Node.Block(stmts(multi))
+    }
+
+    fun Context.compileBlockStmtStandalone(v: BlockStmt): Node.Stmt = call(
+        expr = "run".toName(),
+        lambda = trailLambda(stmts = compileBlockStmt(v).stmts)
+    ).toStmt()
 
     fun Context.compileBranchStmt(v: BranchStmt): Node.Stmt {
         return when (v.tok) {
             Token.BREAK -> Node.Expr.Return(breakables.mark(v.label?.name), null).toStmt()
             Token.CONTINUE -> Node.Expr.Return(continuables.mark(v.label?.name), null).toStmt()
-            else -> TODO()
+            Token.GOTO -> v.label!!.name.let { label ->
+                seenGotoLabelStack.last() += label
+                Node.Expr.Return(
+                    label = returnLabelStack.lastOrNull()?.let { labelIdent(it) },
+                    expr = call(expr = labelIdent(label).toName())
+                ).toStmt()
+            }
+            else -> error("Unrecognized branch: $v")
         }
     }
 
@@ -621,7 +741,12 @@ open class Compiler {
 
     fun Context.compileFuncDecl(v: FuncDecl, topLevel: Boolean): Node.Decl.Func {
         if (!topLevel) TODO()
-        return compileFuncDecl(v.name?.name, v.type!!, v.body)
+        funcTypeStack += v.type!!
+        seenGotoLabelStack.add(mutableSetOf())
+        return compileFuncDecl(v.name?.name, v.type!!, v.body).also {
+            funcTypeStack.removeAt(funcTypeStack.lastIndex)
+            seenGotoLabelStack.removeAt(seenGotoLabelStack.lastIndex)
+        }
     }
 
     fun Context.compileFuncDecl(name: String?, type: FuncType, body: BlockStmt?): Node.Decl.Func {
@@ -698,13 +823,14 @@ open class Compiler {
         indices = listOf(compileExpr(v.index!!))
     )
 
-    fun Context.compileLabeledStmt(v: LabeledStmt): Node.Stmt {
-        // Labels on some constructs mean certain things
+    fun Context.compileLabeledStmt(v: LabeledStmt): List<Node.Stmt> {
+        // Labels on some constructs mean certain things. Otherwise, the labels are handled
+        // in other areas.
         return when (val stmt = v.stmt!!.stmt) {
-            is Stmt_.Stmt.ForStmt -> compileForStmt(stmt.forStmt, v.label!!.name)
-            is Stmt_.Stmt.RangeStmt -> compileRangeStmt(stmt.rangeStmt, v.label!!.name)
-            is Stmt_.Stmt.SwitchStmt -> compileSwitchStmt(stmt.switchStmt, v.label!!.name)
-            else -> TODO()
+            is Stmt_.Stmt.ForStmt -> listOf(compileForStmt(stmt.forStmt, v.label!!.name))
+            is Stmt_.Stmt.RangeStmt -> listOf(compileRangeStmt(stmt.rangeStmt, v.label!!.name))
+            is Stmt_.Stmt.SwitchStmt -> listOf(compileSwitchStmt(stmt.switchStmt, v.label!!.name))
+            else -> stmt?.let { compileStmt(it) } ?: emptyList()
         }
     }
 
@@ -895,7 +1021,7 @@ open class Compiler {
 
     fun Context.compileReturnStmt(v: ReturnStmt) = Node.Stmt.Expr(
         Node.Expr.Return(
-            label = null,
+            label = returnLabelStack.lastOrNull()?.let { labelIdent(it) },
             expr = v.results.let {
                 if (it.size > 1) TODO()
                 it.singleOrNull()?.let { compileExpr(it) }
@@ -933,7 +1059,7 @@ open class Compiler {
         is Stmt_.Stmt.BadStmt -> TODO()
         is Stmt_.Stmt.DeclStmt -> compileDeclStmt(v.declStmt)
         is Stmt_.Stmt.EmptyStmt -> TODO()
-        is Stmt_.Stmt.LabeledStmt -> listOf(compileLabeledStmt(v.labeledStmt))
+        is Stmt_.Stmt.LabeledStmt -> compileLabeledStmt(v.labeledStmt)
         is Stmt_.Stmt.ExprStmt -> listOf(compileExprStmt(v.exprStmt))
         is Stmt_.Stmt.SendStmt -> TODO()
         is Stmt_.Stmt.IncDecStmt -> listOf(compileIncDecStmt(v.incDecStmt))
@@ -942,7 +1068,7 @@ open class Compiler {
         is Stmt_.Stmt.DeferStmt -> TODO()
         is Stmt_.Stmt.ReturnStmt -> listOf(compileReturnStmt(v.returnStmt))
         is Stmt_.Stmt.BranchStmt -> listOf(compileBranchStmt(v.branchStmt))
-        is Stmt_.Stmt.BlockStmt -> TODO()
+        is Stmt_.Stmt.BlockStmt -> listOf(compileBlockStmtStandalone(v.blockStmt))
         is Stmt_.Stmt.IfStmt -> listOf(compileIfStmt(v.ifStmt))
         is Stmt_.Stmt.CaseClause -> TODO()
         is Stmt_.Stmt.SwitchStmt -> listOf(compileSwitchStmt(v.switchStmt))

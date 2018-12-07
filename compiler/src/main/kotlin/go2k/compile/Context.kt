@@ -21,6 +21,14 @@ class Context(
     val breakables = Branchable("break")
     val continuables = Branchable("continue")
 
+    val funcTypeStack = mutableListOf<FuncType>()
+    val seenGotoLabelStack = mutableListOf(mutableSetOf<String>())
+    fun addSeenGotoLabel(v: String) { seenGotoLabelStack.last() += v }
+
+    val returnLabelStack = mutableListOf<String?>()
+
+    fun labelIdent(v: String) = "\$$v\$label"
+
     fun typeClassRef(v: Type_): Node.Expr = when (v.type) {
         is Type_.Type.TypeInterface -> {
             if (v.type.typeInterface.embedded.isNotEmpty() || v.type.typeInterface.explicitMethods.isNotEmpty()) {
@@ -177,5 +185,21 @@ class Context(
         fun mark(labelPrefix: String? = null) = (labelPrefix?.let(::labelName) ?: used.last().first).also { label ->
             used[used.indexOfLast { it.first == label }] = label to true
         }
+    }
+
+
+    sealed class LabelStmtSet {
+        sealed class WithStmts : LabelStmtSet() {
+            abstract val stmts: MutableList<Node.Stmt>
+            data class Unlabeled(override val stmts: MutableList<Node.Stmt>) : WithStmts()
+            data class LabelDefine(val label: String, override val stmts: MutableList<Node.Stmt>) : WithStmts()
+        }
+        data class LabelNeeded(val label: String) : LabelStmtSet()
+    }
+
+    sealed class LabelNode {
+        data class Stmt(val stmt: Node.Stmt) : LabelNode()
+        data class Multi(val label: String?, val children: MutableList<LabelNode>, val callLabelToo: Boolean = true) : LabelNode()
+        data class LabelNeeded(val label: String) : LabelNode()
     }
 }

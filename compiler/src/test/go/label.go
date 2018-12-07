@@ -82,9 +82,32 @@ Label7:
 		}
 		println("label 11", i)
 	}
+	// Goto after decl
+	var1 := 1
+	goto Label8
+	println("label 12")
+Label8:
+	println("label 13", var1)
+	// Goto before decl
+	goto Label9
+	println("label 14")
+Label9:
+	var2 := 1
+	println("label 15", var2)
+	// Goto before inner decl
+	goto Label10
+	{
+		var3 := 1
+		println("label 16", var3)
+	}
+Label10:
+	println("label 17")
+
+	// TODO: Goto out of block, e.g. a loop
+	// TODO: Goto self
+	// TODO: Goto in func returning single val
+	// TODO: Goto in func returning multi val
 
 	// TODO: type switch
-	// TODO: break and continue sans label but loop has explicit label
-	// TODO: goto
 	// TODO: select clause
 }
