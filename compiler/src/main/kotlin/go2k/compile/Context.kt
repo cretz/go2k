@@ -18,14 +18,10 @@ class Context(
     // Key is the full path, value is the alias value if necessary
     val imports = mutableMapOf<String, String?>()
 
-    val breakables = Branchable("break")
-    val continuables = Branchable("continue")
-
-    val funcTypeStack = mutableListOf<FuncType>()
-    val seenGotoLabelStack = mutableListOf(mutableSetOf<String>())
-    fun addSeenGotoLabel(v: String) { seenGotoLabelStack.last() += v }
-
-    val returnLabelStack = mutableListOf<String?>()
+    val funcContexts = mutableListOf<FuncContext>()
+    val currFunc get() = funcContexts.last()
+    fun pushFunc(type: FuncType) { funcContexts += FuncContext(type) }
+    fun popFunc() = funcContexts.removeAt(funcContexts.lastIndex)
 
     fun labelIdent(v: String) = "\$$v\$label"
 
@@ -90,6 +86,18 @@ class Context(
     }
 
     fun compileTypeRef(v: TypeRef) = compileType(v.namedType)
+
+    fun compileTypeRefMultiResult(v: FieldList?): Node.Type? {
+        val types = v?.list?.flatMap {
+            val type = compileTypeRef(it.type!!.expr!!.typeRef!!)
+            List(if (it.names.isEmpty()) 1 else it.names.size) { type }
+        }
+        // Just use TupleN if N > 1
+        return when (types?.size) {
+            null, 0, 1 -> types?.singleOrNull()
+            else -> "go2k.runtime.Tuple${types.size}".toDottedType(*types.toTypedArray())
+        }
+    }
 
     fun KClass<*>.ref() = qualifiedName!!.classRef()
     fun KFunction<*>.ref() = (javaMethod!!.declaringClass.`package`.name + ".$name").funcRef()
@@ -174,6 +182,21 @@ class Context(
     val TypeConst.constInt get() = (value?.value as? ConstantValue.Value.Int_)?.int?.toInt()
     val TypeConst.constString get() = (value?.value as? ConstantValue.Value.String_)?.string
 
+    class FuncContext(val type: FuncType) {
+        val breakables = Branchable("break")
+        val continuables = Branchable("continue")
+        val seenGotos = mutableSetOf<String>()
+        val returnLabelStack = mutableListOf<String?>()
+
+        val seenTempVars = mutableSetOf<String>()
+        fun newTempVar(prefix: String): String {
+            var temp = "$prefix\$temp"
+            var index = -1
+            while (seenTempVars.contains(temp)) temp = "$prefix\$temp${++index}"
+            return temp.also { seenTempVars += it }
+        }
+    }
+
     class Branchable(val labelPostfix: String) {
         // First in pair is label, second is whether it's used
         val used = mutableListOf<Pair<String, Boolean>>()
@@ -185,16 +208,6 @@ class Context(
         fun mark(labelPrefix: String? = null) = (labelPrefix?.let(::labelName) ?: used.last().first).also { label ->
             used[used.indexOfLast { it.first == label }] = label to true
         }
-    }
-
-
-    sealed class LabelStmtSet {
-        sealed class WithStmts : LabelStmtSet() {
-            abstract val stmts: MutableList<Node.Stmt>
-            data class Unlabeled(override val stmts: MutableList<Node.Stmt>) : WithStmts()
-            data class LabelDefine(val label: String, override val stmts: MutableList<Node.Stmt>) : WithStmts()
-        }
-        data class LabelNeeded(val label: String) : LabelStmtSet()
     }
 
     sealed class LabelNode {

@@ -95,12 +95,12 @@ open class Compiler {
         // one at a time.
         // Identifiers already defined and as a result of a function use temps
         val multiDefineSingleRhs = v.lhs.size > 1 && v.rhs.size == 1
-        var identsUsingTemps = emptyList<String>()
+        // Key is var name, val is temp name
+        var identsUsingTemps = emptyList<Pair<String, String>>()
         val idents = v.lhs.map {
             val ident = (it.expr as Expr_.Expr.Ident).ident
             if (multiDefineSingleRhs && ident.defTypeRef == null) {
-                identsUsingTemps += ident.name.javaIdent
-                ident.name.javaIdent + "\$temp"
+                currFunc.newTempVar(ident.name.javaIdent).also { identsUsingTemps += ident.name.javaIdent to it }
             } else ident.name.javaIdent
         }
         val stmts = v.rhs.mapIndexed { index, expr ->
@@ -123,11 +123,11 @@ open class Compiler {
             }
         }
         // Now assign the temps
-        return stmts + identsUsingTemps.map {
+        return stmts + identsUsingTemps.map { (ident, temp) ->
             binaryOp(
-                lhs = it.toName(),
+                lhs = ident.toName(),
                 op = Node.Expr.BinaryOp.Token.ASSN,
-                rhs = "$it\$temp".toName()
+                rhs = temp.toName()
             ).toStmt()
         }
     }
@@ -359,12 +359,12 @@ open class Compiler {
         val multi = Context.LabelNode.Multi(null, mutableListOf())
         v.list.fold(multi) { multi, stmt ->
             // Compile the stmts
-            val prevGotoLabels = seenGotoLabelStack.last().toSet()
-            if (multi.label != null) returnLabelStack += multi.label
+            val prevGotoLabels = currFunc.seenGotos.toSet()
+            if (multi.label != null) currFunc.returnLabelStack += multi.label
             val stmts = compileStmt(stmt).map { Context.LabelNode.Stmt(it) }
-            if (multi.label != null) returnLabelStack.removeAt(returnLabelStack.lastIndex)
+            if (multi.label != null) currFunc.returnLabelStack.removeAt(currFunc.returnLabelStack.lastIndex)
             // Mark which labels are needed before this set
-            multi.children += seenGotoLabelStack.last().mapNotNull {
+            multi.children += currFunc.seenGotos.mapNotNull {
                 if (prevGotoLabels.contains(it)) null
                 else Context.LabelNode.LabelNeeded(it)
             }
@@ -422,13 +422,7 @@ open class Compiler {
                                     receiverType = null,
                                     params = emptyList(),
                                     // TODO: multi return type
-                                    type = funcTypeStack.last().results?.let {
-                                        val temp = compileTypeRef(
-                                            it.list.singleOrNull()?.type?.expr?.typeRef ?: TODO("multi-return")
-                                        )
-                                        println("TYPE: $temp")
-                                        TODO()
-                                    } ?: Unit::class.toType()
+                                    type = compileTypeRefMultiResult(currFunc.type.results) ?: Unit::class.toType()
                                 )
                             )
                         )),
@@ -455,12 +449,12 @@ open class Compiler {
 
     fun Context.compileBranchStmt(v: BranchStmt): Node.Stmt {
         return when (v.tok) {
-            Token.BREAK -> Node.Expr.Return(breakables.mark(v.label?.name), null).toStmt()
-            Token.CONTINUE -> Node.Expr.Return(continuables.mark(v.label?.name), null).toStmt()
+            Token.BREAK -> Node.Expr.Return(currFunc.breakables.mark(v.label?.name), null).toStmt()
+            Token.CONTINUE -> Node.Expr.Return(currFunc.continuables.mark(v.label?.name), null).toStmt()
             Token.GOTO -> v.label!!.name.let { label ->
-                seenGotoLabelStack.last() += label
+                currFunc.seenGotos += label
                 Node.Expr.Return(
-                    label = returnLabelStack.lastOrNull()?.let { labelIdent(it) },
+                    label = currFunc.returnLabelStack.lastOrNull()?.let { labelIdent(it) },
                     expr = call(expr = labelIdent(label).toName())
                 ).toStmt()
             }
@@ -704,11 +698,11 @@ open class Compiler {
         // a break breaks out of. Then we have a forLoop fn where a continue returns.
 
         // Compile the block and see if anything had break/continue
-        breakables.push(label)
-        continuables.push(label)
+        currFunc.breakables.push(label)
+        currFunc.continuables.push(label)
         val bodyStmts = compileBlockStmt(v.body!!).stmts
-        val (breakLabel, breakCalled) = breakables.pop()
-        val (continueLabel, continueCalled) = continuables.pop()
+        val (breakLabel, breakCalled) = currFunc.breakables.pop()
+        val (continueLabel, continueCalled) = currFunc.continuables.pop()
 
         var stmts = emptyList<Node.Stmt>()
         if (v.init != null) stmts += compileStmt(v.init)
@@ -741,12 +735,8 @@ open class Compiler {
 
     fun Context.compileFuncDecl(v: FuncDecl, topLevel: Boolean): Node.Decl.Func {
         if (!topLevel) TODO()
-        funcTypeStack += v.type!!
-        seenGotoLabelStack.add(mutableSetOf())
-        return compileFuncDecl(v.name?.name, v.type!!, v.body).also {
-            funcTypeStack.removeAt(funcTypeStack.lastIndex)
-            seenGotoLabelStack.removeAt(seenGotoLabelStack.lastIndex)
-        }
+        pushFunc(v.type!!)
+        return compileFuncDecl(v.name?.name, v.type!!, v.body).also { popFunc() }
     }
 
     fun Context.compileFuncDecl(name: String?, type: FuncType, body: BlockStmt?): Node.Decl.Func {
@@ -765,11 +755,7 @@ open class Compiler {
                     )
                 }
             },
-            type = type.results?.let {
-                if (it.list.size != 1 || it.list.single().names.size > 1) TODO()
-                val id = (it.list.first().type!!.expr as Expr_.Expr.Ident).ident
-                compileTypeRef(id.typeRef!!)
-            },
+            type = compileTypeRefMultiResult(type.results),
             body = body?.let { Node.Decl.Func.Body.Block(compileBlockStmt(it)) }
         )
     }
@@ -992,11 +978,11 @@ open class Compiler {
         }
 
         // Check body for any break/continue calls
-        breakables.push(label)
-        continuables.push(label)
+        currFunc.breakables.push(label)
+        currFunc.continuables.push(label)
         val bodyStmts = compileBlockStmt(v.body!!).stmts
-        val (breakLabel, breakCalled) = breakables.pop()
-        val (continueLabel, continueCalled) = continuables.pop()
+        val (breakLabel, breakCalled) = currFunc.breakables.pop()
+        val (continueLabel, continueCalled) = currFunc.continuables.pop()
 
         var stmt = call(
             expr = forEachFnName.toDottedExpr().let {
@@ -1021,10 +1007,12 @@ open class Compiler {
 
     fun Context.compileReturnStmt(v: ReturnStmt) = Node.Stmt.Expr(
         Node.Expr.Return(
-            label = returnLabelStack.lastOrNull()?.let { labelIdent(it) },
-            expr = v.results.let {
-                if (it.size > 1) TODO()
-                it.singleOrNull()?.let { compileExpr(it) }
+            label = currFunc.returnLabelStack.lastOrNull()?.let { labelIdent(it) },
+            expr = v.results.map { compileExpr(it) }.let { results ->
+                if (results.size <= 1) results.singleOrNull() else call(
+                    expr = "go2k.runtime.Tuple${results.size}".toDottedExpr(),
+                    args = results.map { valueArg(expr = it) }
+                )
             }
         )
     )
@@ -1107,7 +1095,7 @@ open class Compiler {
         // All cases are when entries
         val cases = (v.body?.list ?: emptyList()).map { (it.stmt as Stmt_.Stmt.CaseClause).caseClause }
         // Track break usage
-        breakables.push(label)
+        currFunc.breakables.push(label)
         val entries = cases.mapIndexed { index, case ->
             // Body includes all fallthroughs as duplicate code in run blocks
             var body = listOf(case.body)
@@ -1137,7 +1125,7 @@ open class Compiler {
                 ))
             )
         }.toMutableList()
-        val (breakLabel, breakCalled) = breakables.pop()
+        val (breakLabel, breakCalled) = currFunc.breakables.pop()
         // Put default at the end
         entries.indexOfFirst { it.conds.isEmpty() }.also { if (it >= 0) entries += entries.removeAt(it) }
         // Create the when
