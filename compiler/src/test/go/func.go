@@ -11,15 +11,21 @@ func main() {
 	println("func 4", a, b, c)
 	a, b, c, d := funcFourReturn("foo")
 	println("func 5", a, b, c, d)
+	a = funcOneNamedReturn("foo")
+	println("func 6", a)
+	a, b = funcTwoNamedReturn("foo")
+	println("func 7", a, b)
+	// Multi-return passed direct
+	// TODO: a, b = funcTwoParamTwoResult(funcTwoNamedReturn("foo"))
+
 	// TODO:
-	// func w/ named returns
-	// func w/ multi param names sharing type
-	// func w/ multi return names sharing type
-	// func w/ vararg
+	// func w/ simple vararg
+	// func w/ vararg passing direct tuple result
 }
 
 func funcNoReturn(v string) {
 	println("func 1", v)
+	return
 }
 
 func funcOneReturn(v string) string {
@@ -36,4 +42,18 @@ func funcThreeReturn(v string) (string, string, string) {
 
 func funcFourReturn(v string) (string, string, string, string) {
 	return v + "-four-1", v + "-four-2", v + "-four-3", v + "-four-4"
+}
+
+func funcOneNamedReturn(v string) (one string) {
+	one = v + "-onenamed"
+	return
+}
+
+func funcTwoNamedReturn(v string) (one, two string) {
+	one, two = v+"-twonamed-1", v+"-twonamed-2"
+	return
+}
+
+func funcTwoParamTwoResult(v1, v2 string) (string, string) {
+	return v1 + "-twoparam-1", v2 + "-twoparam-2"
 }

@@ -744,6 +744,15 @@ open class Compiler {
         // TODO: Anon functions sadly can't be suspended yet, ref: https://youtrack.jetbrains.com/issue/KT-18346
         if (name != null) mods += Node.Modifier.Keyword.SUSPEND.toMod()
         if (name != null && name.first().isLowerCase()) mods += Node.Modifier.Keyword.INTERNAL.toMod()
+        // Named return idents need to be declared with zero vals up front
+        val returnIdents = type.results?.list?.flatMap { it.names } ?: emptyList()
+        var stmts: List<Node.Stmt> = returnIdents.map { ident ->
+            Node.Stmt.Decl(property(
+                vars = listOf(propVar(ident.name.javaIdent)),
+                expr = compileTypeRefZeroExpr(ident.typeRef ?: ident.defTypeRef ?: error("No ident type"))
+            ))
+        }
+        if (body != null) stmts += compileBlockStmt(body).stmts
         return func(
             mods = mods,
             name = name?.javaIdent,
@@ -756,7 +765,7 @@ open class Compiler {
                 }
             },
             type = compileTypeRefMultiResult(type.results),
-            body = body?.let { Node.Decl.Func.Body.Block(compileBlockStmt(it)) }
+            body = Node.Decl.Func.Body.Block(Node.Block(stmts))
         )
     }
 
@@ -1008,7 +1017,11 @@ open class Compiler {
     fun Context.compileReturnStmt(v: ReturnStmt) = Node.Stmt.Expr(
         Node.Expr.Return(
             label = currFunc.returnLabelStack.lastOrNull()?.let { labelIdent(it) },
-            expr = v.results.map { compileExpr(it) }.let { results ->
+            expr = v.results.map { compileExpr(it) }.let {
+                var results = it
+                // If it's a naked return but there are named returns, return those
+                if (it.isEmpty() && currFunc.type.results != null)
+                    results = currFunc.type.results!!.list.flatMap { it.names.map { it.name.javaIdent.toName() } }
                 if (results.size <= 1) results.singleOrNull() else call(
                     expr = "go2k.runtime.Tuple${results.size}".toDottedExpr(),
                     args = results.map { valueArg(expr = it) }
