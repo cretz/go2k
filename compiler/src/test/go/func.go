@@ -16,11 +16,15 @@ func main() {
 	a, b = funcTwoNamedReturn("foo")
 	println("func 7", a, b)
 	// Multi-return passed direct
-	// TODO: a, b = funcTwoParamTwoResult(funcTwoNamedReturn("foo"))
-
-	// TODO:
-	// func w/ simple vararg
-	// func w/ vararg passing direct tuple result
+	a, b = funcTwoParamTwoResult(funcTwoNamedReturn("foo"))
+	println("func 8", a, b)
+	// Vararg
+	a = funcVararg("foo", "bar", "baz")
+	println("func 9", a)
+	a = funcVararg()
+	println("func 10", a)
+	a = funcVararg(funcTwoNamedReturn("foo"))
+	println("func 11", a)
 }
 
 func funcNoReturn(v string) {
@@ -56,4 +60,12 @@ func funcTwoNamedReturn(v string) (one, two string) {
 
 func funcTwoParamTwoResult(v1, v2 string) (string, string) {
 	return v1 + "-twoparam-1", v2 + "-twoparam-2"
+}
+
+func funcVararg(v ...string) string {
+	s := "-"
+	for _, str := range v {
+		s += str + "-vararg-"
+	}
+	return s
 }

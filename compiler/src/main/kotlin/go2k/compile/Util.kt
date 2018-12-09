@@ -29,3 +29,18 @@ fun KClass<*>.primitiveArrayClass() = when (this) {
     USHORT_CLASS -> USHORT_ARRAY_CLASS
     else -> null
 }
+
+fun KClass<*>.arrayOfQualifiedFunctionName() = when (this) {
+    Byte::class -> "kotlin.byteArrayOf"
+    Char::class -> "kotlin.charArrayOf"
+    Double::class -> "kotlin.doubleArrayOf"
+    Float::class -> "kotlin.floatArrayOf"
+    Int::class -> "kotlin.intArrayOf"
+    Long::class -> "kotlin.longArrayOf"
+    Short::class -> "kotlin.shortArrayOf"
+    UBYTE_CLASS -> "kotlin.ubyteArrayOf"
+    UINT_CLASS -> "kotlin.uintArrayOf"
+    ULONG_CLASS -> "kotlin.ulongArrayOf"
+    USHORT_CLASS -> "kotlin.ushortArrayOf"
+    else -> "kotlin.arrayOf"
+}

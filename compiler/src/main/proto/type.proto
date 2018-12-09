@@ -116,6 +116,7 @@ message TypeSignature {
   TypeRef recv = 1;
   repeated TypeRef params = 2;
   repeated TypeRef results = 3;
+  bool variadic = 4;
 }
 
 message TypeSlice {

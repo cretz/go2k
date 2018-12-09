@@ -3,6 +3,7 @@ package go2k.compile
 import go2k.compile.dumppb.*
 import go2k.runtime.GoStruct
 import go2k.runtime.Ops
+import go2k.runtime.Slice
 import go2k.runtime.runMain
 import kastree.ast.Node
 import java.math.BigDecimal
@@ -48,20 +49,8 @@ open class Compiler {
             elems.all { it.expr !is Expr_.Expr.KeyValueExpr }
         return if (simpleArrayLiteral) {
             call(
-                expr = when ((elemType as? TypeConverter.Type.Primitive)?.cls) {
-                    Byte::class -> "kotlin.byteArrayOf"
-                    Char::class -> "kotlin.charArrayOf"
-                    Double::class -> "kotlin.doubleArrayOf"
-                    Float::class -> "kotlin.floatArrayOf"
-                    Int::class -> "kotlin.intArrayOf"
-                    Long::class -> "kotlin.longArrayOf"
-                    Short::class -> "kotlin.shortArrayOf"
-                    UBYTE_CLASS -> "kotlin.ubyteArrayOf"
-                    UINT_CLASS -> "kotlin.uintArrayOf"
-                    ULONG_CLASS -> "kotlin.ulongArrayOf"
-                    USHORT_CLASS -> "kotlin.ushortArrayOf"
-                    else -> "kotlin.arrayOf"
-                }.funcRef(),
+                expr = ((elemType as? TypeConverter.Type.Primitive)?.cls ?: Any::class).
+                    arrayOfQualifiedFunctionName().funcRef(),
                 args = elems.map { valueArg(expr = compileExpr(it).convertType(it, elemType)) }
             )
         } else {
@@ -535,19 +524,52 @@ open class Compiler {
                     args = v.args.map { valueArg(expr = compileExpr(it)) }
                 )
             }
-            else -> call(
-                expr = compileExpr(v.`fun`),
-                // We choose to have vararg params be slices instead of supporting
-                // Kotlin splats which only work on arrays
-                args = (funType.convType() as TypeConverter.Type.Func).let { funConvType ->
-                    v.args.mapIndexed { index, arg ->
-                        val argType = funConvType.params.getOrNull(index)
-                            ?: funConvType.params.lastOrNull()?.takeIf { funConvType.vararg }
-                            ?: error("Missing arg type for index $index")
-                        valueArg(expr = compileExpr(arg).convertType(arg, argType))
+            else -> {
+                var preStmt: Node.Stmt? = null
+                val funConvType = funType.convType() as TypeConverter.Type.Func
+                // As a special case, if it's a single arg call w/ multi-return, we break it up in temp vars
+                val singleArgCallType = (v.args.singleOrNull()?.expr as? Expr_.Expr.CallExpr)?.callExpr?.
+                    `fun`?.expr?.typeRef?.namedType?.convType() as? TypeConverter.Type.Func
+                var args =
+                    if (singleArgCallType?.results != null && singleArgCallType.results.size > 1) {
+                        // Deconstruct to temp vals and make those the new args
+                        val tempVars = singleArgCallType.results.map { currFunc.newTempVar() }
+                        preStmt = Node.Stmt.Decl(property(
+                            readOnly = true,
+                            vars = tempVars.map { propVar(it) },
+                            expr = compileExpr(v.args.single())
+                        ))
+                        tempVars.map { it.toName() }
+                    } else v.args.mapIndexed { index, arg ->
+                        // Vararg is the type of the slice
+                        val argType =
+                            if (!funConvType.vararg || index < funConvType.params.lastIndex) funConvType.params[index]
+                            else (funConvType.params.last() as TypeConverter.Type.Slice).elemType
+                        compileExpr(arg).convertType(arg, argType)
+                    }
+                // If this is variadic and the args spill into the varargs, make a slice
+                if (funConvType.vararg && args.size >= funConvType.params.size) {
+                    args = args.take(funConvType.params.size - 1) + args.drop(funConvType.params.size - 1).let {
+                        val cls = (funConvType.params.last() as? TypeConverter.Type.Primitive)?.cls ?: Any::class
+                        call(
+                            expr = "go2k.runtime.builtin.slice".funcRef(),
+                            args = listOf(valueArg(expr = call(
+                                expr = cls.arrayOfQualifiedFunctionName().funcRef(),
+                                args = it.map { valueArg(expr = it) }
+                            )))
+                        )
                     }
                 }
-            )
+                val callExpr = call(
+                    expr = compileExpr(v.`fun`),
+                    args = args.map { valueArg(expr = it) }
+                )
+                // If a pre-stmt exists, this becomes a run expr, otherwise just a call
+                if (preStmt == null) callExpr else call(
+                    expr = "run".toName(),
+                    lambda = trailLambda(stmts = listOf(preStmt, callExpr.toStmt()))
+                )
+            }
         }
     }
 
@@ -758,9 +780,22 @@ open class Compiler {
             name = name?.javaIdent,
             params = (type.params?.list ?: emptyList()).flatMap { field ->
                 field.names.map { name ->
+                    // An ellipsis expr means a slice vararg
+                    val vararg: Boolean
+                    val type = when (val expr = field.type!!.expr!!) {
+                        is Expr_.Expr.Ellipsis -> {
+                            vararg = true
+                            Slice::class.toType(listOf(compileTypeRef(expr.ellipsis.elt!!.expr!!.typeRef!!))).nullable()
+                        }
+                        else -> {
+                            vararg = false
+                            compileTypeRef(expr.typeRef!!)
+                        }
+                    }
                     param(
                         name = name.name.javaIdent,
-                        type = compileTypeRef(field.type!!.expr!!.typeRef!!)
+                        type = type,
+                        default = if (vararg) NullConst else null
                     )
                 }
             },

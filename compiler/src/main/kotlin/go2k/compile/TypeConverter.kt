@@ -101,7 +101,7 @@ open class TypeConverter {
             recv = v.type.typeFunc.recv?.namedType?.let { toConvType(it) },
             params = v.type.typeFunc.params.map { toConvType(it.namedType) },
             results = v.type.typeFunc.results.map { toConvType(it.namedType) },
-            vararg = false
+            vararg = v.type.typeFunc.variadic
         )
         is Type_.Type.TypeInterface ->  Type.Interface(v)
         is Type_.Type.TypeMap ->

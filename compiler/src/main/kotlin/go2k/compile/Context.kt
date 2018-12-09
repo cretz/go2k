@@ -189,11 +189,9 @@ class Context(
         val returnLabelStack = mutableListOf<String?>()
 
         val seenTempVars = mutableSetOf<String>()
-        fun newTempVar(prefix: String): String {
-            var temp = "$prefix\$temp"
-            var index = -1
-            while (seenTempVars.contains(temp)) temp = "$prefix\$temp${++index}"
-            return temp.also { seenTempVars += it }
+        fun newTempVar(prefix: String = ""): String {
+            var index = 0
+            while (true) "$prefix\$temp${index++}".also { if (seenTempVars.add(it)) return it }
         }
     }
 

@@ -239,6 +239,7 @@ data class TypeSignature(
     val recv: go2k.compile.dumppb.TypeRef? = null,
     val params: List<go2k.compile.dumppb.TypeRef> = emptyList(),
     val results: List<go2k.compile.dumppb.TypeRef> = emptyList(),
+    val variadic: Boolean = false,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeSignature> {
     override operator fun plus(other: TypeSignature?) = protoMergeImpl(other)
@@ -740,6 +741,7 @@ private fun TypeSignature.protoSizeImpl(): Int {
     if (recv != null) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.messageSize(recv)
     if (params.isNotEmpty()) protoSize += (pbandk.Sizer.tagSize(2) * params.size) + params.sumBy(pbandk.Sizer::messageSize)
     if (results.isNotEmpty()) protoSize += (pbandk.Sizer.tagSize(3) * results.size) + results.sumBy(pbandk.Sizer::messageSize)
+    if (variadic) protoSize += pbandk.Sizer.tagSize(4) + pbandk.Sizer.boolSize(variadic)
     protoSize += unknownFields.entries.sumBy { it.value.size() }
     return protoSize
 }
@@ -748,6 +750,7 @@ private fun TypeSignature.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
     if (recv != null) protoMarshal.writeTag(10).writeMessage(recv)
     if (params.isNotEmpty()) params.forEach { protoMarshal.writeTag(18).writeMessage(it) }
     if (results.isNotEmpty()) results.forEach { protoMarshal.writeTag(26).writeMessage(it) }
+    if (variadic) protoMarshal.writeTag(32).writeBool(variadic)
     if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
 }
 
@@ -755,11 +758,13 @@ private fun TypeSignature.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Un
     var recv: go2k.compile.dumppb.TypeRef? = null
     var params: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
     var results: pbandk.ListWithSize.Builder<go2k.compile.dumppb.TypeRef>? = null
+    var variadic = false
     while (true) when (protoUnmarshal.readTag()) {
-        0 -> return TypeSignature(recv, pbandk.ListWithSize.Builder.fixed(params), pbandk.ListWithSize.Builder.fixed(results), protoUnmarshal.unknownFields())
+        0 -> return TypeSignature(recv, pbandk.ListWithSize.Builder.fixed(params), pbandk.ListWithSize.Builder.fixed(results), variadic, protoUnmarshal.unknownFields())
         10 -> recv = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
         18 -> params = protoUnmarshal.readRepeatedMessage(params, go2k.compile.dumppb.TypeRef.Companion, true)
         26 -> results = protoUnmarshal.readRepeatedMessage(results, go2k.compile.dumppb.TypeRef.Companion, true)
+        32 -> variadic = protoUnmarshal.readBool()
         else -> protoUnmarshal.unknownField()
     }
 }
