@@ -4,6 +4,7 @@ import go2k.compile.dumppb.*
 import go2k.runtime.Slice
 import go2k.runtime.builtin.EmptyInterface
 import kastree.ast.Node
+import kotlinx.coroutines.channels.Channel
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
@@ -53,7 +54,7 @@ class Context(
         }
         is Type_.Type.TypeBasic -> v.type.typeBasic.kotlinPrimitiveType(v.name).toType()
         is Type_.Type.TypeBuiltin -> TODO()
-        is Type_.Type.TypeChan -> TODO()
+        is Type_.Type.TypeChan -> Channel::class.toType(listOf(compileTypeRef(v.type.typeChan.elem!!))).nullable()
         is Type_.Type.TypeConst ->
             compileType(v.type.typeConst.type!!.namedType)
         is Type_.Type.TypeFunc -> TODO()

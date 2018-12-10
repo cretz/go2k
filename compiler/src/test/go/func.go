@@ -25,6 +25,10 @@ func main() {
 	println("func 10", a)
 	a = funcVararg(funcTwoNamedReturn("foo"))
 	println("func 11", a)
+	// Anon func
+	fn := func(str string) string { return str + "-anon-1" }
+	println("func 12", fn("foo"))
+	println("func 13", func(str string) string { return str + "-anon-2" }("foo"))
 }
 
 func funcNoReturn(v string) {

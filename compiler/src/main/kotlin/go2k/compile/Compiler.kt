@@ -453,124 +453,125 @@ open class Compiler {
 
     fun Context.compileCallExpr(v: CallExpr): Node.Expr {
         val funType = v.`fun`!!.expr!!.typeRef!!.namedType
-        return when (funType.type) {
-            // If the function is a const type, it's a conversion instead of a function call
-            is Type_.Type.TypeConst -> {
-                // Must be a singular arg
-                val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
-                compileExpr(arg).convertType(arg, funType.type.typeConst.type!!.namedType)
+        // If the function is a const type but not a function, it's a conversion instead of a function call
+        if (funType.type is Type_.Type.TypeConst && funType.convType() !is TypeConverter.Type.Func) {
+            // Must be a singular arg
+            val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
+            return compileExpr(arg).convertType(arg, funType.type.typeConst.type!!.namedType)
+        }
+        // Handle built-ins elsewhere
+        if (funType.type is Type_.Type.TypeBuiltin) return compileCallExprBuiltIn(v, funType.name)
+
+        var preStmt: Node.Stmt? = null
+        val funConvType = funType.convType() as TypeConverter.Type.Func
+        // As a special case, if it's a single arg call w/ multi-return, we break it up in temp vars
+        val singleArgCallType = (v.args.singleOrNull()?.expr as? Expr_.Expr.CallExpr)?.callExpr?.
+            `fun`?.expr?.typeRef?.namedType?.convType() as? TypeConverter.Type.Func
+        var args =
+            if (singleArgCallType?.results != null && singleArgCallType.results.size > 1) {
+                // Deconstruct to temp vals and make those the new args
+                val tempVars = singleArgCallType.results.map { currFunc.newTempVar() }
+                preStmt = Node.Stmt.Decl(property(
+                    readOnly = true,
+                    vars = tempVars.map { propVar(it) },
+                    expr = compileExpr(v.args.single())
+                ))
+                tempVars.map { it.toName() }
+            } else v.args.mapIndexed { index, arg ->
+                // Vararg is the type of the slice
+                val argType =
+                    if (!funConvType.vararg || index < funConvType.params.lastIndex) funConvType.params[index]
+                    else (funConvType.params.last() as TypeConverter.Type.Slice).elemType
+                compileExpr(arg).convertType(arg, argType)
             }
-            is Type_.Type.TypeBuiltin -> when (funType.name) {
-                "append" -> {
-                    // First arg is the slice
-                    val sliceType = v.args.first().expr!!.typeRef!!.namedType.convType() as TypeConverter.Type.Slice
-                    // If ellipsis is present, only second arg is allowed and it's passed explicitly,
-                    // otherwise a slice literal is created (TODO: kinda slow to create those unnecessarily)
-                    val arg =
-                        if (v.ellipsis > 0) compileExpr(v.args.apply { require(size == 2) }.last())
-                        else compileSliceLiteral(sliceType, v.args.drop(1))
-                    call(
-                        expr = "go2k.runtime.builtin.append".funcRef(),
-                        args = listOf(valueArg(expr = compileExpr(v.args.first())), valueArg(expr = arg))
-                    )
-                }
-                "make" -> {
-                    // First arg is the type to make
-                    val argType = v.args.first().expr!!.typeRef!!.typeConst!!.type!!.namedType.convType()
-                    when (argType) {
-                        is TypeConverter.Type.Map -> {
-                            // Primitive means the first arg is the zero val
-                            val firstArgs =
-                                if (argType.valType !is TypeConverter.Type.Primitive) emptyList()
-                                else listOf(valueArg(expr = compileTypeZeroExpr(argType.valType.type)))
-                            call(
-                                expr = "go2k.runtime.builtin.makeMap".toDottedExpr(),
-                                typeArgs = listOf(
-                                    compileType(argType.keyType.type),
-                                    compileType(argType.valType.type)
-                                ),
-                                args = firstArgs +
-                                    if (v.args.size == 1) emptyList()
-                                    else listOf(valueArg(name = "size", expr = compileExpr(v.args[1])))
-                            )
-                        }
-                        is TypeConverter.Type.Slice -> {
-                            val elemType = (argType.elemType as? TypeConverter.Type.Primitive)?.cls
-                            val createSliceFnName = when (elemType) {
-                                Byte::class -> "makeByteSlice"
-                                Char::class -> "makeCharSlice"
-                                Double::class -> "makeDoubleSlice"
-                                Float::class -> "makeFloatSlice"
-                                Int::class -> "makeIntSlice"
-                                Long::class -> "makeLongSlice"
-                                Short::class -> "makeShortSlice"
-                                String::class -> "makeStringSlice"
-                                UBYTE_CLASS -> "makeUByteSlice"
-                                UINT_CLASS -> "makeUIntSlice"
-                                ULONG_CLASS -> "makeULongSlice"
-                                USHORT_CLASS -> "makeUShortSlice"
-                                else -> "makeObjectSlice"
-                            }
-                            call(
-                                expr = "go2k.runtime.builtin.$createSliceFnName".funcRef(),
-                                args = v.args.drop(1).map { valueArg(expr = compileExpr(it)) }
-                            )
-                        }
-                        else -> TODO()
-                    }
-                }
-                else -> call(
-                    expr = compileExpr(v.`fun`),
-                    args = v.args.map { valueArg(expr = compileExpr(it)) }
-                )
-            }
-            else -> {
-                var preStmt: Node.Stmt? = null
-                val funConvType = funType.convType() as TypeConverter.Type.Func
-                // As a special case, if it's a single arg call w/ multi-return, we break it up in temp vars
-                val singleArgCallType = (v.args.singleOrNull()?.expr as? Expr_.Expr.CallExpr)?.callExpr?.
-                    `fun`?.expr?.typeRef?.namedType?.convType() as? TypeConverter.Type.Func
-                var args =
-                    if (singleArgCallType?.results != null && singleArgCallType.results.size > 1) {
-                        // Deconstruct to temp vals and make those the new args
-                        val tempVars = singleArgCallType.results.map { currFunc.newTempVar() }
-                        preStmt = Node.Stmt.Decl(property(
-                            readOnly = true,
-                            vars = tempVars.map { propVar(it) },
-                            expr = compileExpr(v.args.single())
-                        ))
-                        tempVars.map { it.toName() }
-                    } else v.args.mapIndexed { index, arg ->
-                        // Vararg is the type of the slice
-                        val argType =
-                            if (!funConvType.vararg || index < funConvType.params.lastIndex) funConvType.params[index]
-                            else (funConvType.params.last() as TypeConverter.Type.Slice).elemType
-                        compileExpr(arg).convertType(arg, argType)
-                    }
-                // If this is variadic and the args spill into the varargs, make a slice
-                if (funConvType.vararg && args.size >= funConvType.params.size) {
-                    args = args.take(funConvType.params.size - 1) + args.drop(funConvType.params.size - 1).let {
-                        val cls = (funConvType.params.last() as? TypeConverter.Type.Primitive)?.cls ?: Any::class
-                        call(
-                            expr = "go2k.runtime.builtin.slice".funcRef(),
-                            args = listOf(valueArg(expr = call(
-                                expr = cls.arrayOfQualifiedFunctionName().funcRef(),
-                                args = it.map { valueArg(expr = it) }
-                            )))
-                        )
-                    }
-                }
-                val callExpr = call(
-                    expr = compileExpr(v.`fun`),
-                    args = args.map { valueArg(expr = it) }
-                )
-                // If a pre-stmt exists, this becomes a run expr, otherwise just a call
-                if (preStmt == null) callExpr else call(
-                    expr = "run".toName(),
-                    lambda = trailLambda(stmts = listOf(preStmt, callExpr.toStmt()))
+        // If this is variadic and the args spill into the varargs, make a slice
+        if (funConvType.vararg && args.size >= funConvType.params.size) {
+            args = args.take(funConvType.params.size - 1) + args.drop(funConvType.params.size - 1).let {
+                val cls = (funConvType.params.last() as? TypeConverter.Type.Primitive)?.cls ?: Any::class
+                call(
+                    expr = "go2k.runtime.builtin.slice".funcRef(),
+                    args = listOf(valueArg(expr = call(
+                        expr = cls.arrayOfQualifiedFunctionName().funcRef(),
+                        args = it.map { valueArg(expr = it) }
+                    )))
                 )
             }
         }
+        val callExpr = call(
+            expr = compileExpr(v.`fun`),
+            args = args.map { valueArg(expr = it) }
+        )
+        // If a pre-stmt exists, this becomes a run expr, otherwise just a call
+        return if (preStmt == null) callExpr else call(
+            expr = "run".toName(),
+            lambda = trailLambda(stmts = listOf(preStmt, callExpr.toStmt()))
+        )
+    }
+
+    fun Context.compileCallExprBuiltIn(v: CallExpr, name: String) = when (name) {
+        "append" -> {
+            // First arg is the slice
+            val sliceType = v.args.first().expr!!.typeRef!!.namedType.convType() as TypeConverter.Type.Slice
+            // If ellipsis is present, only second arg is allowed and it's passed explicitly,
+            // otherwise a slice literal is created (TODO: kinda slow to create those unnecessarily)
+            val arg =
+                if (v.ellipsis > 0) compileExpr(v.args.apply { require(size == 2) }.last())
+                else compileSliceLiteral(sliceType, v.args.drop(1))
+            call(
+                expr = "go2k.runtime.builtin.append".funcRef(),
+                args = listOf(valueArg(expr = compileExpr(v.args.first())), valueArg(expr = arg))
+            )
+        }
+        "make" -> when (val argType = v.args.first().expr!!.typeRef!!.typeConst!!.type!!.namedType.convType()) {
+            is TypeConverter.Type.Chan -> call(
+                expr = "go2k.runtime.builtin.makeChan".toDottedExpr(),
+                typeArgs = listOf(compileType(argType.elemType.type)),
+                args = v.args.getOrNull(1)?.let { listOf(valueArg(expr = compileExpr(it))) } ?: emptyList()
+            )
+            is TypeConverter.Type.Map -> {
+                // Primitive means the first arg is the zero val
+                val firstArgs =
+                    if (argType.valType !is TypeConverter.Type.Primitive) emptyList()
+                    else listOf(valueArg(expr = compileTypeZeroExpr(argType.valType.type)))
+                call(
+                    expr = "go2k.runtime.builtin.makeMap".toDottedExpr(),
+                    typeArgs = listOf(
+                        compileType(argType.keyType.type),
+                        compileType(argType.valType.type)
+                    ),
+                    args = firstArgs +
+                        if (v.args.size == 1) emptyList()
+                        else listOf(valueArg(name = "size", expr = compileExpr(v.args[1])))
+                )
+            }
+            is TypeConverter.Type.Slice -> {
+                val elemType = (argType.elemType as? TypeConverter.Type.Primitive)?.cls
+                val createSliceFnName = when (elemType) {
+                    Byte::class -> "makeByteSlice"
+                    Char::class -> "makeCharSlice"
+                    Double::class -> "makeDoubleSlice"
+                    Float::class -> "makeFloatSlice"
+                    Int::class -> "makeIntSlice"
+                    Long::class -> "makeLongSlice"
+                    Short::class -> "makeShortSlice"
+                    String::class -> "makeStringSlice"
+                    UBYTE_CLASS -> "makeUByteSlice"
+                    UINT_CLASS -> "makeUIntSlice"
+                    ULONG_CLASS -> "makeULongSlice"
+                    USHORT_CLASS -> "makeUShortSlice"
+                    else -> "makeObjectSlice"
+                }
+                call(
+                    expr = "go2k.runtime.builtin.$createSliceFnName".funcRef(),
+                    args = v.args.drop(1).map { valueArg(expr = compileExpr(it)) }
+                )
+            }
+            else -> error("Unrecognized make for $argType")
+        }
+        else -> call(
+            expr = compileExpr(v.`fun`!!),
+            args = v.args.map { valueArg(expr = compileExpr(it)) }
+        )
     }
 
     fun Context.compileCompositeLit(v: CompositeLit) = when (val type = v.type?.expr) {
@@ -804,11 +805,50 @@ open class Compiler {
         )
     }
 
-    fun Context.compileFuncLit(v: FuncLit) = Node.Expr.AnonFunc(compileFuncDecl(null, v.type!!, v.body))
+    fun Context.compileFuncLit(v: FuncLit): Node.Expr {
+        val tempVar = currFunc.newTempVar("anonFunc")
+        currFunc.returnLabelStack += tempVar
+        val decl = compileFuncDecl(null, v.type!!, v.body)
+        currFunc.returnLabelStack.removeAt(currFunc.returnLabelStack.lastIndex)
+        // TODO: once https://youtrack.jetbrains.com/issue/KT-18346 is fixed, return Node.Expr.AnonFunc(decl)
+        // In the meantime, we have to turn the function into a suspended lambda sadly
+        return call(
+            expr = "run".toName(),
+            lambda = trailLambda(
+                stmts = listOf(
+                    Node.Stmt.Decl(property(
+                        readOnly = true,
+                        vars = listOf(propVar(
+                            name = tempVar,
+                            type = Node.Type(
+                                mods = listOf(Node.Modifier.Lit(Node.Modifier.Keyword.SUSPEND)),
+                                ref = Node.TypeRef.Func(
+                                    receiverType = null,
+                                    params = decl.params.map {
+                                        Node.TypeRef.Func.Param(null, it.type!!)
+                                    },
+                                    type = decl.type ?: Unit::class.toType()
+                                )
+                            )
+                        )),
+                        expr = Node.Expr.Labeled(labelIdent(tempVar), Node.Expr.Brace(
+                            params = decl.params.map { Node.Expr.Brace.Param(listOf(propVar(it.name)), null) },
+                            block = (decl.body as Node.Decl.Func.Body.Block).block
+                        ))
+                    )),
+                    tempVar.toName().toStmt()
+                ))
+        )
+    }
 
     fun Context.compileGenDecl(v: GenDecl, topLevel: Boolean) = v.specs.flatMap {
         compileSpec(it.spec!!, v.tok == Token.CONST, topLevel)
     }
+
+    fun Context.compileGoStmt(v: GoStmt) = call(
+        expr = "go2k.runtime.builtin.go".toDottedExpr(),
+        lambda = trailLambda(stmts = listOf(compileCallExpr(v.call!!).toStmt()))
+    ).toStmt()
 
     fun Context.compileIdent(v: Ident) = when {
         v.name == "nil" -> NullConst
@@ -1065,6 +1105,14 @@ open class Compiler {
         )
     )
 
+    fun Context.compileSendStmt(v: SendStmt) = call(
+        expr = "go2k.runtime.builtin.send".toDottedExpr(),
+        args = listOf(
+            valueArg(expr = compileExpr(v.chan!!)),
+            valueArg(expr = compileExpr(v.value!!))
+        )
+    ).toStmt()
+
     fun Context.compileSliceExpr(v: SliceExpr) = when (val type = v.x!!.expr!!.typeRef!!.namedType.convType()) {
         is TypeConverter.Type.Slice, is TypeConverter.Type.Array, is TypeConverter.Type.Primitive -> {
             var subject = compileExpr(v.x)
@@ -1097,10 +1145,10 @@ open class Compiler {
         is Stmt_.Stmt.EmptyStmt -> TODO()
         is Stmt_.Stmt.LabeledStmt -> compileLabeledStmt(v.labeledStmt)
         is Stmt_.Stmt.ExprStmt -> listOf(compileExprStmt(v.exprStmt))
-        is Stmt_.Stmt.SendStmt -> TODO()
+        is Stmt_.Stmt.SendStmt -> listOf(compileSendStmt(v.sendStmt))
         is Stmt_.Stmt.IncDecStmt -> listOf(compileIncDecStmt(v.incDecStmt))
         is Stmt_.Stmt.AssignStmt -> compileAssignStmt(v.assignStmt)
-        is Stmt_.Stmt.GoStmt -> TODO()
+        is Stmt_.Stmt.GoStmt -> listOf(compileGoStmt(v.goStmt))
         is Stmt_.Stmt.DeferStmt -> TODO()
         is Stmt_.Stmt.ReturnStmt -> listOf(compileReturnStmt(v.returnStmt))
         is Stmt_.Stmt.BranchStmt -> listOf(compileBranchStmt(v.branchStmt))
@@ -1248,34 +1296,47 @@ open class Compiler {
     }
 
     fun Context.compileUnaryExpr(v: UnaryExpr) = compileExpr(v.x!!).let { xExpr ->
-        // An "AND" op is a pointer deref
-        if (v.op == Token.AND) {
-            // Compile type of expr, and if it's not nullable, a simple "as" nullable form works.
-            // Otherwise, it's a NestedPtr
-            val xType = compileTypeRef(v.x.expr!!.typeRef!!)
-            if (xType.ref !is Node.TypeRef.Nullable) typeOp(
-                lhs = xExpr,
-                op = Node.Expr.TypeOp.Token.AS,
-                rhs = xType.nullable()
-            ) else call(
-                expr = NESTED_PTR_CLASS.ref(),
-                args = listOf(valueArg(expr = xExpr))
+        when (v.op) {
+            // An "AND" op is a pointer deref
+            Token.AND -> {
+                // Compile type of expr, and if it's not nullable, a simple "as" nullable form works.
+                // Otherwise, it's a NestedPtr
+                val xType = compileTypeRef(v.x.expr!!.typeRef!!)
+                if (xType.ref !is Node.TypeRef.Nullable) typeOp(
+                    lhs = xExpr,
+                    op = Node.Expr.TypeOp.Token.AS,
+                    rhs = xType.nullable()
+                ) else call(
+                    expr = NESTED_PTR_CLASS.ref(),
+                    args = listOf(valueArg(expr = xExpr))
+                )
+            }
+            // Receive from chan
+            Token.ARROW -> call(
+                expr = "go2k.runtime.builtin.recv".toDottedExpr(),
+                args = listOf(
+                    valueArg(expr = compileExpr(v.x.expr!!)),
+                    // Needs zero value of chan element type
+                    valueArg(expr = (v.x.expr.typeRef!!.namedType.convType() as TypeConverter.Type.Chan).let {
+                        compileTypeZeroExpr(it.elemType.type)
+                    })
+                )
             )
-        } else if (v.op == Token.XOR) {
             // ^ is a bitwise complement
-            call(expr = xExpr.dot("inv".toName()))
-        } else unaryOp(
-            expr = xExpr,
-            op = when (v.op) {
-                Token.ADD -> Node.Expr.UnaryOp.Token.POS
-                Token.SUB -> Node.Expr.UnaryOp.Token.NEG
-                Token.INC -> Node.Expr.UnaryOp.Token.INC
-                Token.DEC -> Node.Expr.UnaryOp.Token.DEC
-                Token.NOT -> Node.Expr.UnaryOp.Token.NOT
-                else -> error("Unrecognized op: ${v.op}")
-            },
-            prefix = v.op != Token.INC && v.op != Token.DEC
-        )
+            Token.XOR -> call(expr = xExpr.dot("inv".toName()))
+            else -> unaryOp(
+                expr = xExpr,
+                op = when (v.op) {
+                    Token.ADD -> Node.Expr.UnaryOp.Token.POS
+                    Token.SUB -> Node.Expr.UnaryOp.Token.NEG
+                    Token.INC -> Node.Expr.UnaryOp.Token.INC
+                    Token.DEC -> Node.Expr.UnaryOp.Token.DEC
+                    Token.NOT -> Node.Expr.UnaryOp.Token.NOT
+                    else -> error("Unrecognized op: ${v.op}")
+                },
+                prefix = v.op != Token.INC && v.op != Token.DEC
+            )
+        }
     }
 
     fun Context.compileValueSpecConst(v: ValueSpec, topLevel: Boolean) = v.names.zip(v.values) { id, value ->

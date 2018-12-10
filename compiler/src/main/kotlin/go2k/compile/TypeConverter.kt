@@ -12,6 +12,10 @@ open class TypeConverter {
         //println("Converting local type from $from to $to (same? ${to == from})")
         return when (to) {
             from, Type.RawParamForBuiltIn -> expr
+            is Type.Chan -> when (from) {
+                is Type.Chan -> expr
+                else -> TODO()
+            }
             is Type.Primitive -> when (from) {
                 is Type.Primitive -> when (to.cls) {
                     from.cls -> expr
@@ -92,6 +96,12 @@ open class TypeConverter {
             "println" -> Type.Func(v, null, listOf(Type.RawParamForBuiltIn), emptyList(), true)
             else -> error("Unknown built in '${v.name}'")
         }
+        is Type_.Type.TypeChan -> Type.Chan(
+            type = v,
+            elemType = toConvType(v.type.typeChan.elem!!.namedType),
+            send = v.type.typeChan.sendDir,
+            recv = v.type.typeChan.recvDir
+        )
         is Type_.Type.TypeConst -> {
             // Try primitive first
             v.kotlinPrimitiveType()?.let { Type.Primitive(v, it) } ?: toConvType(v.type.typeConst.type!!.namedType)
@@ -139,6 +149,7 @@ open class TypeConverter {
         data class Array(override val type: Type_, val elemType: Type, val len: Long) : Type()
         data class Slice(override val type: Type_, val elemType: Type) : Type()
         data class Map(override val type: Type_, val keyType: Type, val valType: Type) : Type()
+        data class Chan(override val type: Type_, val elemType: Type, val send: Boolean, val recv: Boolean) : Type()
         object RawParamForBuiltIn : Type() {
             override val type = Type_()
         }

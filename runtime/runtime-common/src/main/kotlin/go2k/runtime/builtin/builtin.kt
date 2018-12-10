@@ -4,6 +4,11 @@ import go2k.runtime.GoInterface
 import go2k.runtime.Panic
 import go2k.runtime.Platform
 import go2k.runtime.Slice
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 suspend inline fun <T> append(slice: Slice<T>?, elems: Slice<T>?) =
     slice?.append(elems!!) ?: elems?.slice(0, null, null)
@@ -131,3 +136,18 @@ inline fun slice(arr: CharArray, low: Int = 0, high: Int = arr.size, max: Int = 
 
 // TODO
 data class PrimitiveSlicePtr<T>(val slice: Slice<T>, val v: T, val index: Int)
+
+fun <T> makeChan(cap: Int = 0) = Channel<T>(cap)
+suspend inline fun close(ch: Channel<*>?) { require(ch!!.close()) { "Channel already closed" } }
+suspend fun <T> send(ch: Channel<T>?, v: T) {
+    // TODO: is this the best way to suspend forever
+    if (ch == null) delay(Long.MAX_VALUE) else ch.send(v)
+}
+suspend fun <T> recv(ch: Channel<T>?, onNull: T) =
+    // TODO: is this the best way to suspend forever
+    if (ch == null) {
+        delay(Long.MAX_VALUE)
+        onNull
+    } else ch.receiveOrNull() ?: onNull
+
+suspend inline fun go(noinline fn: suspend CoroutineScope.() -> Unit) { coroutineScope { launch { fn() } } }
