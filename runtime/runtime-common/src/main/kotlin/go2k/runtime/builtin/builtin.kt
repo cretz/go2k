@@ -1,14 +1,11 @@
 package go2k.runtime.builtin
 
-import go2k.runtime.GoInterface
-import go2k.runtime.Panic
-import go2k.runtime.Platform
-import go2k.runtime.Slice
-import kotlinx.coroutines.CoroutineScope
+import go2k.runtime.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.selects.SelectBuilder
 
 suspend inline fun <T> append(slice: Slice<T>?, elems: Slice<T>?) =
     slice?.append(elems!!) ?: elems?.slice(0, null, null)
@@ -139,15 +136,31 @@ data class PrimitiveSlicePtr<T>(val slice: Slice<T>, val v: T, val index: Int)
 
 fun <T> makeChan(cap: Int = 0) = Channel<T>(cap)
 suspend inline fun close(ch: Channel<*>?) { require(ch!!.close()) { "Channel already closed" } }
-suspend fun <T> send(ch: Channel<T>?, v: T) {
+suspend fun <T> send(ch: SendChannel<T>?, v: T) {
     // TODO: is this the best way to suspend forever
     if (ch == null) delay(Long.MAX_VALUE) else ch.send(v)
 }
-suspend fun <T> recv(ch: Channel<T>?, onNull: T) =
+suspend fun <T> recv(ch: ReceiveChannel<T>?, onNull: T) =
     // TODO: is this the best way to suspend forever
     if (ch == null) {
         delay(Long.MAX_VALUE)
         onNull
     } else ch.receiveOrNull() ?: onNull
+suspend inline fun <T> recvWithOk(ch: ReceiveChannel<T>?, onNull: T) =
+    Tuple2(recv(ch, onNull), ch?.isClosedForReceive == false)
+suspend inline fun <T> selectRecv(ch: ReceiveChannel<T>?, onNull: T, fn: (T) -> Unit) =
+    // TODO: not thread-safe, ref: https://discuss.kotlinlang.org/t/thread-safe-receivechannel-poll-on-channel-with-nullable-elements/10731
+    if (ch == null || ch.isEmpty) false else true.also { fn(ch.poll() ?: onNull) }
+suspend inline fun <T> selectRecvWithOk(ch: ReceiveChannel<T>?, onNull: T, fn: (T, Boolean) -> Unit) =
+    // TODO: not thread-safe, ref: https://discuss.kotlinlang.org/t/thread-safe-receivechannel-poll-on-channel-with-nullable-elements/10731
+    if (ch == null || ch.isEmpty) false else true.also { fn(ch.poll() ?: onNull, ch.isClosedForReceive) }
 
-suspend inline fun go(noinline fn: suspend CoroutineScope.() -> Unit) { coroutineScope { launch { fn() } } }
+// TODO: Unused until https://youtrack.jetbrains.com/issue/KT-28752 is fixed
+//suspend inline fun go(noinline fn: suspend CoroutineScope.() -> Unit) { coroutineScope { launch { fn() } } }
+
+suspend inline fun select(fn: suspend () -> Unit) {
+    while (true) {
+        fn()
+        yield()
+    }
+}

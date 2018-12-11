@@ -34,7 +34,7 @@ project(':compiler') {
         compile project(':runtime:runtime-jvm')
         compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
         compile 'org.jetbrains.kotlin:kotlin-reflect'
-        compile 'org.jetbrains.kotlin:kotlin-compiler'
+        compile 'org.jetbrains.kotlin:kotlin-compiler-embeddable'
         compile 'com.github.cretz.kastree:kastree-ast-jvm:0.3.0-SNAPSHOT'
         compile 'com.github.cretz.pbandk:pbandk-runtime-jvm:0.2.0'
         testImplementation 'org.junit.jupiter:junit-jupiter-api:5.1.0'

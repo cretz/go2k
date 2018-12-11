@@ -16,6 +16,12 @@ class TestUnit(
         }
     }
 
+    // Get embedded compiler errors on some
+    val useExternalCompiler = when (mainFilePath.fileName.toString()) {
+        "chan.go" -> true
+        else -> false
+    }
+
     override fun toString() = mainFilePath.fileName.toString()
 
     companion object {

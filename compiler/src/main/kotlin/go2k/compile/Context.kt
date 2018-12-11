@@ -5,6 +5,8 @@ import go2k.runtime.Slice
 import go2k.runtime.builtin.EmptyInterface
 import kastree.ast.Node
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.SendChannel
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
@@ -54,7 +56,14 @@ class Context(
         }
         is Type_.Type.TypeBasic -> v.type.typeBasic.kotlinPrimitiveType(v.name).toType()
         is Type_.Type.TypeBuiltin -> TODO()
-        is Type_.Type.TypeChan -> Channel::class.toType(listOf(compileTypeRef(v.type.typeChan.elem!!))).nullable()
+        is Type_.Type.TypeChan -> {
+            val chanClass = when {
+                !v.type.typeChan.sendDir -> ReceiveChannel::class
+                !v.type.typeChan.recvDir -> SendChannel::class
+                else -> Channel::class
+            }
+            chanClass.toType(listOf(compileTypeRef(v.type.typeChan.elem!!))).nullable()
+        }
         is Type_.Type.TypeConst ->
             compileType(v.type.typeConst.type!!.namedType)
         is Type_.Type.TypeFunc -> TODO()

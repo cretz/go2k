@@ -95,7 +95,7 @@ open class Compiler {
         val stmts = v.rhs.mapIndexed { index, expr ->
             when {
                 // If the ident is an underscore, we only do the RHS
-                idents[index] == "_" -> compileExpr(expr).toStmt()
+                idents.singleOrNull() == "_" -> compileExpr(expr).toStmt()
                 // If we're not a multi-on-single and we didn't define it here, just assign it
                 !multiDefineSingleRhs && (v.lhs[index].expr as Expr_.Expr.Ident).ident.defTypeRef == null -> binaryOp(
                     lhs = idents[index].javaIdent.toName(),
@@ -104,7 +104,9 @@ open class Compiler {
                 ).toStmt()
                 // Otherwise, just a property
                 else -> Node.Stmt.Decl(property(
-                    vars = if (multiDefineSingleRhs) idents.map { propVar(it) } else listOf(propVar(idents[index])),
+                    vars =
+                        if (multiDefineSingleRhs) idents.map { if (it == "_") null else propVar(it) }
+                        else listOf(propVar(idents[index])),
                     expr = compileExpr(expr).let {
                         if (multiDefineSingleRhs) it else it.convertType(expr, v.lhs[index])
                     }
@@ -131,10 +133,10 @@ open class Compiler {
         // an eager LHS and what it is.
         val multiAssignCall = call(
             expr = "go2k.runtime.Assign.multi".toDottedExpr(),
-            args = v.lhs.zip(rhsExprs) { lhs, rhsExpr ->
+            args = v.lhs.zip(rhsExprs) zip@ { lhs, rhsExpr ->
                 val eagerLhsExpr: Node.Expr?
                 val assignLambdaParams: List<List<String>>
-                val assignLambdaLhsExpr: Node.Expr?
+                val assignLambdaLhsExpr: Node.Expr
                 when (lhs.expr) {
                     // For LHS selects, we eagerly eval the LHS
                     is Expr_.Expr.SelectorExpr -> {
@@ -158,7 +160,7 @@ open class Compiler {
                         assignLambdaParams = emptyList()
                         // If this is an underscore, there is no assignment
                         assignLambdaLhsExpr =
-                            if ((lhs.expr as? Expr_.Expr.Ident)?.ident?.name == "_") null
+                            if ((lhs.expr as? Expr_.Expr.Ident)?.ident?.name == "_") return@zip null
                             else compileExpr(lhs.expr!!)
                     }
                 }
@@ -169,22 +171,20 @@ open class Compiler {
                     params = assignLambdaParams.map {
                         Node.Expr.Brace.Param(it.map { Node.Decl.Property.Var(it, null) }, null)
                     },
-                    block = assignLambdaLhsExpr?.let { lhs ->
-                        Node.Block(listOf(
-                            binaryOp(
-                                lhs = lhs,
-                                op = Node.Expr.BinaryOp.Token.ASSN,
-                                rhs = (if (assignLambdaParams.isEmpty()) "it" else "\$rhs").toName()
-                            ).toStmt()
-                        ))
-                    }
+                    block = Node.Block(listOf(
+                        binaryOp(
+                            lhs = assignLambdaLhsExpr,
+                            op = Node.Expr.BinaryOp.Token.ASSN,
+                            rhs = (if (assignLambdaParams.isEmpty()) "it" else "\$rhs").toName()
+                        ).toStmt()
+                    ))
                 )
                 assignParams += Node.Expr.Brace(emptyList(), Node.Block(listOf(rhsExpr.toStmt())))
                 valueArg(expr = call(
                     expr = "go2k.runtime.Assign.assign".toDottedExpr(),
                     args = assignParams.map { valueArg(expr = it) }
                 ))
-            }
+            }.filterNotNull()
         )
         // Wrap in a also if it's a function result instead of normal multi assign
         return if (v.rhs.size > 1) listOf(multiAssignCall.toStmt()) else listOf(call(
@@ -806,38 +806,29 @@ open class Compiler {
     }
 
     fun Context.compileFuncLit(v: FuncLit): Node.Expr {
+        // TODO: once https://youtrack.jetbrains.com/issue/KT-18346 is fixed, return Node.Expr.AnonFunc(decl)
+        // In the meantime, we have to turn the function into a suspended lambda sadly
         val tempVar = currFunc.newTempVar("anonFunc")
         currFunc.returnLabelStack += tempVar
         val decl = compileFuncDecl(null, v.type!!, v.body)
         currFunc.returnLabelStack.removeAt(currFunc.returnLabelStack.lastIndex)
-        // TODO: once https://youtrack.jetbrains.com/issue/KT-18346 is fixed, return Node.Expr.AnonFunc(decl)
-        // In the meantime, we have to turn the function into a suspended lambda sadly
         return call(
-            expr = "run".toName(),
+            expr = "go2k.runtime.anonFunc".toDottedExpr(),
+            typeArgs = listOf(Node.Type(
+                mods = listOf(Node.Modifier.Lit(Node.Modifier.Keyword.SUSPEND)),
+                ref = Node.TypeRef.Func(
+                    receiverType = null,
+                    params = decl.params.map {
+                        Node.TypeRef.Func.Param(null, it.type!!)
+                    },
+                    type = decl.type ?: Unit::class.toType()
+                )
+            )),
             lambda = trailLambda(
-                stmts = listOf(
-                    Node.Stmt.Decl(property(
-                        readOnly = true,
-                        vars = listOf(propVar(
-                            name = tempVar,
-                            type = Node.Type(
-                                mods = listOf(Node.Modifier.Lit(Node.Modifier.Keyword.SUSPEND)),
-                                ref = Node.TypeRef.Func(
-                                    receiverType = null,
-                                    params = decl.params.map {
-                                        Node.TypeRef.Func.Param(null, it.type!!)
-                                    },
-                                    type = decl.type ?: Unit::class.toType()
-                                )
-                            )
-                        )),
-                        expr = Node.Expr.Labeled(labelIdent(tempVar), Node.Expr.Brace(
-                            params = decl.params.map { Node.Expr.Brace.Param(listOf(propVar(it.name)), null) },
-                            block = (decl.body as Node.Decl.Func.Body.Block).block
-                        ))
-                    )),
-                    tempVar.toName().toStmt()
-                ))
+                params = decl.params.map { Node.Expr.Brace.Param(listOf(propVar(it.name)), null) },
+                stmts = (decl.body as Node.Decl.Func.Body.Block).block.stmts,
+                label = labelIdent(tempVar)
+            )
         )
     }
 
@@ -845,10 +836,15 @@ open class Compiler {
         compileSpec(it.spec!!, v.tok == Token.CONST, topLevel)
     }
 
-    fun Context.compileGoStmt(v: GoStmt) = call(
-        expr = "go2k.runtime.builtin.go".toDottedExpr(),
-        lambda = trailLambda(stmts = listOf(compileCallExpr(v.call!!).toStmt()))
-    ).toStmt()
+    fun Context.compileGoStmt(v: GoStmt): Node.Stmt {
+        // TODO: Until https://youtrack.jetbrains.com/issue/KT-28752 is fixed, we have to inline the launch call
+        // Ug, launch is only an expression on the coroutine scope now
+        imports += "kotlinx.coroutines.launch" to "go"
+        return call(
+            expr = "go2k.runtime.goroutineScope.go".toDottedExpr(),
+            lambda = trailLambda(stmts = listOf(compileCallExpr(v.call!!).toStmt()))
+        ).toStmt()
+    }
 
     fun Context.compileIdent(v: Ident) = when {
         v.name == "nil" -> NullConst
@@ -899,6 +895,7 @@ open class Compiler {
         return when (val stmt = v.stmt!!.stmt) {
             is Stmt_.Stmt.ForStmt -> listOf(compileForStmt(stmt.forStmt, v.label!!.name))
             is Stmt_.Stmt.RangeStmt -> listOf(compileRangeStmt(stmt.rangeStmt, v.label!!.name))
+            is Stmt_.Stmt.SelectStmt -> listOf(compileSelectStmt(stmt.selectStmt, v.label!!.name))
             is Stmt_.Stmt.SwitchStmt -> listOf(compileSwitchStmt(stmt.switchStmt, v.label!!.name))
             else -> stmt?.let { compileStmt(it) } ?: emptyList()
         }
@@ -1105,6 +1102,78 @@ open class Compiler {
         )
     )
 
+    fun Context.compileSelectStmt(v: SelectStmt, label: String? = null): Node.Stmt {
+        // We would use Kotlin's select, but there are two problems: 1) it does have a good "default"
+        // approach (could use onTimeout(0) but I fear it's not the same) and 2) the functions accepted
+        // by e.g. onReceiveOrNull are not inline so you cannot break/return out of them several levels
+        // up. So what we do is for each case, we use a generic when and each one returns true if handled
+        // in order.
+
+        // Put the "default" case last if present
+        val cases = v.body!!.list.map { (it.stmt as Stmt_.Stmt.CommClause).commClause }.toMutableList()
+        val defaultCaseIndex = cases.indexOfFirst { it.comm == null }
+        if (defaultCaseIndex >= 0) cases.add(cases.removeAt(defaultCaseIndex))
+        // Compile all the when expressions
+        currFunc.breakables.push(label ?: "select")
+        val whenExprs = cases.map { case ->
+            // Either a receive (assign or just receive expr) or a send or default
+            when (case.comm?.stmt) {
+                is Stmt_.Stmt.AssignStmt -> {
+                    val assignIdents = case.comm.stmt.assignStmt.lhs.map { (it.expr as Expr_.Expr.Ident).ident.name }
+                    val recv = (case.comm.stmt.assignStmt.rhs.single().expr as Expr_.Expr.UnaryExpr).unaryExpr
+                    val chanType = recv.x!!.expr!!.typeRef!!.namedType.convType() as TypeConverter.Type.Chan
+                    var lambdaPreStmts = emptyList<Node.Stmt>()
+                    // Assignment needs temps, define can just use the var names
+                    val lambdaParamNames =
+                        if (case.comm.stmt.assignStmt.tok == Token.DEFINE) assignIdents
+                        else assignIdents.map { varName ->
+                            if (varName == "_") varName else currFunc.newTempVar(varName).also { tempVar ->
+                                lambdaPreStmts += binaryOp(
+                                    lhs = varName.javaIdent.toName(),
+                                    op = Node.Expr.BinaryOp.Token.ASSN,
+                                    rhs = tempVar.javaIdent.toName()
+                                ).toStmt()
+                            }
+                        }
+                    // Different call depending on whether there are two assignments or one
+                    call(
+                        expr =
+                            if (assignIdents.size == 1) "go2k.runtime.builtin.selectRecv".toDottedExpr()
+                            else "go2k.runtime.builtin.selectRecvWithOk".toDottedExpr(),
+                        args = listOf(
+                            valueArg(expr = compileExpr(recv.x.expr!!)),
+                            valueArg(expr = compileTypeZeroExpr(chanType.type))
+                        ),
+                        lambda = trailLambda(
+                            params = lambdaParamNames.map {
+                                Node.Expr.Brace.Param(listOf(if (it == "_") null else propVar(it)), null)
+                            },
+                            stmts = lambdaPreStmts + case.body.flatMap { compileStmt(it) }
+                        )
+                    )
+                }
+                else -> TODO()
+            }
+        }
+        // Have to wrap in a run because we break on it
+        val (breakLabel, _) = currFunc.breakables.pop()
+        return call(
+            expr = "run".toDottedExpr(),
+            lambda = trailLambda(label = breakLabel, stmts = listOf(call(
+                expr = "go2k.runtime.builtin.select".toDottedExpr(),
+                lambda = trailLambda(stmts = listOf(Node.Expr.When(
+                    expr = null,
+                    entries = whenExprs.map { whenExpr ->
+                        Node.Expr.When.Entry(
+                            conds = listOf(Node.Expr.When.Cond.Expr(whenExpr)),
+                            body = Node.Expr.Return(breakLabel, null)
+                        )
+                    }
+                ).toStmt()))
+            ).toStmt()))
+        ).toStmt()
+    }
+
     fun Context.compileSendStmt(v: SendStmt) = call(
         expr = "go2k.runtime.builtin.send".toDottedExpr(),
         args = listOf(
@@ -1158,7 +1227,7 @@ open class Compiler {
         is Stmt_.Stmt.SwitchStmt -> listOf(compileSwitchStmt(v.switchStmt))
         is Stmt_.Stmt.TypeSwitchStmt -> TODO()
         is Stmt_.Stmt.CommClause -> TODO()
-        is Stmt_.Stmt.SelectStmt -> TODO()
+        is Stmt_.Stmt.SelectStmt -> listOf(compileSelectStmt(v.selectStmt))
         is Stmt_.Stmt.ForStmt -> listOf(compileForStmt(v.forStmt))
         is Stmt_.Stmt.RangeStmt -> listOf(compileRangeStmt(v.rangeStmt))
     }
@@ -1313,7 +1382,10 @@ open class Compiler {
             }
             // Receive from chan
             Token.ARROW -> call(
-                expr = "go2k.runtime.builtin.recv".toDottedExpr(),
+                // If the type is a tuple, it's the or-ok version
+                expr = (v.typeRef!!.namedType.convType() is TypeConverter.Type.Tuple).let { withOk ->
+                    if (withOk) "go2k.runtime.builtin.recvWithOk" else "go2k.runtime.builtin.recv"
+                }.toDottedExpr(),
                 args = listOf(
                     valueArg(expr = compileExpr(v.x.expr!!)),
                     // Needs zero value of chan element type

@@ -27,31 +27,37 @@ class CompilerTest : TestBase() {
             }
         }
         debug { "Compiled: $compiled" }
+        val compiler = if (unit.useExternalCompiler) externalCompiler else embeddedCompiler
         val jvmCompiled = compiler.compilePackages(compiled)
-        debug { "Main class: ${jvmCompiled.mainClassName}" }
-        // Run and capture output
-        val mainClass = jvmCompiled.newClassLoader().loadClass(jvmCompiled.mainClassName ?: error("No main class"))
-        val method = mainClass.getMethod("main", Array<String>::class.java)
-        val out = (System.out to System.err).let { (oldOut, oldErr) ->
-            ByteArrayOutputStream().also {
-                PrintStream(it, true, "UTF-8").also { System.setOut(it); System.setErr(it) }
-                try {
-                    method.invoke(null, emptyArray<String>())
-                } finally {
-                    System.setOut(oldOut)
-                    System.setErr(oldErr)
-                }
-            }.toByteArray().toString(Charsets.UTF_8)
+        try {
+            debug { "Main class: ${jvmCompiled.mainClassName}" }
+            // Run and capture output
+            val mainClass = jvmCompiled.newClassLoader().loadClass(jvmCompiled.mainClassName ?: error("No main class"))
+            val method = mainClass.getMethod("main", Array<String>::class.java)
+            val out = (System.out to System.err).let { (oldOut, oldErr) ->
+                ByteArrayOutputStream().also {
+                    PrintStream(it, true, "UTF-8").also { System.setOut(it); System.setErr(it) }
+                    try {
+                        method.invoke(null, emptyArray<String>())
+                    } finally {
+                        System.setOut(oldOut)
+                        System.setErr(oldErr)
+                    }
+                }.toByteArray().toString(Charsets.UTF_8)
+            }
+            debug { "Kt output: $out" }
+            assertEquals(unit.goRunOutput, out)
+        } finally {
+            jvmCompiled.cleanUp()
         }
-        debug { "Kt output: $out" }
-        assertEquals(unit.goRunOutput, out)
     }
 
     companion object {
-        val compiler = JvmCompiler(printNonError = false)
+        val externalCompiler = JvmCompiler.External(printNonError = debug)
+        val embeddedCompiler = JvmCompiler.Embedded(printNonError = debug)
 
         @JvmStatic
         @Suppress("unused")
-        fun unitProvider() = TestUnit.localUnits//.filter { it.toString() == "map.go" }
+        fun unitProvider() = TestUnit.localUnits//.filter { it.toString() == "chan.go" }
     }
 }

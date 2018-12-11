@@ -127,6 +127,7 @@ open class TypeConverter {
             vararg = false
         )
         is Type_.Type.TypeSlice -> Type.Slice(v, toConvType(v.type.typeSlice.elem!!.namedType))
+        is Type_.Type.TypeTuple -> Type.Tuple(v, v.type.typeTuple.vars.map { toConvType(it.namedType) })
         is Type_.Type.TypeVar -> toConvType(v.type.typeVar.namedType)
         else -> TODO("Unknown type: $v")
     }
@@ -146,6 +147,7 @@ open class TypeConverter {
             val results: List<Type>,
             val vararg: Boolean
         ) : Type()
+        data class Tuple(override val type: Type_, val types: List<Type>) : Type()
         data class Array(override val type: Type_, val elemType: Type, val len: Long) : Type()
         data class Slice(override val type: Type_, val elemType: Type) : Type()
         data class Map(override val type: Type_, val keyType: Type, val valType: Type) : Type()
