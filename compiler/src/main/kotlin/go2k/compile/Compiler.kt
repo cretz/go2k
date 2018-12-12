@@ -1115,12 +1115,15 @@ open class Compiler {
         if (defaultCaseIndex >= 0) cases.add(cases.removeAt(defaultCaseIndex))
         // Compile all the when expressions
         currFunc.breakables.push(label ?: "select")
-        val whenExprs = cases.map { case ->
+        // Note, this
+        val whenCondsAndBodies = cases.map { case ->
             // Either a receive (assign or just receive expr) or a send or default
             when (case.comm?.stmt) {
+                // Assign or define vars for receive
                 is Stmt_.Stmt.AssignStmt -> {
                     val assignIdents = case.comm.stmt.assignStmt.lhs.map { (it.expr as Expr_.Expr.Ident).ident.name }
                     val recv = (case.comm.stmt.assignStmt.rhs.single().expr as Expr_.Expr.UnaryExpr).unaryExpr
+                    require(recv.op == Token.ARROW)
                     val chanType = recv.x!!.expr!!.typeRef!!.namedType.convType() as TypeConverter.Type.Chan
                     var lambdaPreStmts = emptyList<Node.Stmt>()
                     // Assignment needs temps, define can just use the var names
@@ -1142,7 +1145,7 @@ open class Compiler {
                             else "go2k.runtime.builtin.selectRecvWithOk".toDottedExpr(),
                         args = listOf(
                             valueArg(expr = compileExpr(recv.x.expr!!)),
-                            valueArg(expr = compileTypeZeroExpr(chanType.type))
+                            valueArg(expr = compileTypeZeroExpr(chanType.elemType.type))
                         ),
                         lambda = trailLambda(
                             params = lambdaParamNames.map {
@@ -1150,9 +1153,35 @@ open class Compiler {
                             },
                             stmts = lambdaPreStmts + case.body.flatMap { compileStmt(it) }
                         )
-                    )
+                    ) to emptyList<Node.Stmt>()
                 }
-                else -> TODO()
+                // Receive without vars
+                is Stmt_.Stmt.ExprStmt -> {
+                    val recv = (case.comm.stmt.exprStmt.x!!.expr as Expr_.Expr.UnaryExpr).unaryExpr
+                    require(recv.op == Token.ARROW)
+                    val chanType = recv.x!!.expr!!.typeRef!!.namedType.convType() as TypeConverter.Type.Chan
+                    call(
+                        expr = "go2k.runtime.builtin.selectRecv".toDottedExpr(),
+                        args = listOf(
+                            valueArg(expr = compileExpr(recv.x.expr!!)),
+                            valueArg(expr = compileTypeZeroExpr(chanType.elemType.type))
+                        ),
+                        lambda = trailLambda(stmts = case.body.flatMap { compileStmt(it) })
+                    ) to emptyList<Node.Stmt>()
+                }
+                // Single send
+                is Stmt_.Stmt.SendStmt -> {
+                    call(
+                        expr = "go2k.runtime.builtin.selectSend".toDottedExpr(),
+                        args = listOf(
+                            valueArg(expr = compileExpr(case.comm.stmt.sendStmt.chan!!)),
+                            valueArg(expr = compileExpr(case.comm.stmt.sendStmt.value!!))
+                        ),
+                        lambda = trailLambda(stmts = case.body.flatMap { compileStmt(it) })
+                    ) to emptyList<Node.Stmt>()
+                }
+                null -> null to case.body.flatMap { compileStmt(it) }
+                else -> error("Unknown case ${case.comm}")
             }
         }
         // Have to wrap in a run because we break on it
@@ -1163,10 +1192,13 @@ open class Compiler {
                 expr = "go2k.runtime.builtin.select".toDottedExpr(),
                 lambda = trailLambda(stmts = listOf(Node.Expr.When(
                     expr = null,
-                    entries = whenExprs.map { whenExpr ->
+                    entries = whenCondsAndBodies.map { (whenCond, additionalBodyStmts) ->
                         Node.Expr.When.Entry(
-                            conds = listOf(Node.Expr.When.Cond.Expr(whenExpr)),
-                            body = Node.Expr.Return(breakLabel, null)
+                            conds = if (whenCond == null) emptyList() else listOf(Node.Expr.When.Cond.Expr(whenCond)),
+                            body = Node.Expr.Return(breakLabel, null).let { returnExpr ->
+                                if (additionalBodyStmts.isEmpty()) returnExpr
+                                else Node.Expr.Brace(emptyList(), Node.Block(additionalBodyStmts + returnExpr.toStmt()))
+                            }
                         )
                     }
                 ).toStmt()))

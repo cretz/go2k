@@ -153,7 +153,9 @@ suspend inline fun <T> selectRecv(ch: ReceiveChannel<T>?, onNull: T, fn: (T) -> 
     if (ch == null || ch.isEmpty) false else true.also { fn(ch.poll() ?: onNull) }
 suspend inline fun <T> selectRecvWithOk(ch: ReceiveChannel<T>?, onNull: T, fn: (T, Boolean) -> Unit) =
     // TODO: not thread-safe, ref: https://discuss.kotlinlang.org/t/thread-safe-receivechannel-poll-on-channel-with-nullable-elements/10731
-    if (ch == null || ch.isEmpty) false else true.also { fn(ch.poll() ?: onNull, ch.isClosedForReceive) }
+    if (ch == null || ch.isEmpty) false else true.also { fn(ch.poll() ?: onNull, !ch.isClosedForReceive) }
+suspend inline fun <T> selectSend(ch: SendChannel<T>?, v: T, fn: () -> Unit) =
+    ch != null && ch.offer(v).also { if (it) fn() }
 
 // TODO: Unused until https://youtrack.jetbrains.com/issue/KT-28752 is fixed
 //suspend inline fun go(noinline fn: suspend CoroutineScope.() -> Unit) { coroutineScope { launch { fn() } } }

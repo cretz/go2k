@@ -74,14 +74,55 @@ func main() {
 	<-done
 	close(done)
 	println("chan 14")
+	// Select with default
+	a = make(chan int, 1)
+	select {
+	case <-a:
+		println("chan 15")
+	default:
+		println("chan 16")
+	}
+	println("chan 17")
+	close(a)
+	// Select with break
+	a = make(chan int, 1)
+	a <- 12
+Select:
+	select {
+	case v := <-a:
+		if v == 12 {
+			println("chan 18")
+			break Select
+		}
+		println("chan 19")
+	}
+	println("chan 20")
+	close(a)
+	// Select send
+	a = make(chan int)
+	done = make(chan bool, 1)
+	go func() {
+		println("chan 21", <-a)
+		done <- true
+	}()
+	select {
+	case a <- 15:
+		<-done
+		println("chan 22")
+	}
+	close(a)
+	close(done)
+	// Select closed
+	a = make(chan int)
+	close(a)
+	select {
+	case v, ok := <-a:
+		println("chan 23", v, ok)
+	default:
+		println("chan 24")
+	}
 
 	// TODO:
-	// select with default
-	// select with break
-	// select blocked send
-	// select with closed chans
-	// select w/ receive ok
-	// select w/ receive no assign
 	// chan of chan
 	// send on full chan blocking
 	// send on nil chan blocking forever
