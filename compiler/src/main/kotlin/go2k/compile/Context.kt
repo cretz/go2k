@@ -82,11 +82,24 @@ class Context(
         is Type_.Type.TypeNil -> TODO()
         is Type_.Type.TypePackage -> TODO()
         is Type_.Type.TypePointer -> compileTypePointer(v.type.typePointer)
-        is Type_.Type.TypeSignature -> TODO()
+        is Type_.Type.TypeSignature -> Node.Type(
+            mods = listOf(Node.Modifier.Lit(Node.Modifier.Keyword.SUSPEND)),
+            ref = Node.TypeRef.Func(
+                receiverType = null,
+                params = v.type.typeSignature.params.map {
+                    // TODO: could check if namedType is Named and use the name in the type here if present
+                    Node.TypeRef.Func.Param(null, compileTypeRef(it))
+                },
+                type = v.type.typeSignature.results.let {
+                    if (it.isEmpty()) Unit::class.toType()
+                    else compileTypeRef(it.singleOrNull() ?: TODO())
+                }
+            )
+        )
         is Type_.Type.TypeSlice -> Slice::class.toType(listOf(compileTypeRef(v.type.typeSlice.elem!!))).nullable()
         is Type_.Type.TypeStruct -> TODO()
         is Type_.Type.TypeTuple -> TODO()
-        is Type_.Type.TypeVar -> compileTypeRef(v.type.typeVar)
+        is Type_.Type.TypeVar -> compileTypeRef(v.type.typeVar.type!!)
     }
 
     fun compileTypePointer(v: TypePointer) = compileTypeRef(v.elem!!).let { type ->
@@ -142,7 +155,7 @@ class Context(
     fun Type_.kotlinPrimitiveType(): KClass<*>? = when (type) {
         is Type_.Type.TypeBasic -> type.typeBasic.kotlinPrimitiveType(name)
         is Type_.Type.TypeConst -> type.typeConst.kotlinPrimitiveType()
-        is Type_.Type.TypeVar -> type.typeVar.namedType.kotlinPrimitiveType()
+        is Type_.Type.TypeVar -> type.typeVar.type!!.namedType.kotlinPrimitiveType()
         else -> null
     }
 
@@ -203,6 +216,12 @@ class Context(
             var index = 0
             while (true) "$prefix\$temp${index++}".also { if (seenTempVars.add(it)) return it }
         }
+
+        var inDefer = false
+        var deferDepth = 0
+        var hasDefer = false
+        fun pushDefer() { hasDefer = true; deferDepth++ }
+        fun popDefer() { deferDepth-- }
     }
 
     class Branchable(val labelPostfix: String) {

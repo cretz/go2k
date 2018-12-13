@@ -38,7 +38,7 @@ message Type {
     TypeSlice type_slice = 18;
     TypeStruct type_struct = 19;
     TypeTuple type_tuple = 20;
-    TypeRef type_var = 21;
+    TypeVar type_var = 21;
   }
 }
 
@@ -129,4 +129,10 @@ message TypeStruct {
 
 message TypeTuple {
   repeated TypeRef vars = 1;
+}
+
+message TypeVar {
+  string name = 1;
+  TypeRef type = 2;
+  bool embedded = 3;
 }

@@ -58,7 +58,7 @@ data class Type_(
         data class TypeSlice(val typeSlice: go2k.compile.dumppb.TypeSlice) : Type()
         data class TypeStruct(val typeStruct: go2k.compile.dumppb.TypeStruct) : Type()
         data class TypeTuple(val typeTuple: go2k.compile.dumppb.TypeTuple) : Type()
-        data class TypeVar(val typeVar: go2k.compile.dumppb.TypeRef) : Type()
+        data class TypeVar(val typeVar: go2k.compile.dumppb.TypeVar) : Type()
     }
 
     override operator fun plus(other: Type_?) = protoMergeImpl(other)
@@ -286,6 +286,20 @@ data class TypeTuple(
     }
 }
 
+data class TypeVar(
+    val name: String = "",
+    val type: go2k.compile.dumppb.TypeRef? = null,
+    val embedded: Boolean = false,
+    val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
+) : pbandk.Message<TypeVar> {
+    override operator fun plus(other: TypeVar?) = protoMergeImpl(other)
+    override val protoSize by lazy { protoSizeImpl() }
+    override fun protoMarshal(m: pbandk.Marshaller) = protoMarshalImpl(m)
+    companion object : pbandk.Message.Companion<TypeVar> {
+        override fun protoUnmarshal(u: pbandk.Unmarshaller) = TypeVar.protoUnmarshalImpl(u)
+    }
+}
+
 private fun ConstantValue.protoMergeImpl(plus: ConstantValue?): ConstantValue = plus?.copy(
     value = plus.value ?: value,
     unknownFields = unknownFields + plus.unknownFields
@@ -476,7 +490,7 @@ private fun Type_.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshall
         146 -> type = Type_.Type.TypeSlice(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSlice.Companion))
         154 -> type = Type_.Type.TypeStruct(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeStruct.Companion))
         162 -> type = Type_.Type.TypeTuple(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeTuple.Companion))
-        170 -> type = Type_.Type.TypeVar(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion))
+        170 -> type = Type_.Type.TypeVar(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeVar.Companion))
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -843,6 +857,40 @@ private fun TypeTuple.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmars
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeTuple(pbandk.ListWithSize.Builder.fixed(vars), protoUnmarshal.unknownFields())
         10 -> vars = protoUnmarshal.readRepeatedMessage(vars, go2k.compile.dumppb.TypeRef.Companion, true)
+        else -> protoUnmarshal.unknownField()
+    }
+}
+
+private fun TypeVar.protoMergeImpl(plus: TypeVar?): TypeVar = plus?.copy(
+    type = type?.plus(plus.type) ?: plus.type,
+    unknownFields = unknownFields + plus.unknownFields
+) ?: this
+
+private fun TypeVar.protoSizeImpl(): Int {
+    var protoSize = 0
+    if (name.isNotEmpty()) protoSize += pbandk.Sizer.tagSize(1) + pbandk.Sizer.stringSize(name)
+    if (type != null) protoSize += pbandk.Sizer.tagSize(2) + pbandk.Sizer.messageSize(type)
+    if (embedded) protoSize += pbandk.Sizer.tagSize(3) + pbandk.Sizer.boolSize(embedded)
+    protoSize += unknownFields.entries.sumBy { it.value.size() }
+    return protoSize
+}
+
+private fun TypeVar.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
+    if (name.isNotEmpty()) protoMarshal.writeTag(10).writeString(name)
+    if (type != null) protoMarshal.writeTag(18).writeMessage(type)
+    if (embedded) protoMarshal.writeTag(24).writeBool(embedded)
+    if (unknownFields.isNotEmpty()) protoMarshal.writeUnknownFields(unknownFields)
+}
+
+private fun TypeVar.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeVar {
+    var name = ""
+    var type: go2k.compile.dumppb.TypeRef? = null
+    var embedded = false
+    while (true) when (protoUnmarshal.readTag()) {
+        0 -> return TypeVar(name, type, embedded, protoUnmarshal.unknownFields())
+        10 -> name = protoUnmarshal.readString()
+        18 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        24 -> embedded = protoUnmarshal.readBool()
         else -> protoUnmarshal.unknownField()
     }
 }

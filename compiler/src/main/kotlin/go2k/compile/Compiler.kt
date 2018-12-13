@@ -568,6 +568,10 @@ open class Compiler {
             }
             else -> error("Unrecognized make for $argType")
         }
+        "recover" -> call(
+            // Use the outside-defer one if not in defer
+            expr = if (currFunc.inDefer) "recover".toName() else "go2k.runtime.builtin.recover".toDottedExpr()
+        )
         else -> call(
             expr = compileExpr(v.`fun`!!),
             args = v.args.map { valueArg(expr = compileExpr(it)) }
@@ -595,6 +599,18 @@ open class Compiler {
                         expr = "kotlin.Pair".toDottedExpr(),
                         args = listOf(valueArg(expr = compileExpr(kv.key!!)), valueArg(expr = compileExpr(kv.value!!)))
                     ))
+                }
+            )
+        }
+        is Expr_.Expr.Ident -> {
+            val structType = type.typeRef?.namedType?.convType() as? TypeConverter.Type.Struct ?: TODO()
+            call(
+                expr = structType.name!!.toName(),
+                args = v.elts.map {
+                    if (it.expr !is Expr_.Expr.KeyValueExpr) valueArg(expr = compileExpr(it)) else valueArg(
+                        name = (it.expr.keyValueExpr.key!!.expr as Expr_.Expr.Ident).ident.name,
+                        expr = compileExpr(it.expr.keyValueExpr.value!!)
+                    )
                 }
             )
         }
@@ -674,6 +690,33 @@ open class Compiler {
         if (blank != null) Node.Stmt.Expr(blank) else Node.Stmt.Decl(it)
     }
 
+    fun Context.compileDeferStmt(v: DeferStmt): Node.Stmt {
+        // Evaluate all the args then call the lhs of the call w/ them in the lambda
+        val argExprs = v.call!!.args.map { compileExpr(it) }
+        val (combinedArgs, uncombinedArgs) = when {
+            argExprs.size == 1 -> argExprs.single() to listOf(currFunc.newTempVar("p").javaIdent)
+            argExprs.isEmpty() -> "kotlin.Unit".toDottedExpr() to emptyList()
+            else -> call(
+                expr = "go2k.runtime.Tuple${argExprs.size}".toDottedExpr(),
+                args = argExprs.map { valueArg(expr = it) }
+            ) to argExprs.map { currFunc.newTempVar("p").javaIdent }
+        }
+        // Defer is just a call of defer w/ the combined args then the lambda uncombining them
+        return call(
+            expr = "defer".toName(),
+            args = listOf(valueArg(expr = combinedArgs)),
+            lambda = trailLambda(
+                params =
+                    if (uncombinedArgs.isEmpty()) emptyList()
+                    else listOf(Node.Expr.Brace.Param(uncombinedArgs.map { propVar(it) }, null)),
+                stmts = listOf(call(
+                    expr = currFunc.pushDefer().let { compileExpr(v.call.`fun`!!).also { currFunc.popDefer() } },
+                    args = uncombinedArgs.map { valueArg(expr = it.toName()) }
+                ).toStmt())
+            )
+        ).toStmt()
+    }
+
     fun Context.compileExpr(v: Expr_) = compileExpr(v.expr!!)
     fun Context.compileExpr(v: Expr_.Expr): Node.Expr = when (v) {
         is Expr_.Expr.BadExpr -> TODO()
@@ -683,7 +726,7 @@ open class Compiler {
         is Expr_.Expr.FuncLit -> compileFuncLit(v.funcLit)
         is Expr_.Expr.CompositeLit -> compileCompositeLit(v.compositeLit)
         is Expr_.Expr.ParenExpr -> compileParenExpr(v.parenExpr)
-        is Expr_.Expr.SelectorExpr -> TODO()
+        is Expr_.Expr.SelectorExpr -> compileSelectorExpr(v.selectorExpr)
         is Expr_.Expr.IndexExpr -> compileIndexExpr(v.indexExpr)
         is Expr_.Expr.SliceExpr -> compileSliceExpr(v.sliceExpr)
         is Expr_.Expr.TypeAssertExpr -> TODO()
@@ -769,13 +812,18 @@ open class Compiler {
         if (name != null && name.first().isLowerCase()) mods += Node.Modifier.Keyword.INTERNAL.toMod()
         // Named return idents need to be declared with zero vals up front
         val returnIdents = type.results?.list?.flatMap { it.names } ?: emptyList()
-        var stmts: List<Node.Stmt> = returnIdents.map { ident ->
+        val preStmts: List<Node.Stmt> = returnIdents.map { ident ->
             Node.Stmt.Decl(property(
                 vars = listOf(propVar(ident.name.javaIdent)),
                 expr = compileTypeRefZeroExpr(ident.typeRef ?: ident.defTypeRef ?: error("No ident type"))
             ))
         }
-        if (body != null) stmts += compileBlockStmt(body).stmts
+        var bodyStmts = if (body == null) emptyList() else compileBlockStmt(body).stmts
+        // If there are defer statements, we need to wrap the body in a withDefers
+        if (currFunc.hasDefer) bodyStmts = listOf(call(
+            expr = "go2k.runtime.builtin.withDefers".toDottedExpr(),
+            lambda = trailLambda(stmts = bodyStmts)
+        ).toStmt())
         return func(
             mods = mods,
             name = name?.javaIdent,
@@ -801,7 +849,7 @@ open class Compiler {
                 }
             },
             type = compileTypeRefMultiResult(type.results),
-            body = Node.Decl.Func.Body.Block(Node.Block(stmts))
+            body = Node.Decl.Func.Body.Block(Node.Block(preStmts + bodyStmts))
         )
     }
 
@@ -809,9 +857,13 @@ open class Compiler {
         // TODO: once https://youtrack.jetbrains.com/issue/KT-18346 is fixed, return Node.Expr.AnonFunc(decl)
         // In the meantime, we have to turn the function into a suspended lambda sadly
         val tempVar = currFunc.newTempVar("anonFunc")
+        val inDefer = currFunc.deferDepth > 0
+        pushFunc(v.type!!)
+        // TODO: track returns to see if the return label is even used
         currFunc.returnLabelStack += tempVar
+        currFunc.inDefer = inDefer
         val decl = compileFuncDecl(null, v.type!!, v.body)
-        currFunc.returnLabelStack.removeAt(currFunc.returnLabelStack.lastIndex)
+        popFunc()
         return call(
             expr = "go2k.runtime.anonFunc".toDottedExpr(),
             typeArgs = listOf(Node.Type(
@@ -1102,6 +1154,8 @@ open class Compiler {
         )
     )
 
+    fun Context.compileSelectorExpr(v: SelectorExpr) = compileExpr(v.x!!).dot(compileIdent(v.sel!!))
+
     fun Context.compileSelectStmt(v: SelectStmt, label: String? = null): Node.Stmt {
         // We would use Kotlin's select, but there are two problems: 1) it does have a good "default"
         // approach (could use onTimeout(0) but I fear it's not the same) and 2) the functions accepted
@@ -1250,7 +1304,7 @@ open class Compiler {
         is Stmt_.Stmt.IncDecStmt -> listOf(compileIncDecStmt(v.incDecStmt))
         is Stmt_.Stmt.AssignStmt -> compileAssignStmt(v.assignStmt)
         is Stmt_.Stmt.GoStmt -> listOf(compileGoStmt(v.goStmt))
-        is Stmt_.Stmt.DeferStmt -> TODO()
+        is Stmt_.Stmt.DeferStmt -> listOf(compileDeferStmt(v.deferStmt))
         is Stmt_.Stmt.ReturnStmt -> listOf(compileReturnStmt(v.returnStmt))
         is Stmt_.Stmt.BranchStmt -> listOf(compileBranchStmt(v.branchStmt))
         is Stmt_.Stmt.BlockStmt -> listOf(compileBlockStmtStandalone(v.blockStmt))
@@ -1273,6 +1327,9 @@ open class Compiler {
                     val typeRef = field.type!!.expr!!.typeRef!!
                     field.names.map { name ->
                         param(
+                            mods =
+                                if (name.name.first().isUpperCase()) emptyList()
+                                else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
                             readOnly = false,
                             name = name.name.javaIdent,
                             type = compileTypeRef(typeRef),
@@ -1393,7 +1450,7 @@ open class Compiler {
         is Type_.Type.TypeSignature -> TODO()
         is Type_.Type.TypeStruct -> TODO()
         is Type_.Type.TypeTuple -> TODO()
-        is Type_.Type.TypeVar -> compileTypeRefZeroExpr(v.type.typeVar)
+        is Type_.Type.TypeVar -> compileTypeRefZeroExpr(v.type.typeVar.type!!)
     }
 
     fun Context.compileUnaryExpr(v: UnaryExpr) = compileExpr(v.x!!).let { xExpr ->
@@ -1469,7 +1526,8 @@ open class Compiler {
 
     fun Context.compileValueSpecVar(v: ValueSpec, topLevel: Boolean): List<Node.Decl> {
         return v.names.mapIndexed { index, id ->
-            val type = (id.defTypeRef?.type as? Type_.Type.TypeVar)?.typeVar?.namedType ?: error("Can't find var type")
+            val type = (id.defTypeRef?.type as? Type_.Type.TypeVar)?.
+                typeVar?.type?.namedType ?: error("Can't find var type")
             // Top level vars are never inited on their own. Instead they are inited in a separate init area. Therefore,
             // we must mark 'em lateinit. But lateinit is only for non-primitive, non-null types. Otherwise we just init
             // to the 0 value.

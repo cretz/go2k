@@ -1,3 +1,9 @@
 package go2k.runtime
 
-class Panic(val v: Any?) : RuntimeException("panic: $v")
+import go2k.runtime.builtin.EmptyInterface
+
+class Panic(
+    val v: EmptyInterface?,
+    cause: Throwable? = null,
+    var previous: Panic? = null
+) : RuntimeException("panic: $v", cause)

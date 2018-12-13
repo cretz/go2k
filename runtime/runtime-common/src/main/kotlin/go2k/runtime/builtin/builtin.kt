@@ -7,6 +7,8 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.selects.SelectBuilder
 
+// TODO: this has gotten a bit carried away w/ non-builtin-package calls invading this file
+
 suspend inline fun <T> append(slice: Slice<T>?, elems: Slice<T>?) =
     slice?.append(elems!!) ?: elems?.slice(0, null, null)
 
@@ -32,7 +34,11 @@ inline fun <K> delete(m: go2k.runtime.Map<K, *>, k: K) { m.remove(k) }
 
 interface EmptyInterface : GoInterface {
     companion object {
-        inline fun impl(v: Any?): EmptyInterface = EmptyInterfaceImpl(v)
+        inline fun impl(v: Any?): EmptyInterface = when (v) {
+            is EmptyInterface -> v
+            is GoInterface -> EmptyInterfaceImpl(v.v)
+            else -> EmptyInterfaceImpl(v)
+        }
     }
 }
 
@@ -93,8 +99,6 @@ inline fun makeCharSlice(len: Int, cap: Int? = null) =
     slice(CharArray(cap ?: len), high = len)
 inline fun makeStringSlice(len: Int, cap: Int? = null) =
     slice(Array(cap ?: len) { "" }, high = len)
-
-inline fun panic(v: Any?): Nothing = throw Panic(v)
 
 // Usually these would be "args: Slice<*>" like other Go varargs, but these are special builtins
 // and Go handles them differently (e.g. you can't splat the args).
@@ -165,4 +169,44 @@ suspend inline fun select(fn: suspend () -> Unit) {
         fn()
         yield()
     }
+}
+
+suspend inline fun recover(): EmptyInterface? = null
+
+suspend inline fun panic(v: Any?): Nothing = throw Panic(v?.let { EmptyInterface.impl(it) })
+
+suspend inline fun withDefers(fn: WithDefers.() -> Unit) {
+    val defers = WithDefers()
+    var err: Throwable? = null
+    try { defers.fn() }
+    catch (t: Throwable) { err = t }
+    defers.`$runDefers`(err)
+}
+
+class Recoverable(internal var panic: Panic?) {
+    fun recover() = panic?.v.also { panic = null }
+}
+
+internal class Defer<T>(val args: T, val fn: suspend Recoverable.(T) -> Unit) {
+    suspend fun run(r: Recoverable) { r.fn(args) }
+}
+
+class WithDefers {
+    internal val defers = mutableListOf<Defer<*>>()
+
+    suspend fun <T> defer(args: T, fn: suspend Recoverable.(T) -> Unit) {
+        defers += Defer(args, fn)
+    }
+
+    suspend fun `$runDefers`(t: Throwable?) {
+        val r = Recoverable(t?.let { throwableToPanic(it) })
+        defers.asReversed().forEach { defer ->
+            try { defer.run(r) }
+            catch (t: Throwable) { r.panic = throwableToPanic(t, r.panic) }
+        }
+        r.panic?.also { throw it }
+    }
+
+    internal fun throwableToPanic(t: Throwable, previous: Panic? = null) =
+        (if (t is Panic) t else Panic(EmptyInterface.impl(t), t)).also { if (previous != null) it.previous = previous }
 }

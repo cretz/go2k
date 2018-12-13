@@ -117,6 +117,13 @@ open class TypeConverter {
         is Type_.Type.TypeMap ->
             Type.Map(v, toConvType(v.type.typeMap.key!!.namedType), toConvType(v.type.typeMap.elem!!.namedType))
         is Type_.Type.TypeName -> toConvType(v.type.typeName.namedType)
+        is Type_.Type.TypeNamed -> toConvType(v.type.typeNamed.type!!.namedType).let { type ->
+            val name = v.type.typeNamed.typeName!!.name
+            when (type) {
+                is Type.Struct -> type.copy(name = name)
+                else -> TODO()
+            }
+        }
         is Type_.Type.TypeNil -> Type.Nil(v)
         is Type_.Type.TypePointer -> Type.Pointer(v)
         is Type_.Type.TypeSignature -> Type.Func(
@@ -126,9 +133,17 @@ open class TypeConverter {
             results = v.type.typeSignature.results.map { toConvType(it.namedType) },
             vararg = false
         )
+        is Type_.Type.TypeStruct -> Type.Struct(
+            type = v,
+            name = null,
+            fields = v.type.typeStruct.fields.map {
+                val varType = it.namedType.type as Type_.Type.TypeVar
+                varType.typeVar.name to toConvType(it.namedType)
+            }
+        )
         is Type_.Type.TypeSlice -> Type.Slice(v, toConvType(v.type.typeSlice.elem!!.namedType))
         is Type_.Type.TypeTuple -> Type.Tuple(v, v.type.typeTuple.vars.map { toConvType(it.namedType) })
-        is Type_.Type.TypeVar -> toConvType(v.type.typeVar.namedType)
+        is Type_.Type.TypeVar -> toConvType(v.type.typeVar.type!!.namedType)
         else -> TODO("Unknown type: $v")
     }
 
@@ -152,6 +167,7 @@ open class TypeConverter {
         data class Slice(override val type: Type_, val elemType: Type) : Type()
         data class Map(override val type: Type_, val keyType: Type, val valType: Type) : Type()
         data class Chan(override val type: Type_, val elemType: Type, val send: Boolean, val recv: Boolean) : Type()
+        data class Struct(override val type: Type_, val name: String?, val fields: List<Pair<String, Type>>) : Type()
         object RawParamForBuiltIn : Type() {
             override val type = Type_()
         }
