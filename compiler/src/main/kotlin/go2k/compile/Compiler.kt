@@ -100,7 +100,7 @@ open class Compiler {
                 !multiDefineSingleRhs && (v.lhs[index].expr as Expr_.Expr.Ident).ident.defTypeRef == null -> binaryOp(
                     lhs = idents[index].javaIdent.toName(),
                     op = Node.Expr.BinaryOp.Token.ASSN,
-                    rhs = compileExpr(expr).convertType(expr, v.lhs[index])
+                    rhs = compileExpr(expr).convertType(expr, v.lhs[index]).byValue(expr)
                 ).toStmt()
                 // Otherwise, just a property
                 else -> Node.Stmt.Decl(property(
@@ -108,7 +108,7 @@ open class Compiler {
                         if (multiDefineSingleRhs) idents.map { if (it == "_") null else propVar(it) }
                         else listOf(propVar(idents[index])),
                     expr = compileExpr(expr).let {
-                        if (multiDefineSingleRhs) it else it.convertType(expr, v.lhs[index])
+                        if (multiDefineSingleRhs) it else it.convertType(expr, v.lhs[index]).byValue(expr)
                     }
                 ))
             }
@@ -128,7 +128,7 @@ open class Compiler {
         // and do the destructuring ourselves
         val rhsExprs = if (v.rhs.size == 1) v.lhs.indices.map {
             call("\$temp".toName().dot("component${it + 1}".toName()))
-        } else v.rhs.map { compileExpr(it) }
+        } else v.rhs.map { compileExpr(it).byValue(it) }
         // For multi-assign we use our helpers. They are based on whether there needs to be
         // an eager LHS and what it is.
         val multiAssignCall = call(
@@ -188,7 +188,7 @@ open class Compiler {
         )
         // Wrap in a also if it's a function result instead of normal multi assign
         return if (v.rhs.size > 1) listOf(multiAssignCall.toStmt()) else listOf(call(
-            expr = compileExpr(v.rhs.single()).dot("also".toName()),
+            expr = compileExpr(v.rhs.single()).byValue(v.rhs.single()).dot("also".toName()),
             lambda = trailLambda(
                 params = listOf(Node.Expr.Brace.Param(listOf(Node.Decl.Property.Var("\$temp", null)), null)),
                 stmts = listOf(multiAssignCall.toStmt())
@@ -227,7 +227,7 @@ open class Compiler {
                 Token.REM_ASSIGN -> Node.Expr.BinaryOp.Token.MOD_ASSN
                 else -> error("Unrecognized token: $tok")
             },
-            rhs = compileExpr(rhs.single()).convertType(rhs.single(), v.lhs.single())
+            rhs = compileExpr(rhs.single()).convertType(rhs.single(), v.lhs.single()).byValue(rhs.single())
         )))
     }
 
@@ -323,7 +323,7 @@ open class Compiler {
                 Token.GEQ -> Node.Expr.BinaryOp.Token.GTE.toOper()
                 else -> error("Unrecognized op ${v.op}")
             },
-            rhs = compileExpr(v.y!!).convertType(v.y, v.x)
+            rhs = compileExpr(v.y!!).convertType(v.y, v.x).byValue(v.y)
         )
     }
 
@@ -470,19 +470,21 @@ open class Compiler {
         var args =
             if (singleArgCallType?.results != null && singleArgCallType.results.size > 1) {
                 // Deconstruct to temp vals and make those the new args
-                val tempVars = singleArgCallType.results.map { currFunc.newTempVar() }
+                val tempVars = singleArgCallType.results.map {
+                    currFunc.newTempVar() to it
+                }
                 preStmt = Node.Stmt.Decl(property(
                     readOnly = true,
-                    vars = tempVars.map { propVar(it) },
+                    vars = tempVars.map { (varName, _) -> propVar(varName) },
                     expr = compileExpr(v.args.single())
                 ))
-                tempVars.map { it.toName() }
+                tempVars.map { (varName, varType) -> varName.toName().byValue(varType.type) }
             } else v.args.mapIndexed { index, arg ->
                 // Vararg is the type of the slice
                 val argType =
                     if (!funConvType.vararg || index < funConvType.params.lastIndex) funConvType.params[index]
                     else (funConvType.params.last() as TypeConverter.Type.Slice).elemType
-                compileExpr(arg).convertType(arg, argType)
+                compileExpr(arg).convertType(arg, argType).byValue(arg)
             }
         // If this is variadic and the args spill into the varargs, make a slice
         if (funConvType.vararg && args.size >= funConvType.params.size) {
@@ -1319,31 +1321,49 @@ open class Compiler {
     }
 
     // Name is empty string, is not given any visibility modifier one way or another
-    fun Context.compileStructType(v: StructType): Node.Decl.Structured {
+    fun Context.compileStructType(name: String, v: StructType): Node.Decl.Structured {
+        val type = v.typeRef!!.namedType.convType() as TypeConverter.Type.Struct
         // TODO: more detail
+        val fields = (v.fields?.list ?: emptyList()).flatMap { field ->
+            val typeRef = field.type!!.expr!!.typeRef!!
+            field.names.map { it.name to typeRef }
+        }
         return structured(
             primaryConstructor = primaryConstructor(
-                params = (v.fields?.list ?: emptyList()).flatMap { field ->
-                    val typeRef = field.type!!.expr!!.typeRef!!
-                    field.names.map { name ->
-                        param(
-                            mods =
-                                if (name.name.first().isUpperCase()) emptyList()
-                                else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
-                            readOnly = false,
-                            name = name.name.javaIdent,
-                            type = compileTypeRef(typeRef),
-                            default = compileTypeRefZeroExpr(typeRef)
-                        )
-                    }
+                params = fields.map { (name, typeRef) ->
+                    param(
+                        mods =
+                            if (name.first().isUpperCase()) emptyList()
+                            else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
+                        readOnly = false,
+                        name = name.javaIdent,
+                        type = compileTypeRef(typeRef),
+                        default = compileTypeRefZeroExpr(typeRef)
+                    )
                 }
             ),
             parents = listOf(Node.Decl.Structured.Parent.Type(
                 type = GoStruct::class.toType().ref as Node.TypeRef.Simple,
                 by = null
-            ))
+            )),
+            members = listOf(compileStructTypeCopyMethod(name, type))
         )
     }
+
+    fun Context.compileStructTypeCopyMethod(name: String, type: TypeConverter.Type.Struct) =
+        // The copy method is a deep copy
+        func(
+            name = "\$copy",
+            body = Node.Decl.Func.Body.Expr(call(
+                expr = name.toName(),
+                args = type.fields.map { (name, type) ->
+                    valueArg(expr = name.toName().let {
+                        if (type !is TypeConverter.Type.Struct) it
+                        else call(expr = it.dot("\$copy".toName()))
+                    })
+                }
+            ))
+        )
 
     fun Context.compileSwitchStmt(v: SwitchStmt, label: String? = null): Node.Stmt {
         // All cases are when entries
@@ -1411,7 +1431,7 @@ open class Compiler {
         else -> error("Unknown type spec type $v")
     }
 
-    fun Context.compileTypeSpecStructType(name: Ident, v: StructType) = compileStructType(v).copy(
+    fun Context.compileTypeSpecStructType(name: Ident, v: StructType) = compileStructType(name.name, v).copy(
         mods = if (name.isExposed) emptyList() else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
         name = name.name.javaIdent
     )
@@ -1445,7 +1465,7 @@ open class Compiler {
         is Type_.Type.TypeConst -> compileTypeRefZeroExpr(v.type.typeConst.type!!)
         is Type_.Type.TypeLabel -> compileTypeRefZeroExpr(v.type.typeLabel)
         is Type_.Type.TypeName -> compileTypeRefZeroExpr(v.type.typeName)
-        is Type_.Type.TypeNamed -> compileTypeRefZeroExpr(v.type.typeNamed.type!!)
+        is Type_.Type.TypeNamed -> call(expr = v.type.typeNamed.typeName!!.name.javaIdent.toName())
         is Type_.Type.TypePackage -> TODO()
         is Type_.Type.TypeSignature -> TODO()
         is Type_.Type.TypeStruct -> TODO()

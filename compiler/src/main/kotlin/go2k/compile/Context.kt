@@ -78,7 +78,7 @@ class Context(
         is Type_.Type.TypeLabel -> TODO()
         is Type_.Type.TypeMap -> TODO()
         is Type_.Type.TypeName -> compileTypeRef(v.type.typeName)
-        is Type_.Type.TypeNamed -> TODO()
+        is Type_.Type.TypeNamed -> v.type.typeNamed.typeName!!.name.toDottedType()
         is Type_.Type.TypeNil -> TODO()
         is Type_.Type.TypePackage -> TODO()
         is Type_.Type.TypePointer -> compileTypePointer(v.type.typePointer)
@@ -144,6 +144,14 @@ class Context(
     fun Node.Expr.convertType(from: Type_, to: TypeConverter.Type) = convertType(from.convType(), to)
     fun Node.Expr.convertType(from: TypeConverter.Type, to: TypeConverter.Type) =
         typeConv.run { convertType(this@convertType, from, to) }
+
+    fun Node.Expr.byValue(orig: Expr_) = orig.expr?.typeRef?.namedType?.let { byValue(it) } ?: this
+    fun Node.Expr.byValue(type: Type_) = type.convType().let { convType ->
+        // If the type is a struct and it's not a call instantiating it, we have to copy it
+        if (convType !is TypeConverter.Type.Struct) this
+        else if (this is Node.Expr.Call && this.expr == convType.name?.toDottedExpr()) this
+        else call(expr = this.dot("\$copy".toName()))
+    }
 
     val String.javaIdent get() = this
     val String.javaName get() = Node.Expr.Name(javaIdent)
