@@ -1,7 +1,6 @@
 package go2k.compile2
 
 sealed class GNode {
-    var sourceObject: Any? = null
 
     sealed class Const : GNode() {
         data class Boolean(val v: kotlin.Boolean) : Const()
@@ -233,15 +232,15 @@ sealed class GNode {
 
     sealed class Type : GNode() {
         interface NamedEntity {
-            val pkg: PackageRef?
+            val pkg: String?
             val name: String
-            val type: Type
+            val type: Type?
         }
 
         data class Array(val elem: Type, val len: Long) : Type()
         data class Basic(val kind: Kind) : Type() {
             enum class Kind {
-                BOOL, INT, INT_8, INT_16, INT_32, INT_64,
+                INVALID, BOOL, INT, INT_8, INT_16, INT_32, INT_64,
                 UINT, UINT_8, UINT_16, UINT_32, UINT_64, UINT_PTR,
                 FLOAT_32, FLOAT_64, COMPLEX_64, COMPLEX_128, STRING,
                 UNSAFE_POINTER, UNTYPED_BOOL, UNTYPED_INT, UNTYPED_RUNE,
@@ -249,44 +248,50 @@ sealed class GNode {
             }
         }
         data class BuiltIn(
-            override val pkg: PackageRef?,
+            override val pkg: String?,
             override val name: String,
-            override val type: Type
+            override val type: Type?
         ) : Type(), NamedEntity
         data class Chan(val elem: Type, val canSend: Boolean, val canRecv: Boolean) : Type()
         data class Const(
-            override val pkg: PackageRef?,
+            override val pkg: String?,
             override val name: String,
             override val type: Type,
-            val value: GNode.Const
+            val value: GNode.Const?
         ) : Type(), NamedEntity
         data class Func(
-            override val pkg: PackageRef?,
+            override val pkg: String?,
             override val name: String,
             override val type: Signature
         ) : Type(), NamedEntity
         data class Interface(val methods: List<Func>, val embeddeds: List<Type>) : Type()
+        data class Label(
+            override val pkg: String?,
+            override val name: String,
+            override val type: Type?
+        ) : Type(), NamedEntity
         data class Map(val elem: Type, val key: Type) : Type()
-        data class Named(val obg: TypeName, val underlying: Type, val methods: List<Func>) : Type()
+        data class Named(val name: TypeName, val underlying: Type, val methods: List<Func>) : Type()
         object Nil : Type()
-        data class PackageRef(val path: String, val name: String) : Type()
+        data class Package(val name: String) : Type()
         data class Pointer(val elem: Type) : Type()
         data class Signature(
-            val recv: Var,
+            val recv: Var?,
             val params: Tuple,
             val results: Tuple,
             val variadic: Boolean
         ) : Type()
         data class Slice(val elem: Type) : Type()
         data class Struct(val fields: List<Var>, val tags: List<String>) : Type()
-        data class Tuple(val vars: List<Var>)
+        data class Tuple(val vars: List<Var>) : Type()
         data class TypeName(
-            override val pkg: PackageRef?,
+            override val pkg: String?,
             override val name: String,
-            override val type: Type
+            // Will be null if
+            override val type: Type?
         ) : Type(), NamedEntity
         data class Var(
-            override val pkg: PackageRef?,
+            override val pkg: String?,
             override val name: String,
             override val type: Type,
             val embedded: Boolean
