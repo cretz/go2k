@@ -70,11 +70,7 @@ class PbToGNode(val pkg: Package) {
             },
             y = convertExpr(v.binaryExpr.y!!)
         )
-        is Expr_.Expr.CallExpr -> GNode.Expr.Call(
-            type = v.callExpr.typeRef?.let(::convertType),
-            func = convertExpr(v.callExpr.`fun`!!),
-            args = v.callExpr.args.map(::convertExpr)
-        )
+        is Expr_.Expr.CallExpr -> convertExprCall(v.callExpr)
         is Expr_.Expr.ChanType -> GNode.Expr.ChanType(
             type = v.chanType.typeRef?.let(::convertType),
             value = convertExpr(v.chanType.value!!),
@@ -163,6 +159,12 @@ class PbToGNode(val pkg: Package) {
         )
     }
 
+    fun convertExprCall(v: CallExpr) = GNode.Expr.Call(
+        type = v.typeRef?.let(::convertType),
+        func = convertExpr(v.`fun`!!),
+        args = v.args.map(::convertExpr)
+    )
+
     fun convertExprFuncType(v: FuncType) = GNode.Expr.FuncType(
         type = v.typeRef?.let(::convertType),
         params = v.params?.list.orEmpty().map(::convertField),
@@ -196,12 +198,139 @@ class PbToGNode(val pkg: Package) {
     )
     
     fun convertSpec(v: Spec_) = convertSpec(v.spec!!)
-    fun convertSpec(v: Spec_.Spec): GNode.Spec = TODO()
+    fun convertSpec(v: Spec_.Spec): GNode.Spec = when (v) {
+        is Spec_.Spec.ImportSpec -> GNode.Spec.Import(
+            name = v.importSpec.name?.name,
+            path = v.importSpec.path!!.value
+        )
+        is Spec_.Spec.TypeSpec -> GNode.Spec.Type(
+            name = v.typeSpec.name!!.name,
+            expr = convertExpr(v.typeSpec.type!!),
+            alias = v.typeSpec.assign > 0
+        )
+        is Spec_.Spec.ValueSpec -> GNode.Spec.Value(
+            names = v.valueSpec.names.map { it.name },
+            type = v.valueSpec.type?.let(::convertExpr),
+            values = v.valueSpec.values.map(::convertExpr)
+        )
+    }
 
     fun convertStmt(v: Stmt_) = convertStmt(v.stmt!!)
-    fun convertStmt(v: Stmt_.Stmt): GNode.Stmt = TODO()
+    fun convertStmt(v: Stmt_.Stmt): GNode.Stmt = when (v) {
+        is Stmt_.Stmt.AssignStmt -> GNode.Stmt.Assign(
+            lhs = v.assignStmt.lhs.map(::convertExpr),
+            tok = when (v.assignStmt.tok) {
+                Token.ADD_ASSIGN -> GNode.Stmt.Assign.Token.ADD
+                Token.AND_ASSIGN -> GNode.Stmt.Assign.Token.AND
+                Token.AND_NOT_ASSIGN -> GNode.Stmt.Assign.Token.AND_NOT
+                Token.ASSIGN -> GNode.Stmt.Assign.Token.ASSIGN
+                Token.DEFINE -> GNode.Stmt.Assign.Token.DEFINE
+                Token.MUL_ASSIGN -> GNode.Stmt.Assign.Token.MUL
+                Token.OR_ASSIGN -> GNode.Stmt.Assign.Token.OR
+                Token.QUO_ASSIGN -> GNode.Stmt.Assign.Token.QUO
+                Token.REM_ASSIGN -> GNode.Stmt.Assign.Token.REM
+                Token.SHL_ASSIGN -> GNode.Stmt.Assign.Token.SHL
+                Token.SHR_ASSIGN -> GNode.Stmt.Assign.Token.SHR
+                Token.SUB_ASSIGN -> GNode.Stmt.Assign.Token.SUB
+                Token.XOR_ASSIGN -> GNode.Stmt.Assign.Token.XOR
+                else -> error("Unknown assign token ${v.assignStmt.tok}")
+            },
+            rhs = v.assignStmt.rhs.map(::convertExpr)
+        )
+        is Stmt_.Stmt.BadStmt -> error("Bad stmt: $v")
+        is Stmt_.Stmt.BlockStmt -> convertStmtBlock(v.blockStmt)
+        is Stmt_.Stmt.BranchStmt -> GNode.Stmt.Branch(
+            tok = when (v.branchStmt.tok) {
+                Token.BREAK -> GNode.Stmt.Branch.Token.BREAK
+                Token.CONTINUE -> GNode.Stmt.Branch.Token.CONTINUE
+                Token.FALLTHROUGH -> GNode.Stmt.Branch.Token.FALLTHROUGH
+                Token.GOTO -> GNode.Stmt.Branch.Token.GOTO
+                else -> error("Unknown branch token ${v.branchStmt.tok}")
+            },
+            label = v.branchStmt.label?.let(::convertExprIdent)
+        )
+        is Stmt_.Stmt.CaseClause -> error("Case clauses aren't statements")
+        is Stmt_.Stmt.CommClause -> error("Comm clauses aren't statements")
+        is Stmt_.Stmt.DeclStmt -> GNode.Stmt.Decl(
+            decl = convertDecl(v.declStmt.decl!!)
+        )
+        is Stmt_.Stmt.DeferStmt -> GNode.Stmt.Defer(
+            call = convertExprCall(v.deferStmt.call!!)
+        )
+        is Stmt_.Stmt.EmptyStmt -> GNode.Stmt.Empty
+        is Stmt_.Stmt.ExprStmt -> GNode.Stmt.Expr(
+            x = convertExpr(v.exprStmt.x!!)
+        )
+        is Stmt_.Stmt.ForStmt -> GNode.Stmt.For(
+            init = v.forStmt.init?.let(::convertStmt),
+            cond = v.forStmt.cond?.let(::convertExpr),
+            post = v.forStmt.post?.let(::convertStmt),
+            body = convertStmtBlock(v.forStmt.body!!)
+        )
+        is Stmt_.Stmt.GoStmt -> GNode.Stmt.Go(
+            call = convertExprCall(v.goStmt.call!!)
+        )
+        is Stmt_.Stmt.IfStmt -> GNode.Stmt.If(
+            init = v.ifStmt.init?.let(::convertStmt),
+            cond = convertExpr(v.ifStmt.cond!!),
+            body = convertStmtBlock(v.ifStmt.body!!),
+            elseStmt = v.ifStmt.`else`?.let(::convertStmt)
+        )
+        is Stmt_.Stmt.IncDecStmt -> GNode.Stmt.IncDec(
+            x = convertExpr(v.incDecStmt.x!!),
+            inc = v.incDecStmt.tok == Token.INC
+        )
+        is Stmt_.Stmt.LabeledStmt -> GNode.Stmt.Labeled(
+            label = convertExprIdent(v.labeledStmt.label!!),
+            stmt = convertStmt(v.labeledStmt.stmt!!)
+        )
+        is Stmt_.Stmt.RangeStmt -> GNode.Stmt.Range(
+            key = v.rangeStmt.key?.let(::convertExpr),
+            value = v.rangeStmt.value?.let(::convertExpr),
+            define = v.rangeStmt.tok == Token.DEFINE,
+            x = convertExpr(v.rangeStmt.x!!),
+            body = convertStmtBlock(v.rangeStmt.body!!)
+        )
+        is Stmt_.Stmt.ReturnStmt -> GNode.Stmt.Return(
+            results = v.returnStmt.results.map(::convertExpr)
+        )
+        is Stmt_.Stmt.SelectStmt -> GNode.Stmt.Select(
+            cases = v.selectStmt.body!!.list.map {
+                val clause = it.stmt as Stmt_.Stmt.CommClause
+                GNode.Stmt.Select.CommClause(
+                    comm = clause.commClause.comm?.let(::convertStmt),
+                    body = clause.commClause.body.map(::convertStmt)
+                )
+            }
+        )
+        is Stmt_.Stmt.SendStmt -> GNode.Stmt.Send(
+            chan = convertExpr(v.sendStmt.chan!!),
+            value = convertExpr(v.sendStmt.value!!)
+        )
+        is Stmt_.Stmt.SwitchStmt -> GNode.Stmt.Switch(
+            init = v.switchStmt.init?.let(::convertStmt),
+            tag = v.switchStmt.tag?.let { GNode.Stmt.Expr(convertExpr(it)) },
+            type = false,
+            cases = convertStmtSwitchCaseBody(v.switchStmt.body!!)
+        )
+        is Stmt_.Stmt.TypeSwitchStmt -> GNode.Stmt.Switch(
+            init = v.typeSwitchStmt.init?.let(::convertStmt),
+            tag = convertStmt(v.typeSwitchStmt.assign!!),
+            type = true,
+            cases = convertStmtSwitchCaseBody(v.typeSwitchStmt.body!!)
+        )
+    }
 
     fun convertStmtBlock(v: BlockStmt) = GNode.Stmt.Block(v.list.map(::convertStmt))
+
+    fun convertStmtSwitchCaseBody(v: BlockStmt) = v.list.map {
+        (it.stmt as Stmt_.Stmt.CaseClause).caseClause.let {
+            GNode.Stmt.Switch.CaseClause(
+                list = it.list.map(::convertExpr),
+                body = it.body.map(::convertStmt)
+            )
+        }
+    }
     
     fun convertType(v: TypeRef) = convertTypeId(v.id)
     fun convertTypeId(v: Int) = lazyTypes[v] ?: convertType(pkg.types[v]).also { lazyTypes[v] = it }

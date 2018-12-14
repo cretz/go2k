@@ -5,7 +5,7 @@ interface Namer {
 
     open class Simple : Namer {
         override fun packageName(goPackagePath: String, goPackageName: String): String {
-            val pieces = goPackagePath.split('/')
+            val pieces = goPackagePath.split('/').filter(String::isNotEmpty)
             val first = pieces.first().let {
                 val dotIndex = it.indexOf('.')
                 if (dotIndex == -1) it else it.substring(dotIndex + 1) + '.' + it.substring(0, dotIndex)

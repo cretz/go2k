@@ -182,13 +182,11 @@ sealed class GNode {
             }
         }
         data class Block(val stmts: List<Stmt>) : Stmt()
-        data class Branch(val tok: Token, val label: GNode.Expr.Ident) : Stmt() {
+        data class Branch(val tok: Token, val label: GNode.Expr.Ident?) : Stmt() {
             enum class Token {
-                BREAK, CONTINUE, GOTO, FALLTHROUGH
+                BREAK, CONTINUE, FALLTHROUGH, GOTO
             }
         }
-        data class CaseClause(val list: List<GNode.Expr>, val body: List<Stmt>) : Stmt()
-        data class CommClause(val comm: Stmt?, val body: List<Stmt>) : Stmt()
         data class Decl(val decl: GNode.Decl) : Stmt()
         data class Defer(val call: GNode.Expr.Call) : Stmt()
         object Empty : Stmt()
@@ -212,22 +210,23 @@ sealed class GNode {
             val key: GNode.Expr?,
             val value: GNode.Expr?,
             val define: Boolean,
-            val x: Expr,
+            val x: GNode.Expr,
             val body: Block
         ) : Stmt()
         data class Return(val results: List<GNode.Expr>) : Stmt()
-        data class Select(val cases: List<CommClause>) : Stmt()
+        data class Select(val cases: List<CommClause>) : Stmt() {
+            data class CommClause(val comm: Stmt?, val body: List<Stmt>) : GNode()
+        }
         data class Send(val chan: GNode.Expr, val value: GNode.Expr) : Stmt()
         data class Switch(
             val init: Stmt?,
+            // Will be Stmt.Expr or null when type is false, not null stmt when type is true
             val tag: Stmt?,
+            val type: Boolean,
             val cases: List<CaseClause>
-        ) : Stmt()
-        data class TypeSwitch(
-            val init: Stmt?,
-            val assign: Stmt,
-            val cases: List<CaseClause>
-        ) : Stmt()
+        ) : Stmt() {
+            data class CaseClause(val list: List<GNode.Expr>, val body: List<Stmt>) : GNode()
+        }
     }
 
     sealed class Type : GNode() {
