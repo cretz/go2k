@@ -14,22 +14,22 @@ fun Context.compileExpr(
     is GNode.Expr.Binary -> compileExprBinary(v)
     is GNode.Expr.Call -> compileExprCall(v)
     is GNode.Expr.ChanType -> TODO()
-    is GNode.Expr.CompositeLit -> TODO()
+    is GNode.Expr.CompositeLit -> compileExprCompositeLit(v)
     is GNode.Expr.Ellipsis -> TODO()
-    is GNode.Expr.FuncLit -> TODO()
+    is GNode.Expr.FuncLit -> compileExprFuncLit(v)
     is GNode.Expr.FuncType -> TODO()
     is GNode.Expr.Ident -> compileExprIdent(v)
-    is GNode.Expr.Index -> TODO()
+    is GNode.Expr.Index -> compileExprIndex(v)
     is GNode.Expr.InterfaceType -> TODO()
     is GNode.Expr.KeyValue -> TODO()
     is GNode.Expr.MapType -> TODO()
-    is GNode.Expr.Paren -> TODO()
-    is GNode.Expr.Selector -> TODO()
-    is GNode.Expr.Slice -> TODO()
+    is GNode.Expr.Paren -> compileExprParen(v)
+    is GNode.Expr.Selector -> compileExprSelector(v)
+    is GNode.Expr.Slice -> compileExprSlice(v)
     is GNode.Expr.Star -> TODO()
     is GNode.Expr.StructType -> TODO()
     is GNode.Expr.TypeAssert -> TODO()
-    is GNode.Expr.Unary -> TODO()
+    is GNode.Expr.Unary -> compileExprUnary(v)
 }
 
 fun Context.compileExprBasicLit(v: GNode.Expr.BasicLit) =  when (v.kind) {
@@ -93,10 +93,102 @@ fun Context.compileExprBinary(v: GNode.Expr.Binary) = when (v.op) {
     )
 }
 
+fun Context.compileExprFuncLit(v: GNode.Expr.FuncLit): Node.Expr {
+    // TODO: once https://youtrack.jetbrains.com/issue/KT-18346 is fixed, return Node.Expr.AnonFunc(decl)
+    // In the meantime, we have to turn the function into a suspended lambda sadly
+    val tempVar = currFunc.newTempVar("anonFunc")
+    val inDefer = currFunc.deferDepth > 0
+    pushFunc(v.funcType)
+    // TODO: track returns to see if the return label is even used
+    currFunc.returnLabelStack += tempVar
+    currFunc.inDefer = inDefer
+    val (params, resultType, stmts) = compileDeclFuncBody(v.funcType, v.body)
+    popFunc()
+    return call(
+        expr = "go2k.runtime.anonFunc".toDottedExpr(),
+        typeArgs = listOf(Node.Type(
+            mods = listOf(Node.Modifier.Keyword.SUSPEND.toMod()),
+            ref = Node.TypeRef.Func(
+                receiverType = null,
+                params = params.map { Node.TypeRef.Func.Param(null, it.type!!) },
+                type = resultType ?: Unit::class.toType()
+            )
+        )),
+        lambda = trailLambda(params = params.map { listOf(it.name) }, stmts = stmts, label = tempVar.labelIdent())
+    )
+}
+
 fun Context.compileExprIdent(v: GNode.Expr.Ident) = when {
     v.name == "nil" -> NullConst
     v.name == "true" -> true.toConst()
     v.name == "false" -> false.toConst()
     v.type is GNode.Type.BuiltIn -> "go2k.runtime.builtin.${v.name}".toDottedExpr()
     else -> v.name.toName()
+}
+
+fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
+    expr = compileExpr(v.x).nullDeref(),
+    indices = listOf(compileExpr(v.index))
+)
+
+fun Context.compileExprParen(v: GNode.Expr.Paren) = Node.Expr.Paren(compileExpr(v.x))
+
+fun Context.compileExprSelector(v: GNode.Expr.Selector) = compileExpr(v.x).dot(compileExprIdent(v.sel))
+
+fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (v.x.type) {
+    is GNode.Type.Array, is GNode.Type.Basic, is GNode.Type.Slice -> {
+        var subject = compileExpr(v.x)
+        if (v.x.type is GNode.Type.Slice) subject = subject.nullDeref()
+        var args = listOf(valueArg(subject))
+        if (v.low != null) args += valueArg(name = "low", expr = compileExpr(v.low))
+        if (v.high != null) args += valueArg(name = "high", expr = compileExpr(v.high))
+        if (v.max != null) args += valueArg(name = "max", expr = compileExpr(v.max))
+        call(expr = "go2k.runtime.builtin.slice".toDottedExpr(), args = args)
+    }
+    else -> TODO()
+}
+
+fun Context.compileExprUnary(v: GNode.Expr.Unary) = compileExpr(v.x).let { xExpr ->
+    when (v.token) {
+        // An "AND" op is a pointer deref
+        GNode.Expr.Unary.Token.AND -> {
+            // Compile type of expr, and if it's not nullable, a simple "as" nullable form works.
+            // Otherwise, it's a NestedPtr
+            val xType = compileType(v.x.type!!)
+            if (xType.ref !is Node.TypeRef.Nullable) typeOp(
+                lhs = xExpr,
+                op = Node.Expr.TypeOp.Token.AS,
+                rhs = xType.nullable()
+            ) else call(
+                expr = NESTED_PTR_CLASS.ref(),
+                args = listOf(valueArg(xExpr))
+            )
+        }
+        // Receive from chan
+        GNode.Expr.Unary.Token.ARROW -> call(
+            // If the type is a tuple, it's the or-ok version
+            expr = (v.type is GNode.Type.Tuple).let { withOk ->
+                if (withOk) "go2k.runtime.builtin.recvWithOk" else "go2k.runtime.builtin.recv"
+            }.toDottedExpr(),
+            args = listOf(
+                valueArg(compileExpr(v.x)),
+                // Needs zero value of chan element type
+                valueArg(compileTypeZeroExpr((v.x.type as GNode.Type.Chan).elem))
+            )
+        )
+        // ^ is a bitwise complement
+        GNode.Expr.Unary.Token.XOR -> call(xExpr.dot("inv"))
+        else -> unaryOp(
+            expr = xExpr,
+            op = when (v.token) {
+                GNode.Expr.Unary.Token.ADD -> Node.Expr.UnaryOp.Token.POS
+                GNode.Expr.Unary.Token.DEC -> Node.Expr.UnaryOp.Token.DEC
+                GNode.Expr.Unary.Token.INC -> Node.Expr.UnaryOp.Token.INC
+                GNode.Expr.Unary.Token.NOT -> Node.Expr.UnaryOp.Token.NOT
+                GNode.Expr.Unary.Token.SUB -> Node.Expr.UnaryOp.Token.NEG
+                else -> error("Unrecognized unary op: ${v.token}")
+            },
+            prefix = v.token != GNode.Expr.Unary.Token.INC && v.token != GNode.Expr.Unary.Token.DEC
+        )
+    }
 }

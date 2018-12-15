@@ -83,6 +83,12 @@ fun trailLambda(
     )
 )
 
+fun typeOp(lhs: Node.Expr, op: Node.Expr.TypeOp.Token, rhs: Node.Type) =
+    Node.Expr.TypeOp(lhs, Node.Expr.TypeOp.Oper(op), rhs)
+
+fun unaryOp(expr: Node.Expr, op: Node.Expr.UnaryOp.Token, prefix: Boolean = true) =
+    Node.Expr.UnaryOp(expr = expr, oper = Node.Expr.UnaryOp.Oper(op), prefix = prefix)
+
 fun valueArg(
     expr: Node.Expr,
     name: String? = null,
@@ -110,6 +116,8 @@ fun Char.escape(str: Boolean = false, raw: Boolean = false) =
 
 fun Char.toConst() = Node.Expr.Const("'${this.escape()}'", Node.Expr.Const.Form.CHAR)
 
+fun Int.toConst() = toString().toIntConst()
+
 fun KClass<*>.ref() = qualifiedName!!.toDottedExpr()
 
 fun KClass<*>.toType(typeParams: List<Node.Type?> = emptyList()) = Node.Type(
@@ -134,6 +142,8 @@ fun Node.Expr.dot(rhs: Node.Expr, safe: Boolean = false) =
     binaryOp(this, if (safe) Node.Expr.BinaryOp.Token.DOT_SAFE else Node.Expr.BinaryOp.Token.DOT, rhs)
 
 fun Node.Expr.index(vararg indices: Node.Expr) = Node.Expr.ArrayAccess(this, indices.toList())
+
+fun Node.Expr.nullDeref() = unaryOp(this, Node.Expr.UnaryOp.Token.NULL_DEREF, false)
 
 fun Node.Expr.toFuncBody() = Node.Decl.Func.Body.Expr(this)
 
