@@ -80,7 +80,7 @@ fun Context.compileStmtAssignMulti(v: GNode.Stmt.Assign): List<Node.Stmt> {
                 is GNode.Expr.Index -> {
                     eagerLhsExpr = binaryOp(
                         lhs = compileExpr(lhs.x),
-                        op = Node.Expr.BinaryOp.Oper.Infix("to"),
+                        op = "to".toInfix(),
                         rhs = compileExpr(lhs.index)
                     )
                     assignLambdaParams = listOf(listOf("\$lhs", "\$index"), listOf("\$rhs"))

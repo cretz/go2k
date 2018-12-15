@@ -237,7 +237,7 @@ sealed class GNode {
         }
 
         data class Array(val elem: Type, val len: Long) : Type()
-        data class Basic(val kind: Kind) : Type() {
+        data class Basic(val name: String, val kind: Kind) : Type() {
             enum class Kind {
                 INVALID, BOOL, INT, INT_8, INT_16, INT_32, INT_64,
                 UINT, UINT_8, UINT_16, UINT_32, UINT_64, UINT_PTR,
@@ -276,8 +276,8 @@ sealed class GNode {
         data class Pointer(val elem: Type) : Type()
         data class Signature(
             val recv: Var?,
-            val params: Tuple,
-            val results: Tuple,
+            val params: List<Var>,
+            val results: List<Var>,
             val variadic: Boolean
         ) : Type()
         data class Slice(val elem: Type) : Type()

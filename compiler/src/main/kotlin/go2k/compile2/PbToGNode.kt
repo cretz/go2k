@@ -340,7 +340,7 @@ class PbToGNode(val pkg: Package) {
             elem = convertType(t.typeArray.elem!!),
             len = t.typeArray.len
         )
-        is Type_.Type.TypeBasic -> GNode.Type.Basic(when (t.typeBasic.kind) {
+        is Type_.Type.TypeBasic -> GNode.Type.Basic(v.name, when (t.typeBasic.kind) {
             TypeBasic.Kind.INVALID -> GNode.Type.Basic.Kind.INVALID
             TypeBasic.Kind.BOOL -> GNode.Type.Basic.Kind.BOOL
             TypeBasic.Kind.INT -> GNode.Type.Basic.Kind.INT
@@ -452,8 +452,8 @@ class PbToGNode(val pkg: Package) {
 
     fun convertTypeSignature(v: TypeSignature) = GNode.Type.Signature(
         recv = v.recv?.let { convertType(it) as GNode.Type.Var },
-        params = GNode.Type.Tuple(v.params.map { convertType(it) as GNode.Type.Var }),
-        results = GNode.Type.Tuple(v.results.map { convertType(it) as GNode.Type.Var }),
+        params = v.params.map { convertType(it) as GNode.Type.Var },
+        results = v.results.map { convertType(it) as GNode.Type.Var },
         variadic = v.variadic
     )
 

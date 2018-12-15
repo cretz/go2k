@@ -91,6 +91,27 @@ fun valueArg(
 
 fun Boolean.toConst() = Node.Expr.Const(if (this) "true" else "false", Node.Expr.Const.Form.BOOLEAN)
 
+fun Char.escape(str: Boolean = false, raw: Boolean = false) =
+    if (raw) { if (this == '$') "\${'\$'}" else toString() }
+    else when (this) {
+        '\\' -> "\\\\"
+        '\t' -> "\\t"
+        '\b' -> "\\b"
+        '\n' -> "\\n"
+        '\r' -> "\\r"
+        '"' -> if (str) "\\\"" else toString()
+        '\'' -> if (str) toString() else "\\'"
+        '$' -> "\\\$"
+        // Escape unprintables
+        else ->
+            if (raw || this >= ' ') toString()
+            else "\\u00" + toInt().toString(16).toUpperCase().let { if (it.length == 2) it else "0$it" }
+    }
+
+fun Char.toConst() = Node.Expr.Const("'${this.escape()}'", Node.Expr.Const.Form.CHAR)
+
+fun KClass<*>.ref() = qualifiedName!!.toDottedExpr()
+
 fun KClass<*>.toType(typeParams: List<Node.Type?> = emptyList()) = Node.Type(
     mods = emptyList(),
     ref = Node.TypeRef.Simple(
@@ -141,14 +162,27 @@ fun String.toDottedType(vararg trailingTypeParams: Node.Type?) = Node.Type(
                 // Last index has type param
                 Node.TypeRef.Simple.Piece(
                     name = s,
-                    typeParams = if (index == it.size - 1) trailingTypeParams.toList() else emptyList()
+                    typeParams = if (index == it.lastIndex) trailingTypeParams.toList() else emptyList()
                 )
             }
         }
     )
 )
 
+fun String.toFloatConst() = Node.Expr.Const(this, Node.Expr.Const.Form.FLOAT)
+
+fun String.toInfix() = Node.Expr.BinaryOp.Oper.Infix(this)
+
+fun String.toIntConst() = Node.Expr.Const(this, Node.Expr.Const.Form.INT)
+
+fun String.toLongConst() = Node.Expr.Const(this, Node.Expr.Const.Form.INT)
+
 fun String.toName() = Node.Expr.Name(this)
+
+fun String.toStringTmpl(raw: Boolean = false) = Node.Expr.StringTmpl(
+    elems = listOf(Node.Expr.StringTmpl.Elem.Regular(this)),
+    raw = raw
+)
 
 fun String.untypedFloatClass(includeFloatClass: Boolean = false): KClass<out Number> = toBigDecimal().let { bigDec ->
     if (includeFloatClass && bigDec.compareTo(bigDec.toFloat().toBigDecimal()) == 0) Float::class
