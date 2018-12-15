@@ -36,21 +36,6 @@ fun Context.compileDeclConst(v: GNode.Decl.Const) = v.specs.flatMap { spec ->
     }
 }
 
-fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
-    compileFuncBody(v.type, v.body).let { (params, returnType, stmts) ->
-        func(
-            mods = listOfNotNull(
-                Node.Modifier.Keyword.SUSPEND.toMod(),
-                Node.Modifier.Keyword.INTERNAL?.takeIf { v.name.first().isLowerCase() }?.toMod()
-            ),
-            name = v.name,
-            params = params,
-            type = returnType,
-            body = block(stmts).toFuncBody()
-        )
-    }
-}
-
 fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
     if (spec.alias) TODO()
     when (spec.expr) {

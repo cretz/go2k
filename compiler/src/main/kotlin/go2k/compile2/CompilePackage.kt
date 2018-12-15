@@ -6,7 +6,7 @@ import kastree.ast.Node
 fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPackage {
     var initCount = 0
     return KPackage(v.files.mapIndexed { index, file ->
-        "${file.fileName}.kt" to Context(v, name).compileFile(
+        "${file.fileName}.kt" to Context(v, name).compilePackageFile(
             v = file,
             mutateDecl = { decl ->
                 // Make init function names unique
@@ -20,7 +20,10 @@ fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPa
     }.toMap())
 }
 
-fun Context.compileFile(
+fun Context.compilePackageArtifacts(initCount: Int) =
+    listOfNotNull(compilePackageInit(initCount), compilePackageMain())
+
+fun Context.compilePackageFile(
     v: GNode.File,
     mutateDecl: (Node.Decl) -> Node.Decl = { it },
     additionalDecls: Context.() -> List<Node.Decl> = { emptyList() }
@@ -32,9 +35,6 @@ fun Context.compileFile(
         Node.Import(names = importPath.split('.'), wildcard = false, alias = alias)
     }
 )
-
-fun Context.compilePackageArtifacts(initCount: Int) =
-    listOfNotNull(compilePackageInit(initCount), compilePackageMain())
 
 fun Context.compilePackageInit(initCount: Int): Node.Decl {
     // Suspendable public init sets vars and calls init funcs

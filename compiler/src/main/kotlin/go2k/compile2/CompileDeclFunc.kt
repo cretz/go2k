@@ -4,7 +4,22 @@ import go2k.runtime.Slice
 import go2k.runtime.builtin.withDefers
 import kastree.ast.Node
 
-fun Context.compileFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Block): FuncBody {
+fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
+    compileDeclFuncBody(v.type, v.body).let { (params, returnType, stmts) ->
+        func(
+            mods = listOfNotNull(
+                Node.Modifier.Keyword.SUSPEND.toMod(),
+                Node.Modifier.Keyword.INTERNAL?.takeIf { v.name.first().isLowerCase() }?.toMod()
+            ),
+            name = v.name,
+            params = params,
+            type = returnType,
+            body = block(stmts).toFuncBody()
+        )
+    }
+}
+
+fun Context.compileDeclFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Block): DeclFuncBody {
     // Named return idents need to be declared with zero vals up front
     val preStmts = type.results.flatMap { field ->
         field.names.map { ident ->
@@ -14,7 +29,7 @@ fun Context.compileFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Block):
             ).toStmt()
         }
     }
-    return FuncBody(
+    return DeclFuncBody(
         params = type.params.flatMap { field ->
             field.names.map { name ->
                 // An ellipsis expr means a slice vararg
@@ -36,7 +51,7 @@ fun Context.compileFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Block):
     )
 }
 
-data class FuncBody(
+data class DeclFuncBody(
     val params: List<Node.Decl.Func.Param>,
     val resultType: Node.Type?,
     val stmts: List<Node.Stmt>
