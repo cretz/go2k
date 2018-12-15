@@ -82,6 +82,7 @@ open class Compiler {
         // Single defines are normal properties. Multi-defines as results of
         // functions are destructurings. Multi-defines with multi-rhs are just
         // one at a time.
+
         // Identifiers already defined and as a result of a function use temps
         val multiDefineSingleRhs = v.lhs.size > 1 && v.rhs.size == 1
         // Key is var name, val is temp name

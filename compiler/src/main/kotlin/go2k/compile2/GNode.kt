@@ -146,7 +146,7 @@ sealed class GNode {
     }
 
     data class Field(
-        val names: List<String>,
+        val names: List<Expr.Ident>,
         val type: Expr,
         val tag: String?
     ) : GNode()
@@ -168,7 +168,7 @@ sealed class GNode {
     sealed class Spec : GNode() {
         data class Import(val name: String?, val path: String) : Spec()
         data class Type(val name: String, val expr: Expr, val alias: Boolean) : Spec()
-        data class Value(val names: List<String>, val type: Expr?, val values: List<Expr>) : Spec()
+        data class Value(val names: List<Expr.Ident>, val type: Expr?, val values: List<Expr>) : Spec()
     }
 
     sealed class Stmt : GNode() {

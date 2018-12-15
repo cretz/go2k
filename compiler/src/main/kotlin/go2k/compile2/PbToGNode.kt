@@ -178,7 +178,7 @@ class PbToGNode(val pkg: Package) {
     )
 
     fun convertField(v: Field) = GNode.Field(
-        names = v.names.map { it.name },
+        names = v.names.map(::convertExprIdent),
         type = convertExpr(v.type!!),
         tag = v.tag?.value
     )
@@ -209,7 +209,7 @@ class PbToGNode(val pkg: Package) {
             alias = v.typeSpec.assign > 0
         )
         is Spec_.Spec.ValueSpec -> GNode.Spec.Value(
-            names = v.valueSpec.names.map { it.name },
+            names = v.valueSpec.names.map(::convertExprIdent),
             type = v.valueSpec.type?.let(::convertExpr),
             values = v.valueSpec.values.map(::convertExpr)
         )

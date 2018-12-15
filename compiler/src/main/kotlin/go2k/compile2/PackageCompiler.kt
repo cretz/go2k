@@ -3,10 +3,10 @@ package go2k.compile2
 import go2k.runtime.runMain
 import kastree.ast.Node
 
-fun compile(v: GNode.Package, name: String = v.defaultPackageName()): KPackage {
+fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPackage {
     var initCount = 0
     return KPackage(v.files.mapIndexed { index, file ->
-        "${file.fileName}.kt" to Context(v, name).compile(
+        "${file.fileName}.kt" to Context(v, name).compileFile(
             v = file,
             mutateDecl = { decl ->
                 // Make init function names unique
@@ -20,14 +20,14 @@ fun compile(v: GNode.Package, name: String = v.defaultPackageName()): KPackage {
     }.toMap())
 }
 
-fun Context.compile(
+fun Context.compileFile(
     v: GNode.File,
     mutateDecl: (Node.Decl) -> Node.Decl = { it },
     additionalDecls: Context.() -> List<Node.Decl> = { emptyList() }
 ) = Node.File(
     anns = emptyList(),
     pkg = Node.Package(emptyList(), pkgName.split('.')),
-    decls = v.decls.map { compile(it).let(mutateDecl) } + additionalDecls(),
+    decls = v.decls.flatMap { compileDecl(it, topLevel = true).map(mutateDecl) } + additionalDecls(),
     imports = imports.map { (importPath, alias) ->
         Node.Import(names = importPath.split('.'), wildcard = false, alias = alias)
     }
@@ -41,7 +41,7 @@ fun Context.compilePackageInit(initCount: Int): Node.Decl {
     val topLevelValues = pkg.files.flatMap { it.decls.mapNotNull { it as? GNode.Decl.Var }.flatMap { it.specs } }
     val varInitsByName = topLevelValues.flatMap {
         it.names.zip(it.values) { name, value ->
-            name to binaryOp(name.toName(), Node.Expr.BinaryOp.Token.ASSN, compile(value)).toStmt()
+            name.name to binaryOp(name.name.toName(), Node.Expr.BinaryOp.Token.ASSN, compileExpr(value)).toStmt()
         }
     }.toMap()
     return func(

@@ -1,16 +1,20 @@
 package go2k.compile2
 
 import kastree.ast.Node
+import java.math.BigDecimal
+import java.math.BigInteger
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
 
-// Order by type depth then alphabetical
+val NullConst = Node.Expr.Const("null", Node.Expr.Const.Form.NULL)
+
+// Order alphabetical by receiver then func name
 
 fun arrayType(of: KClass<*>) = "kotlin.Array".toDottedType(of.toType())
 
 fun binaryOp(lhs: Node.Expr, op: Node.Expr.BinaryOp.Token, rhs: Node.Expr) =
-    Node.Expr.BinaryOp(lhs, op.toOper(), rhs)
+    binaryOp(lhs, op.toOper(), rhs)
 
 fun binaryOp(lhs: Node.Expr, op: Node.Expr.BinaryOp.Oper, rhs: Node.Expr) =
     Node.Expr.BinaryOp(lhs, op, rhs)
@@ -48,6 +52,37 @@ fun param(
     default: Node.Expr? = null
 ) = Node.Decl.Func.Param(mods, readOnly, name, type, default)
 
+fun property(
+    mods: List<Node.Modifier> = emptyList(),
+    readOnly: Boolean = false,
+    typeParams: List<Node.TypeParam> = emptyList(),
+    receiverType: Node.Type? = null,
+    vars: List<Node.Decl.Property.Var?> = emptyList(),
+    typeConstraints: List<Node.TypeConstraint> = emptyList(),
+    delegated: Boolean = false,
+    expr: Node.Expr? = null,
+    accessors: Node.Decl.Property.Accessors? = null
+) = Node.Decl.Property(mods, readOnly, typeParams, receiverType, vars, typeConstraints, delegated, expr, accessors)
+
+fun propVar(name: String, type: Node.Type? = null) = Node.Decl.Property.Var(name, type)
+
+fun trailLambda(
+    stmts: List<Node.Stmt>,
+    label: String? = null
+) = trailLambda(emptyList(), stmts, label)
+fun trailLambda(
+    params: List<List<String?>> = emptyList(),
+    stmts: List<Node.Stmt> = emptyList(),
+    label: String? = null
+) = Node.Expr.Call.TrailLambda(
+    anns = emptyList(),
+    label = label,
+    func = Node.Expr.Brace(
+        params = params.map { Node.Expr.Brace.Param(it.map { if (it == null) null else propVar(it) }, null) },
+        block = block(stmts)
+    )
+)
+
 fun valueArg(
     expr: Node.Expr,
     name: String? = null,
@@ -69,6 +104,14 @@ fun KFunction<*>.ref() = (javaMethod!!.declaringClass.`package`.name + ".$name")
 
 fun Node.Block.toFuncBody() = Node.Decl.Func.Body.Block(this)
 
+fun Node.Decl.toStmt() = Node.Stmt.Decl(this)
+
+fun Node.Expr.dot(rhs: String, safe: Boolean = false) = dot(rhs.toName(), safe)
+fun Node.Expr.dot(rhs: Node.Expr, safe: Boolean = false) =
+    binaryOp(this, if (safe) Node.Expr.BinaryOp.Token.DOT_SAFE else Node.Expr.BinaryOp.Token.DOT, rhs)
+
+fun Node.Expr.index(vararg indices: Node.Expr) = Node.Expr.ArrayAccess(this, indices.toList())
+
 fun Node.Expr.toFuncBody() = Node.Decl.Func.Body.Expr(this)
 
 fun Node.Expr.toStmt() = Node.Stmt.Expr(this)
@@ -76,6 +119,10 @@ fun Node.Expr.toStmt() = Node.Stmt.Expr(this)
 fun Node.Expr.BinaryOp.Token.toOper() = Node.Expr.BinaryOp.Oper.Token(this)
 
 fun Node.Modifier.Keyword.toMod() = Node.Modifier.Lit(this)
+
+fun Node.Type.nullable() = copy(ref = Node.TypeRef.Nullable(ref))
+
+fun String.labelIdent() = "\$$this\$label"
 
 // TODO: escaping and stuff
 fun String.toDottedExpr() = split('.').let {
@@ -100,3 +147,15 @@ fun String.toDottedType(vararg trailingTypeParams: Node.Type?) = Node.Type(
 )
 
 fun String.toName() = Node.Expr.Name(this)
+
+fun String.untypedFloatClass(includeFloatClass: Boolean = false): KClass<out Number> = toBigDecimal().let { bigDec ->
+    if (includeFloatClass && bigDec.compareTo(bigDec.toFloat().toBigDecimal()) == 0) Float::class
+    else if (bigDec.compareTo(bigDec.toDouble().toBigDecimal()) == 0) Double::class
+    else BigDecimal::class
+}
+
+fun String.untypedIntClass(): KClass<out Number> = toBigInteger().let { bigInt ->
+    if (bigInt >= Int.MIN_VALUE.toBigInteger() && bigInt <= Int.MAX_VALUE.toBigInteger()) Int::class
+    else if (bigInt >= Long.MIN_VALUE.toBigInteger() && bigInt <= Long.MAX_VALUE.toBigInteger()) Long::class
+    else BigInteger::class
+}
