@@ -97,6 +97,11 @@ fun Context.compileStmtBlock(v: GNode.Stmt.Block): Node.Block {
     return block(stmts(multi))
 }
 
+fun Context.compileStmtBlockStandalone(v: GNode.Stmt.Block) = call(
+    expr = "run".toName(),
+    lambda = trailLambda(compileStmtBlock(v).stmts)
+).toStmt()
+
 sealed class StmtBlockLabelNode {
     abstract fun labelsNeeded(): Set<String>
 

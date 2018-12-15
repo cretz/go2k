@@ -89,6 +89,8 @@ fun valueArg(
     asterisk: Boolean = false
 ) = Node.ValueArg(name, asterisk, expr)
 
+fun Boolean.toConst() = Node.Expr.Const(if (this) "true" else "false", Node.Expr.Const.Form.BOOLEAN)
+
 fun KClass<*>.toType(typeParams: List<Node.Type?> = emptyList()) = Node.Type(
     mods = emptyList(),
     ref = Node.TypeRef.Simple(
