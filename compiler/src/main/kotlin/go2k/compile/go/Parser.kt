@@ -7,7 +7,7 @@ import java.nio.file.Paths
 interface Parser {
     fun parse(vararg packagesOrFiles: String): ParseResult
 
-    data class ParseResult(val packages: Packages)
+    data class ParseResult(val packages: List<GNode.Package>)
 
     open class FromGoProcess : Parser {
         val goDumpPath by lazy {
@@ -27,7 +27,9 @@ interface Parser {
                 "Unexpected exit value of ${proc.exitValue()}, output: ${output.toString(Charsets.UTF_8)}"
             }
             // Parse proto
-            return ParseResult(Packages.protoUnmarshal(output))
+            val protoPackages = Packages.protoUnmarshal(output)
+            // Convert to GNodes
+            return ParseResult(protoPackages.packages.map { PbToGNode.convertPackage(it) })
         }
 
         companion object : FromGoProcess()

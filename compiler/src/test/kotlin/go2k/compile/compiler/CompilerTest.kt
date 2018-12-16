@@ -3,7 +3,6 @@ package go2k.compile.compiler
 import go2k.compile.TestBase
 import go2k.compile.TestUnit
 import go2k.compile.go.Parser
-import go2k.compile.go.PbToGNode
 import go2k.compile.jvm.JvmCompiler
 import kastree.ast.Writer
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -23,10 +22,8 @@ class CompilerTest : TestBase() {
         // Parse
         val parsed = Parser.parse(unit.mainFilePath.toString())
         debug { "Parsed: $parsed" }
-        // Convert to GNodes
-        val packages = parsed.packages.packages.map { PbToGNode.convertPackage(it) }
         // Compile to Kotlin
-        val kotlinCompiled = packages.map {
+        val kotlinCompiled = parsed.packages.map {
             // Change the package name to a temp package so we don't conflict
             val overrideName = it.name + UUID.randomUUID().toString().replace("-", "")
             compilePackage(it, overrideName).also {
