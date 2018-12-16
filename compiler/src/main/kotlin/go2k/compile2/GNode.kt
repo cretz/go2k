@@ -286,7 +286,6 @@ sealed class GNode {
         data class TypeName(
             override val pkg: String?,
             override val name: String,
-            // Will be null if
             override val type: Type?
         ) : Type(), NamedEntity
         data class Var(

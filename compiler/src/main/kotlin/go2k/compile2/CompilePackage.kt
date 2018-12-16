@@ -1,6 +1,5 @@
 package go2k.compile2
 
-import go2k.runtime.runMain
 import kastree.ast.Node
 
 fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPackage {
@@ -10,7 +9,7 @@ fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPa
             v = file,
             mutateDecl = { decl ->
                 // Make init function names unique
-                if (decl is Node.Decl.Func && decl.name == "init") decl.copy(name = "init${++initCount}") else decl
+                if (decl is Node.Decl.Func && decl.name == "init") decl.copy(name = "\$init${++initCount}") else decl
             },
             additionalDecls = {
                 // Last has additional package artifacts
@@ -63,7 +62,7 @@ fun Context.compilePackageMain(): Node.Decl.Func? {
         name = "main",
         params = listOf(param(name = "args", type = arrayType(String::class))),
         body = call(
-            expr = ::runMain.ref(),
+            expr = "go2k.runtime.runMain".toDottedExpr(),
             args = listOf(
                 valueArg("args".toName()),
                 valueArg(Node.Expr.DoubleColonRef.Callable(recv = null, name = "init")),

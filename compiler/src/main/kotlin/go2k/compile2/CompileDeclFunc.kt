@@ -1,7 +1,6 @@
 package go2k.compile2
 
 import go2k.runtime.Slice
-import go2k.runtime.builtin.withDefers
 import kastree.ast.Node
 
 fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
@@ -35,7 +34,7 @@ fun Context.compileDeclFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Blo
                 // An ellipsis expr means a slice vararg
                 if (field.type is GNode.Expr.Ellipsis) param(
                     name = name.name,
-                    type = Slice::class.toType(listOf(compileType(field.type.elt!!.type!!))).nullable(),
+                    type = Slice::class.toType(compileType(field.type.elt!!.type!!)).nullable(),
                     default = NullConst
                 ) else param(name = name.name, type = compileType(field.type.type!!))
             }
@@ -45,7 +44,7 @@ fun Context.compileDeclFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Blo
         stmts = preStmts +
             if (!currFunc.hasDefer) compileStmtBlock(block).stmts
             else listOf(call(
-                expr = ::withDefers.ref(),
+                expr = "go2k.runtime.builtin.withDefers".toDottedExpr(),
                 lambda = trailLambda(compileStmtBlock(block).stmts)
             ).toStmt())
     )

@@ -4,8 +4,6 @@ import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.jvm.javaMethod
 
 val NullConst = Node.Expr.Const("null", Node.Expr.Const.Form.NULL)
 
@@ -52,6 +50,11 @@ fun param(
     default: Node.Expr? = null
 ) = Node.Decl.Func.Param(mods, readOnly, name, type, default)
 
+fun primaryConstructor(
+    mods: List<Node.Modifier> = emptyList(),
+    params: List<Node.Decl.Func.Param> = emptyList()
+) = Node.Decl.Structured.PrimaryConstructor(mods, params)
+
 fun property(
     mods: List<Node.Modifier> = emptyList(),
     readOnly: Boolean = false,
@@ -65,6 +68,19 @@ fun property(
 ) = Node.Decl.Property(mods, readOnly, typeParams, receiverType, vars, typeConstraints, delegated, expr, accessors)
 
 fun propVar(name: String, type: Node.Type? = null) = Node.Decl.Property.Var(name, type)
+
+fun structured(
+    mods: List<Node.Modifier> = emptyList(),
+    form: Node.Decl.Structured.Form = Node.Decl.Structured.Form.CLASS,
+    name: String = "",
+    typeParams: List<Node.TypeParam> = emptyList(),
+    primaryConstructor: Node.Decl.Structured.PrimaryConstructor? = null,
+    parentAnns: List<Node.Modifier.AnnotationSet> = emptyList(),
+    parents: List<Node.Decl.Structured.Parent> = emptyList(),
+    typeConstraints: List<Node.TypeConstraint> = emptyList(),
+    members: List<Node.Decl> = emptyList()
+) = Node.Decl.Structured(mods, form, name, typeParams, primaryConstructor,
+    parentAnns, parents, typeConstraints, members)
 
 fun trailLambda(
     stmts: List<Node.Stmt>,
@@ -120,18 +136,16 @@ fun Int.toConst() = toString().toIntConst()
 
 fun KClass<*>.ref() = qualifiedName!!.toDottedExpr()
 
-fun KClass<*>.toType(typeParams: List<Node.Type?> = emptyList()) = Node.Type(
+fun KClass<*>.toType(vararg typeParams: Node.Type?) = Node.Type(
     mods = emptyList(),
     ref = Node.TypeRef.Simple(
         pieces = qualifiedName!!.split('.').let { names ->
             names.mapIndexed { index, name ->
-                Node.TypeRef.Simple.Piece(name, if (index == names.size - 1) typeParams else emptyList())
+                Node.TypeRef.Simple.Piece(name, if (index == names.size - 1) typeParams.toList() else emptyList())
             }
         }
     )
 )
-
-fun KFunction<*>.ref() = (javaMethod!!.declaringClass.`package`.name + ".$name").toDottedExpr()
 
 fun Node.Block.toFuncBody() = Node.Decl.Func.Body.Block(this)
 
@@ -144,6 +158,8 @@ fun Node.Expr.dot(rhs: Node.Expr, safe: Boolean = false) =
 fun Node.Expr.index(vararg indices: Node.Expr) = Node.Expr.ArrayAccess(this, indices.toList())
 
 fun Node.Expr.nullDeref() = unaryOp(this, Node.Expr.UnaryOp.Token.NULL_DEREF, false)
+
+fun Node.Expr.paren() = Node.Expr.Paren(this)
 
 fun Node.Expr.toFuncBody() = Node.Decl.Func.Body.Expr(this)
 

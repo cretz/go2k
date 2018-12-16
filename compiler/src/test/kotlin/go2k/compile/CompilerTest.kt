@@ -1,5 +1,6 @@
 package go2k.compile
 
+import go2k.compile2.PbToGNode
 import kastree.ast.Writer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
@@ -27,6 +28,18 @@ class CompilerTest : TestBase() {
             }
         }
         debug { "Compiled: $compiled" }
+        // Check parity w/ refactor
+        val compiled2 = parsed.packages.packages.mapIndexed { index, p ->
+            val pkg = PbToGNode.convertPackage(p)
+            // Change the package name to orig above
+            val overrideName = compiled[index].files.values.first().pkg!!.names.first()
+            go2k.compile2.compilePackage(pkg, overrideName).also {
+                it.files.forEach { (name, code) -> debug { "Compiled2 code for $name:\n" + Writer.write(code) } }
+            }
+        }
+        val same = compiled.map { it.files } == compiled2.map { it.files }
+        debug { "Compiled2 (same=$same: $compiled2" }
+        assertEquals(true, same)
         val compiler = if (unit.useExternalCompiler) externalCompiler else embeddedCompiler
         val jvmCompiled = compiler.compilePackages(compiled)
         try {
@@ -58,6 +71,6 @@ class CompilerTest : TestBase() {
 
         @JvmStatic
         @Suppress("unused")
-        fun unitProvider() = TestUnit.localUnits//.filter { it.toString() == "chan.go" }
+        fun unitProvider() = TestUnit.localUnits//.filter { it.toString() == "switch.go" }
     }
 }

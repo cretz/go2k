@@ -972,7 +972,6 @@ open class Compiler {
                         // Change all init functions to start with dollar sign and numbered
                         decls = file.decls.map { decl ->
                             (decl as? Node.Decl.Func)?.takeIf { it.name == "init" }?.copy(
-                                mods = listOf(Node.Modifier.Keyword.PRIVATE.toMod()),
                                 name = "\$init${++initCount}"
                             ) ?: decl
                         }

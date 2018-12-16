@@ -2,6 +2,7 @@ package go2k.compile2
 
 import java.math.BigDecimal
 import java.math.BigInteger
+import kotlin.reflect.KClass
 
 fun GNode.Package.defaultPackageName() = path.split('/').filter(String::isNotEmpty).let { pieces ->
     val first = pieces.first().let {
@@ -48,6 +49,18 @@ val GNode.Type.isNullable get() = when (this) {
     else -> false
 }
 
+
+fun GNode.Type.kotlinPrimitiveType(): KClass<*>? = when (this) {
+    is GNode.Type.Basic -> kotlinPrimitiveType()
+    is GNode.Type.Const -> kotlinPrimitiveType()
+    is GNode.Type.Var -> type.kotlinPrimitiveType()
+    else -> null
+}
+
+// The type not specific to the current name
+fun GNode.Type?.unnamedType(): GNode.Type? =
+    if (this is GNode.Type.NamedEntity) type?.unnamedType() else this
+
 fun GNode.Type.Basic.kotlinPrimitiveType() = when (kind) {
     GNode.Type.Basic.Kind.BOOL, GNode.Type.Basic.Kind.UNTYPED_BOOL -> Boolean::class
     GNode.Type.Basic.Kind.INT -> Int::class
@@ -69,4 +82,17 @@ fun GNode.Type.Basic.kotlinPrimitiveType() = when (kind) {
     GNode.Type.Basic.Kind.UNTYPED_FLOAT -> BigDecimal::class
     GNode.Type.Basic.Kind.UNTYPED_NIL -> TODO()
     else -> error("Unrecognized type kind: $kind")
+}
+
+fun GNode.Type.Const.kotlinPrimitiveType() = type.kotlinPrimitiveType()?.let { primType ->
+    // Untyped is based on value
+    when (primType) {
+        BigInteger::class -> (value as GNode.Const.Int).v.untypedIntClass()
+        BigDecimal::class -> when (value) {
+            is GNode.Const.Int -> value.v.untypedFloatClass()
+            is GNode.Const.Float -> value.v.untypedFloatClass()
+            else -> error("Unknown float type of $value")
+        }
+        else -> primType
+    }
 }

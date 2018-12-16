@@ -30,6 +30,16 @@ fun Context.compileExpr(
     is GNode.Expr.StructType -> TODO()
     is GNode.Expr.TypeAssert -> TODO()
     is GNode.Expr.Unary -> compileExprUnary(v)
+}.let { expr ->
+    // Coerce type (does nothing if not necessary)
+    coerceType(v, expr, coerceTo, coerceToType)
+}.let { expr ->
+    // If by value requested, the type is a struct, the expr is not a call instantiating it, we have to copy it
+    val needsCopy = byValue && v.type.unnamedType().let { type ->
+        type is GNode.Type.Named && type.underlying is GNode.Type.Struct &&
+            (expr !is Node.Expr.Call || expr.expr != type.name.name.toDottedExpr())
+    }
+    if (!needsCopy) expr else call(expr.dot("\$copy"))
 }
 
 fun Context.compileExprBasicLit(v: GNode.Expr.BasicLit) =  when (v.kind) {
@@ -135,10 +145,10 @@ fun Context.compileExprParen(v: GNode.Expr.Paren) = Node.Expr.Paren(compileExpr(
 
 fun Context.compileExprSelector(v: GNode.Expr.Selector) = compileExpr(v.x).dot(compileExprIdent(v.sel))
 
-fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (v.x.type) {
+fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (val ut = v.x.type.unnamedType()) {
     is GNode.Type.Array, is GNode.Type.Basic, is GNode.Type.Slice -> {
         var subject = compileExpr(v.x)
-        if (v.x.type is GNode.Type.Slice) subject = subject.nullDeref()
+        if (ut is GNode.Type.Slice) subject = subject.nullDeref()
         var args = listOf(valueArg(subject))
         if (v.low != null) args += valueArg(name = "low", expr = compileExpr(v.low))
         if (v.high != null) args += valueArg(name = "high", expr = compileExpr(v.high))
@@ -167,13 +177,13 @@ fun Context.compileExprUnary(v: GNode.Expr.Unary) = compileExpr(v.x).let { xExpr
         // Receive from chan
         GNode.Expr.Unary.Token.ARROW -> call(
             // If the type is a tuple, it's the or-ok version
-            expr = (v.type is GNode.Type.Tuple).let { withOk ->
+            expr = (v.type.unnamedType() is GNode.Type.Tuple).let { withOk ->
                 if (withOk) "go2k.runtime.builtin.recvWithOk" else "go2k.runtime.builtin.recv"
             }.toDottedExpr(),
             args = listOf(
                 valueArg(compileExpr(v.x)),
                 // Needs zero value of chan element type
-                valueArg(compileTypeZeroExpr((v.x.type as GNode.Type.Chan).elem))
+                valueArg(compileTypeZeroExpr((v.x.type.unnamedType() as GNode.Type.Chan).elem))
             )
         )
         // ^ is a bitwise complement

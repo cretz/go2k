@@ -22,7 +22,7 @@ fun Context.compileStmtSelect(v: GNode.Stmt.Select, label: String? = null): Node
             is GNode.Stmt.Assign -> {
                 val recv = case.comm.rhs.single() as GNode.Expr.Unary
                 require(recv.token == GNode.Expr.Unary.Token.ARROW)
-                val chanType = recv.x.type as GNode.Type.Chan
+                val chanType = recv.x.type.unnamedType() as GNode.Type.Chan
                 var lambdaPreStmts = emptyList<Node.Stmt>()
                 // Assignment needs temps, define can just use the var names
                 val lambdaParamNames =
@@ -54,7 +54,7 @@ fun Context.compileStmtSelect(v: GNode.Stmt.Select, label: String? = null): Node
             is GNode.Stmt.Expr -> {
                 val recv = case.comm.x as GNode.Expr.Unary
                 require(recv.token == GNode.Expr.Unary.Token.ARROW)
-                val chanType = recv.x.type as GNode.Type.Chan
+                val chanType = recv.x.type.unnamedType() as GNode.Type.Chan
                 call(
                     expr = "go2k.runtime.builtin.selectRecv".toDottedExpr(),
                     args = listOf(valueArg(compileExpr(recv.x)), valueArg(compileTypeZeroExpr(chanType.elem))),

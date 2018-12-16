@@ -1,7 +1,5 @@
 package go2k.compile2
 
-import kastree.ast.Node
-
 // File-level context
 class Context(
     val pkg: GNode.Package,

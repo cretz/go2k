@@ -4,7 +4,9 @@ import kastree.ast.Node
 
 fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
     // If the function is a const type but not a function, it's a conversion instead of a function call
-    if (v.func.type is GNode.Type.Const && (v.func.type as GNode.Type.Const).type !is GNode.Type.Func) {
+    val isConv = v.func.type is GNode.Type.Const &&
+        (v.func.type as GNode.Type.Const).type.unnamedType() !is GNode.Type.Signature
+    if (isConv) {
         // Must be a singular arg
         val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
         return compileExpr(arg, coerceTo = v.func)
@@ -13,13 +15,13 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
     if (v.func.type is GNode.Type.BuiltIn) return compileExprCallBuiltIn(v, (v.func.type as GNode.Type.BuiltIn).name)
 
     var preStmt: Node.Stmt? = null
-    val funType = v.func.type as GNode.Type.Func
+    val sigType = v.func.type.unnamedType() as GNode.Type.Signature
     // As a special case, if it's a single arg call w/ multi-return, we break it up in temp vars
-    val singleArgCallType = (v.args.singleOrNull() as? GNode.Expr.Call)?.func?.type as? GNode.Type.Func
+    val singleArgCallType = (v.args.singleOrNull() as? GNode.Expr.Call)?.func?.type?.unnamedType() as? GNode.Type.Signature
     var args =
-        if (singleArgCallType?.type?.results.orEmpty().size > 1) {
+        if (singleArgCallType?.results.orEmpty().size > 1) {
             // Deconstruct to temp vals and make those the new args
-            val tempVars = singleArgCallType?.type?.results.orEmpty().map { currFunc.newTempVar() }
+            val tempVars = singleArgCallType?.results.orEmpty().map { currFunc.newTempVar() }
             preStmt = property(
                 readOnly = true,
                 vars = tempVars.map { propVar(it) },
@@ -29,14 +31,14 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
         } else v.args.mapIndexed { index, arg ->
             // Vararg is the type of the slice
             val argType =
-                if (!funType.type.variadic || index < funType.type.params.lastIndex) funType.type.params[index]
-                else (funType.type.params.last() as GNode.Type.Slice).elem
+                if (!sigType.variadic || index < sigType.params.lastIndex) sigType.params[index]
+                else (sigType.params.last().unnamedType() as GNode.Type.Slice).elem
             compileExpr(arg, coerceToType = argType, byValue = true)
         }
     // If this is variadic and the args spill into the varargs, make a slice
-    if (funType.type.variadic && args.size >= funType.type.params.size) {
-        args = args.take(funType.type.params.size - 1) + args.drop(funType.type.params.size - 1).let {
-            val cls = (funType.type.params.last() as? GNode.Type.Basic)?.kotlinPrimitiveType() ?: Any::class
+    if (sigType.variadic && args.size >= sigType.params.size) {
+        args = args.take(sigType.params.size - 1) + args.drop(sigType.params.size - 1).let {
+            val cls = (sigType.params.last() as? GNode.Type.Basic)?.kotlinPrimitiveType() ?: Any::class
             call(
                 expr = "go2k.runtime.builtin.slice".toDottedExpr(),
                 args = listOf(valueArg(call(
@@ -60,7 +62,7 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
 fun Context.compileExprCallBuiltIn(v: GNode.Expr.Call, name: String) = when (name) {
     "append" -> {
         // First arg is the slice
-        val sliceType = v.args.first().type as GNode.Type.Slice
+        val sliceType = v.args.first().type.unnamedType() as GNode.Type.Slice
         // If ellipsis is present, only second arg is allowed and it's passed explicitly,
         // otherwise a slice literal is created (TODO: kinda slow to create those unnecessarily)
         val arg =

@@ -12,7 +12,7 @@ fun Context.compileStmtRange(v: GNode.Stmt.Range, label: String? = null): Node.S
     val keyValDestructured: Boolean
     val forEachFnName: String
     val forEachFnIsMember: Boolean
-    when (v.x.type) {
+    when (v.x.type.unnamedType()) {
         is GNode.Type.Array, is GNode.Type.Basic -> {
             forEachFnName = if (hasKeyParam) "forEachIndexed" else "forEach"
             forEachFnIsMember = true

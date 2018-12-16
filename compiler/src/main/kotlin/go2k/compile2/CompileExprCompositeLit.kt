@@ -4,18 +4,18 @@ import kastree.ast.Node
 import kotlin.math.max
 
 fun Context.compileExprCompositeLit(v: GNode.Expr.CompositeLit): Node.Expr = when (v.litType) {
-    is GNode.Expr.ArrayType -> when (v.type) {
-        is GNode.Type.Array -> compileExprCompositeLitArray(v.type, v.elts)
-        is GNode.Type.Slice -> compileExprCompositeLitSlice(v.type, v.elts)
+    is GNode.Expr.ArrayType -> when (val ut = v.type.unnamedType()) {
+        is GNode.Type.Array -> compileExprCompositeLitArray(ut, v.elts)
+        is GNode.Type.Slice -> compileExprCompositeLitSlice(ut, v.elts)
         else -> error("Unknown array type ${v.type}")
     }
     is GNode.Expr.MapType -> {
-        v.type as GNode.Type.Map
+        val type = v.type.unnamedType() as GNode.Type.Map
         // Primitive types have defaults
-        val firstArg = (v.type.elem as? GNode.Type.Basic)?.let { valueArg(compileTypeZeroExpr(it)) }
+        val firstArg = (type.elem as? GNode.Type.Basic)?.let { valueArg(compileTypeZeroExpr(it)) }
         call(
             expr = "go2k.runtime.builtin.mapOf".toDottedExpr(),
-            typeArgs = listOf(compileType(v.type.key), compileType(v.type.elem)),
+            typeArgs = listOf(compileType(type.key), compileType(type.elem)),
             args = listOfNotNull(firstArg) + v.elts.map { elt ->
                 elt as GNode.Expr.KeyValue
                 valueArg(call(
@@ -27,9 +27,9 @@ fun Context.compileExprCompositeLit(v: GNode.Expr.CompositeLit): Node.Expr = whe
     }
     // Ident is struct lit
     is GNode.Expr.Ident -> {
-        v.type as GNode.Type.Named
+        val type = v.type.unnamedType() as GNode.Type.Named
         call(
-            expr = v.type.name.name.toName(),
+            expr = type.name.name.toName(),
             args = v.elts.map { elt ->
                 if (elt !is GNode.Expr.KeyValue) valueArg(compileExpr(elt))
                 else valueArg(name = (elt.key as GNode.Expr.Ident).name, expr = compileExpr(elt.value))

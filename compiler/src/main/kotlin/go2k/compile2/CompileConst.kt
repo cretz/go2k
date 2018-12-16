@@ -4,9 +4,10 @@ import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
 
-fun Context.compileConst(v: GNode.Type.Const): Node.Expr {
-    val kind = (v.type as GNode.Type.Basic).kind
-    var value = v.value!!
+fun Context.compileConst(v: GNode.Type.Const) = compileConst((v.type as GNode.Type.Basic).kind, v.value!!)
+
+fun Context.compileConst(kind: GNode.Type.Basic.Kind, v: GNode.Const): Node.Expr {
+    var value = v
     // As a special case, if it's a const float masquerading as an int, treat as a float
     if (value is GNode.Const.Int && kind == GNode.Type.Basic.Kind.UNTYPED_FLOAT) {
         value = GNode.Const.Float(v = value.v)

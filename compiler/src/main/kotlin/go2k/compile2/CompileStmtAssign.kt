@@ -1,6 +1,5 @@
 package go2k.compile2
 
-import go2k.runtime.Assign
 import kastree.ast.Node
 
 fun Context.compileStmtAssign(v: GNode.Stmt.Assign) = when {
@@ -64,7 +63,7 @@ fun Context.compileStmtAssignMulti(v: GNode.Stmt.Assign): List<Node.Stmt> {
     // For multi-assign we use our helpers. They are based on whether there needs to be
     // an eager LHS and what it is.
     val multiAssignCall = call(
-        expr = Assign.Companion::multi.ref(),
+        expr = "go2k.runtime.Assign.multi".toDottedExpr(),
         args = v.lhs.zip(rhsExprs) zip@ { lhs, rhsExpr ->
             val eagerLhsExpr: Node.Expr?
             val assignLambdaParams: List<List<String>>
