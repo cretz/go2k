@@ -1,4 +1,4 @@
-package go2k.compile2
+package go2k.compile.compiler
 
 import go2k.runtime.NestedPtr
 import kotlin.reflect.KClass

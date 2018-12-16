@@ -1,5 +1,6 @@
-package go2k.compile2
+package go2k.compile.compiler
 
+import go2k.compile.go.GNode
 import kastree.ast.Node
 
 fun Context.compileStmtBlock(v: GNode.Stmt.Block): Node.Block {

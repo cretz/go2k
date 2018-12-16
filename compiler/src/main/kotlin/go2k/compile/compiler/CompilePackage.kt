@@ -1,5 +1,6 @@
-package go2k.compile2
+package go2k.compile.compiler
 
+import go2k.compile.go.GNode
 import kastree.ast.Node
 
 fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPackage {

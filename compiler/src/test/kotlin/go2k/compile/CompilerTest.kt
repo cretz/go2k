@@ -1,6 +1,6 @@
 package go2k.compile
 
-import go2k.compile2.PbToGNode
+import go2k.compile.go.PbToGNode
 import kastree.ast.Writer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
@@ -33,7 +33,7 @@ class CompilerTest : TestBase() {
             val pkg = PbToGNode.convertPackage(p)
             // Change the package name to orig above
             val overrideName = compiled[index].files.values.first().pkg!!.names.first()
-            go2k.compile2.compilePackage(pkg, overrideName).also {
+            go2k.compile.compiler.compilePackage(pkg, overrideName).also {
                 it.files.forEach { (name, code) -> debug { "Compiled2 code for $name:\n" + Writer.write(code) } }
             }
         }

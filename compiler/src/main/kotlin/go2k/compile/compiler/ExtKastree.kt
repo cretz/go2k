@@ -1,4 +1,4 @@
-package go2k.compile2
+package go2k.compile.compiler
 
 import kastree.ast.Node
 import java.math.BigDecimal

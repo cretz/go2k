@@ -1,5 +1,6 @@
-package go2k.compile2
+package go2k.compile.compiler
 
+import go2k.compile.go.GNode
 import go2k.runtime.Ops
 import kastree.ast.Node
 

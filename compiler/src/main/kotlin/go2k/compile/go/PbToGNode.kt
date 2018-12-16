@@ -1,4 +1,4 @@
-package go2k.compile2
+package go2k.compile.go
 
 import go2k.compile.dumppb.*
 

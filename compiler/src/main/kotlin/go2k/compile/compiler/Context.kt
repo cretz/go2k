@@ -1,4 +1,6 @@
-package go2k.compile2
+package go2k.compile.compiler
+
+import go2k.compile.go.GNode
 
 // File-level context
 class Context(

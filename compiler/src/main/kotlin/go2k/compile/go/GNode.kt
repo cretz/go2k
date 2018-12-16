@@ -1,4 +1,4 @@
-package go2k.compile2
+package go2k.compile.go
 
 sealed class GNode {
 
@@ -225,7 +225,7 @@ sealed class GNode {
             val type: Boolean,
             val cases: List<CaseClause>
         ) : Stmt() {
-            data class CaseClause(val list: List<GNode.Expr>, val body: List<Stmt>) : GNode()
+            data class CaseClause(val list: List<Expr>, val body: List<Stmt>) : GNode()
         }
     }
 
