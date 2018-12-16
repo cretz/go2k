@@ -75,7 +75,7 @@ project(':compiler') {
                 }
                 task.plugins {
                     kotlin {
-                        option 'kotlin_package=go2k.compile.dumppb'
+                        option 'kotlin_package=go2k.compile.go.dumppb'
                     }
                 }
             }

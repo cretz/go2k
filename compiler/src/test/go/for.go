@@ -78,7 +78,7 @@ func main() {
 	// Map existing vars and break
 	mapK, mapV := "", -5
 	for mapK, mapV = range m {
-		if v > 3 {
+		if mapV > 3 {
 			break
 		}
 	}

@@ -1,6 +1,6 @@
 package go2k.compile
 
-import go2k.compile.dumppb.*
+import go2k.compile.go.dumppb.*
 
 val Expr_.Expr.typeRef get() = when (this) {
     is Expr_.Expr.BadExpr -> badExpr.typeRef

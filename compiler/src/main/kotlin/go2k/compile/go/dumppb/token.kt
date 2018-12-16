@@ -1,4 +1,4 @@
-package go2k.compile.dumppb
+package go2k.compile.go.dumppb
 
 data class Token(override val value: Int) : pbandk.Message.Enum {
     companion object : pbandk.Message.Enum.Companion<Token> {

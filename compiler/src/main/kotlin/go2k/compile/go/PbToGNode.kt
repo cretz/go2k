@@ -1,6 +1,6 @@
 package go2k.compile.go
 
-import go2k.compile.dumppb.*
+import go2k.compile.go.dumppb.*
 
 class PbToGNode(val pkg: Package) {
     val lazyTypes = arrayOfNulls<GNode.Type>(pkg.types.size)

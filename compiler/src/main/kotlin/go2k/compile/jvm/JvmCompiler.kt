@@ -1,5 +1,6 @@
-package go2k.compile
+package go2k.compile.jvm
 
+import go2k.compile.Compiler
 import kastree.ast.ExtrasMap
 import kastree.ast.Node
 import kastree.ast.Writer

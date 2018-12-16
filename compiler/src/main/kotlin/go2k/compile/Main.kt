@@ -1,5 +1,6 @@
 package go2k.compile
 
+import go2k.compile.go.Parser
 import kastree.ast.Writer
 
 fun main(args: Array<String>) {

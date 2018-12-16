@@ -1,6 +1,6 @@
 package go2k.compile
 
-import go2k.compile.dumppb.*
+import go2k.compile.go.dumppb.*
 import go2k.runtime.Slice
 import go2k.runtime.builtin.EmptyInterface
 import kastree.ast.Node

@@ -1,6 +1,6 @@
 package go2k.compile
 
-import go2k.compile.dumppb.*
+import go2k.compile.go.dumppb.*
 import go2k.runtime.GoStruct
 import go2k.runtime.Ops
 import go2k.runtime.Slice

@@ -1,6 +1,6 @@
-package go2k.compile
+package go2k.compile.go
 
-import go2k.compile.dumppb.Packages
+import go2k.compile.go.dumppb.Packages
 import java.nio.file.Files
 import java.nio.file.Paths
 

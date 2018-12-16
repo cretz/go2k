@@ -1,6 +1,6 @@
 package go2k.compile
 
-import go2k.compile.dumppb.Type_
+import go2k.compile.go.dumppb.Type_
 import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger

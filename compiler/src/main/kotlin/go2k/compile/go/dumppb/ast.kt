@@ -1,4 +1,4 @@
-package go2k.compile.dumppb
+package go2k.compile.go.dumppb
 
 data class Comment(
     val slash: Int = 0,
@@ -14,7 +14,7 @@ data class Comment(
 }
 
 data class CommentGroup(
-    val list: List<go2k.compile.dumppb.Comment> = emptyList(),
+    val list: List<go2k.compile.go.dumppb.Comment> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<CommentGroup> {
     override operator fun plus(other: CommentGroup?) = protoMergeImpl(other)
@@ -26,11 +26,11 @@ data class CommentGroup(
 }
 
 data class Field(
-    val doc: go2k.compile.dumppb.CommentGroup? = null,
-    val names: List<go2k.compile.dumppb.Ident> = emptyList(),
-    val type: go2k.compile.dumppb.Expr_? = null,
-    val tag: go2k.compile.dumppb.BasicLit? = null,
-    val comment: go2k.compile.dumppb.CommentGroup? = null,
+    val doc: go2k.compile.go.dumppb.CommentGroup? = null,
+    val names: List<go2k.compile.go.dumppb.Ident> = emptyList(),
+    val type: go2k.compile.go.dumppb.Expr_? = null,
+    val tag: go2k.compile.go.dumppb.BasicLit? = null,
+    val comment: go2k.compile.go.dumppb.CommentGroup? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Field> {
     override operator fun plus(other: Field?) = protoMergeImpl(other)
@@ -43,7 +43,7 @@ data class Field(
 
 data class FieldList(
     val opening: Int = 0,
-    val list: List<go2k.compile.dumppb.Field> = emptyList(),
+    val list: List<go2k.compile.go.dumppb.Field> = emptyList(),
     val closing: Int = 0,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<FieldList> {
@@ -60,28 +60,28 @@ data class Expr_(
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Expr_> {
     sealed class Expr {
-        data class BadExpr(val badExpr: go2k.compile.dumppb.BadExpr) : Expr()
-        data class Ident(val ident: go2k.compile.dumppb.Ident) : Expr()
-        data class Ellipsis(val ellipsis: go2k.compile.dumppb.Ellipsis) : Expr()
-        data class BasicLit(val basicLit: go2k.compile.dumppb.BasicLit) : Expr()
-        data class FuncLit(val funcLit: go2k.compile.dumppb.FuncLit) : Expr()
-        data class CompositeLit(val compositeLit: go2k.compile.dumppb.CompositeLit) : Expr()
-        data class ParenExpr(val parenExpr: go2k.compile.dumppb.ParenExpr) : Expr()
-        data class SelectorExpr(val selectorExpr: go2k.compile.dumppb.SelectorExpr) : Expr()
-        data class IndexExpr(val indexExpr: go2k.compile.dumppb.IndexExpr) : Expr()
-        data class SliceExpr(val sliceExpr: go2k.compile.dumppb.SliceExpr) : Expr()
-        data class TypeAssertExpr(val typeAssertExpr: go2k.compile.dumppb.TypeAssertExpr) : Expr()
-        data class CallExpr(val callExpr: go2k.compile.dumppb.CallExpr) : Expr()
-        data class StarExpr(val starExpr: go2k.compile.dumppb.StarExpr) : Expr()
-        data class UnaryExpr(val unaryExpr: go2k.compile.dumppb.UnaryExpr) : Expr()
-        data class BinaryExpr(val binaryExpr: go2k.compile.dumppb.BinaryExpr) : Expr()
-        data class KeyValueExpr(val keyValueExpr: go2k.compile.dumppb.KeyValueExpr) : Expr()
-        data class ArrayType(val arrayType: go2k.compile.dumppb.ArrayType) : Expr()
-        data class StructType(val structType: go2k.compile.dumppb.StructType) : Expr()
-        data class FuncType(val funcType: go2k.compile.dumppb.FuncType) : Expr()
-        data class InterfaceType(val interfaceType: go2k.compile.dumppb.InterfaceType) : Expr()
-        data class MapType(val mapType: go2k.compile.dumppb.MapType) : Expr()
-        data class ChanType(val chanType: go2k.compile.dumppb.ChanType) : Expr()
+        data class BadExpr(val badExpr: go2k.compile.go.dumppb.BadExpr) : Expr()
+        data class Ident(val ident: go2k.compile.go.dumppb.Ident) : Expr()
+        data class Ellipsis(val ellipsis: go2k.compile.go.dumppb.Ellipsis) : Expr()
+        data class BasicLit(val basicLit: go2k.compile.go.dumppb.BasicLit) : Expr()
+        data class FuncLit(val funcLit: go2k.compile.go.dumppb.FuncLit) : Expr()
+        data class CompositeLit(val compositeLit: go2k.compile.go.dumppb.CompositeLit) : Expr()
+        data class ParenExpr(val parenExpr: go2k.compile.go.dumppb.ParenExpr) : Expr()
+        data class SelectorExpr(val selectorExpr: go2k.compile.go.dumppb.SelectorExpr) : Expr()
+        data class IndexExpr(val indexExpr: go2k.compile.go.dumppb.IndexExpr) : Expr()
+        data class SliceExpr(val sliceExpr: go2k.compile.go.dumppb.SliceExpr) : Expr()
+        data class TypeAssertExpr(val typeAssertExpr: go2k.compile.go.dumppb.TypeAssertExpr) : Expr()
+        data class CallExpr(val callExpr: go2k.compile.go.dumppb.CallExpr) : Expr()
+        data class StarExpr(val starExpr: go2k.compile.go.dumppb.StarExpr) : Expr()
+        data class UnaryExpr(val unaryExpr: go2k.compile.go.dumppb.UnaryExpr) : Expr()
+        data class BinaryExpr(val binaryExpr: go2k.compile.go.dumppb.BinaryExpr) : Expr()
+        data class KeyValueExpr(val keyValueExpr: go2k.compile.go.dumppb.KeyValueExpr) : Expr()
+        data class ArrayType(val arrayType: go2k.compile.go.dumppb.ArrayType) : Expr()
+        data class StructType(val structType: go2k.compile.go.dumppb.StructType) : Expr()
+        data class FuncType(val funcType: go2k.compile.go.dumppb.FuncType) : Expr()
+        data class InterfaceType(val interfaceType: go2k.compile.go.dumppb.InterfaceType) : Expr()
+        data class MapType(val mapType: go2k.compile.go.dumppb.MapType) : Expr()
+        data class ChanType(val chanType: go2k.compile.go.dumppb.ChanType) : Expr()
     }
 
     override operator fun plus(other: Expr_?) = protoMergeImpl(other)
@@ -95,7 +95,7 @@ data class Expr_(
 data class BadExpr(
     val from: Int = 0,
     val to: Int = 0,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<BadExpr> {
     override operator fun plus(other: BadExpr?) = protoMergeImpl(other)
@@ -109,8 +109,8 @@ data class BadExpr(
 data class Ident(
     val namePos: Int = 0,
     val name: String = "",
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
-    val defTypeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
+    val defTypeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Ident> {
     override operator fun plus(other: Ident?) = protoMergeImpl(other)
@@ -123,8 +123,8 @@ data class Ident(
 
 data class Ellipsis(
     val ellipsis: Int = 0,
-    val elt: go2k.compile.dumppb.Expr_? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val elt: go2k.compile.go.dumppb.Expr_? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Ellipsis> {
     override operator fun plus(other: Ellipsis?) = protoMergeImpl(other)
@@ -137,9 +137,9 @@ data class Ellipsis(
 
 data class BasicLit(
     val valuePos: Int = 0,
-    val kind: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
+    val kind: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0),
     val value: String = "",
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<BasicLit> {
     override operator fun plus(other: BasicLit?) = protoMergeImpl(other)
@@ -151,9 +151,9 @@ data class BasicLit(
 }
 
 data class FuncLit(
-    val type: go2k.compile.dumppb.FuncType? = null,
-    val body: go2k.compile.dumppb.BlockStmt? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val type: go2k.compile.go.dumppb.FuncType? = null,
+    val body: go2k.compile.go.dumppb.BlockStmt? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<FuncLit> {
     override operator fun plus(other: FuncLit?) = protoMergeImpl(other)
@@ -165,11 +165,11 @@ data class FuncLit(
 }
 
 data class CompositeLit(
-    val type: go2k.compile.dumppb.Expr_? = null,
+    val type: go2k.compile.go.dumppb.Expr_? = null,
     val lbrace: Int = 0,
-    val elts: List<go2k.compile.dumppb.Expr_> = emptyList(),
+    val elts: List<go2k.compile.go.dumppb.Expr_> = emptyList(),
     val rbrace: Int = 0,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<CompositeLit> {
     override operator fun plus(other: CompositeLit?) = protoMergeImpl(other)
@@ -182,9 +182,9 @@ data class CompositeLit(
 
 data class ParenExpr(
     val lparen: Int = 0,
-    val x: go2k.compile.dumppb.Expr_? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
     val rparen: Int = 0,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ParenExpr> {
     override operator fun plus(other: ParenExpr?) = protoMergeImpl(other)
@@ -196,9 +196,9 @@ data class ParenExpr(
 }
 
 data class SelectorExpr(
-    val x: go2k.compile.dumppb.Expr_? = null,
-    val sel: go2k.compile.dumppb.Ident? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
+    val sel: go2k.compile.go.dumppb.Ident? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<SelectorExpr> {
     override operator fun plus(other: SelectorExpr?) = protoMergeImpl(other)
@@ -210,11 +210,11 @@ data class SelectorExpr(
 }
 
 data class IndexExpr(
-    val x: go2k.compile.dumppb.Expr_? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
     val lbrack: Int = 0,
-    val index: go2k.compile.dumppb.Expr_? = null,
+    val index: go2k.compile.go.dumppb.Expr_? = null,
     val rbrack: Int = 0,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<IndexExpr> {
     override operator fun plus(other: IndexExpr?) = protoMergeImpl(other)
@@ -226,14 +226,14 @@ data class IndexExpr(
 }
 
 data class SliceExpr(
-    val x: go2k.compile.dumppb.Expr_? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
     val lbrack: Int = 0,
-    val low: go2k.compile.dumppb.Expr_? = null,
-    val high: go2k.compile.dumppb.Expr_? = null,
-    val max: go2k.compile.dumppb.Expr_? = null,
+    val low: go2k.compile.go.dumppb.Expr_? = null,
+    val high: go2k.compile.go.dumppb.Expr_? = null,
+    val max: go2k.compile.go.dumppb.Expr_? = null,
     val slice3: Boolean = false,
     val rbrack: Int = 0,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<SliceExpr> {
     override operator fun plus(other: SliceExpr?) = protoMergeImpl(other)
@@ -245,11 +245,11 @@ data class SliceExpr(
 }
 
 data class TypeAssertExpr(
-    val x: go2k.compile.dumppb.Expr_? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
     val lparen: Int = 0,
-    val type: go2k.compile.dumppb.Expr_? = null,
+    val type: go2k.compile.go.dumppb.Expr_? = null,
     val rparen: Int = 0,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeAssertExpr> {
     override operator fun plus(other: TypeAssertExpr?) = protoMergeImpl(other)
@@ -261,12 +261,12 @@ data class TypeAssertExpr(
 }
 
 data class CallExpr(
-    val `fun`: go2k.compile.dumppb.Expr_? = null,
+    val `fun`: go2k.compile.go.dumppb.Expr_? = null,
     val lparen: Int = 0,
-    val args: List<go2k.compile.dumppb.Expr_> = emptyList(),
+    val args: List<go2k.compile.go.dumppb.Expr_> = emptyList(),
     val ellipsis: Int = 0,
     val rparen: Int = 0,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<CallExpr> {
     override operator fun plus(other: CallExpr?) = protoMergeImpl(other)
@@ -279,8 +279,8 @@ data class CallExpr(
 
 data class StarExpr(
     val star: Int = 0,
-    val x: go2k.compile.dumppb.Expr_? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<StarExpr> {
     override operator fun plus(other: StarExpr?) = protoMergeImpl(other)
@@ -293,9 +293,9 @@ data class StarExpr(
 
 data class UnaryExpr(
     val opPos: Int = 0,
-    val op: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
-    val x: go2k.compile.dumppb.Expr_? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val op: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0),
+    val x: go2k.compile.go.dumppb.Expr_? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<UnaryExpr> {
     override operator fun plus(other: UnaryExpr?) = protoMergeImpl(other)
@@ -307,11 +307,11 @@ data class UnaryExpr(
 }
 
 data class BinaryExpr(
-    val x: go2k.compile.dumppb.Expr_? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
     val opPos: Int = 0,
-    val op: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
-    val y: go2k.compile.dumppb.Expr_? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val op: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0),
+    val y: go2k.compile.go.dumppb.Expr_? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<BinaryExpr> {
     override operator fun plus(other: BinaryExpr?) = protoMergeImpl(other)
@@ -323,10 +323,10 @@ data class BinaryExpr(
 }
 
 data class KeyValueExpr(
-    val key: go2k.compile.dumppb.Expr_? = null,
+    val key: go2k.compile.go.dumppb.Expr_? = null,
     val colon: Int = 0,
-    val value: go2k.compile.dumppb.Expr_? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val value: go2k.compile.go.dumppb.Expr_? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<KeyValueExpr> {
     override operator fun plus(other: KeyValueExpr?) = protoMergeImpl(other)
@@ -339,9 +339,9 @@ data class KeyValueExpr(
 
 data class ArrayType(
     val lbrack: Int = 0,
-    val len: go2k.compile.dumppb.Expr_? = null,
-    val elt: go2k.compile.dumppb.Expr_? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val len: go2k.compile.go.dumppb.Expr_? = null,
+    val elt: go2k.compile.go.dumppb.Expr_? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ArrayType> {
     override operator fun plus(other: ArrayType?) = protoMergeImpl(other)
@@ -354,9 +354,9 @@ data class ArrayType(
 
 data class StructType(
     val struct: Int = 0,
-    val fields: go2k.compile.dumppb.FieldList? = null,
+    val fields: go2k.compile.go.dumppb.FieldList? = null,
     val incomplete: Boolean = false,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<StructType> {
     override operator fun plus(other: StructType?) = protoMergeImpl(other)
@@ -369,9 +369,9 @@ data class StructType(
 
 data class FuncType(
     val func: Int = 0,
-    val params: go2k.compile.dumppb.FieldList? = null,
-    val results: go2k.compile.dumppb.FieldList? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val params: go2k.compile.go.dumppb.FieldList? = null,
+    val results: go2k.compile.go.dumppb.FieldList? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<FuncType> {
     override operator fun plus(other: FuncType?) = protoMergeImpl(other)
@@ -384,9 +384,9 @@ data class FuncType(
 
 data class InterfaceType(
     val `interface`: Int = 0,
-    val methods: go2k.compile.dumppb.FieldList? = null,
+    val methods: go2k.compile.go.dumppb.FieldList? = null,
     val incomplete: Boolean = false,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<InterfaceType> {
     override operator fun plus(other: InterfaceType?) = protoMergeImpl(other)
@@ -399,9 +399,9 @@ data class InterfaceType(
 
 data class MapType(
     val map: Int = 0,
-    val key: go2k.compile.dumppb.Expr_? = null,
-    val value: go2k.compile.dumppb.Expr_? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val key: go2k.compile.go.dumppb.Expr_? = null,
+    val value: go2k.compile.go.dumppb.Expr_? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<MapType> {
     override operator fun plus(other: MapType?) = protoMergeImpl(other)
@@ -417,8 +417,8 @@ data class ChanType(
     val arrow: Int = 0,
     val sendDir: Boolean = false,
     val recvDir: Boolean = false,
-    val value: go2k.compile.dumppb.Expr_? = null,
-    val typeRef: go2k.compile.dumppb.TypeRef? = null,
+    val value: go2k.compile.go.dumppb.Expr_? = null,
+    val typeRef: go2k.compile.go.dumppb.TypeRef? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ChanType> {
     override operator fun plus(other: ChanType?) = protoMergeImpl(other)
@@ -434,27 +434,27 @@ data class Stmt_(
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Stmt_> {
     sealed class Stmt {
-        data class BadStmt(val badStmt: go2k.compile.dumppb.BadStmt) : Stmt()
-        data class DeclStmt(val declStmt: go2k.compile.dumppb.DeclStmt) : Stmt()
-        data class EmptyStmt(val emptyStmt: go2k.compile.dumppb.EmptyStmt) : Stmt()
-        data class LabeledStmt(val labeledStmt: go2k.compile.dumppb.LabeledStmt) : Stmt()
-        data class ExprStmt(val exprStmt: go2k.compile.dumppb.ExprStmt) : Stmt()
-        data class SendStmt(val sendStmt: go2k.compile.dumppb.SendStmt) : Stmt()
-        data class IncDecStmt(val incDecStmt: go2k.compile.dumppb.IncDecStmt) : Stmt()
-        data class AssignStmt(val assignStmt: go2k.compile.dumppb.AssignStmt) : Stmt()
-        data class GoStmt(val goStmt: go2k.compile.dumppb.GoStmt) : Stmt()
-        data class DeferStmt(val deferStmt: go2k.compile.dumppb.DeferStmt) : Stmt()
-        data class ReturnStmt(val returnStmt: go2k.compile.dumppb.ReturnStmt) : Stmt()
-        data class BranchStmt(val branchStmt: go2k.compile.dumppb.BranchStmt) : Stmt()
-        data class BlockStmt(val blockStmt: go2k.compile.dumppb.BlockStmt) : Stmt()
-        data class IfStmt(val ifStmt: go2k.compile.dumppb.IfStmt) : Stmt()
-        data class CaseClause(val caseClause: go2k.compile.dumppb.CaseClause) : Stmt()
-        data class SwitchStmt(val switchStmt: go2k.compile.dumppb.SwitchStmt) : Stmt()
-        data class TypeSwitchStmt(val typeSwitchStmt: go2k.compile.dumppb.TypeSwitchStmt) : Stmt()
-        data class CommClause(val commClause: go2k.compile.dumppb.CommClause) : Stmt()
-        data class SelectStmt(val selectStmt: go2k.compile.dumppb.SelectStmt) : Stmt()
-        data class ForStmt(val forStmt: go2k.compile.dumppb.ForStmt) : Stmt()
-        data class RangeStmt(val rangeStmt: go2k.compile.dumppb.RangeStmt) : Stmt()
+        data class BadStmt(val badStmt: go2k.compile.go.dumppb.BadStmt) : Stmt()
+        data class DeclStmt(val declStmt: go2k.compile.go.dumppb.DeclStmt) : Stmt()
+        data class EmptyStmt(val emptyStmt: go2k.compile.go.dumppb.EmptyStmt) : Stmt()
+        data class LabeledStmt(val labeledStmt: go2k.compile.go.dumppb.LabeledStmt) : Stmt()
+        data class ExprStmt(val exprStmt: go2k.compile.go.dumppb.ExprStmt) : Stmt()
+        data class SendStmt(val sendStmt: go2k.compile.go.dumppb.SendStmt) : Stmt()
+        data class IncDecStmt(val incDecStmt: go2k.compile.go.dumppb.IncDecStmt) : Stmt()
+        data class AssignStmt(val assignStmt: go2k.compile.go.dumppb.AssignStmt) : Stmt()
+        data class GoStmt(val goStmt: go2k.compile.go.dumppb.GoStmt) : Stmt()
+        data class DeferStmt(val deferStmt: go2k.compile.go.dumppb.DeferStmt) : Stmt()
+        data class ReturnStmt(val returnStmt: go2k.compile.go.dumppb.ReturnStmt) : Stmt()
+        data class BranchStmt(val branchStmt: go2k.compile.go.dumppb.BranchStmt) : Stmt()
+        data class BlockStmt(val blockStmt: go2k.compile.go.dumppb.BlockStmt) : Stmt()
+        data class IfStmt(val ifStmt: go2k.compile.go.dumppb.IfStmt) : Stmt()
+        data class CaseClause(val caseClause: go2k.compile.go.dumppb.CaseClause) : Stmt()
+        data class SwitchStmt(val switchStmt: go2k.compile.go.dumppb.SwitchStmt) : Stmt()
+        data class TypeSwitchStmt(val typeSwitchStmt: go2k.compile.go.dumppb.TypeSwitchStmt) : Stmt()
+        data class CommClause(val commClause: go2k.compile.go.dumppb.CommClause) : Stmt()
+        data class SelectStmt(val selectStmt: go2k.compile.go.dumppb.SelectStmt) : Stmt()
+        data class ForStmt(val forStmt: go2k.compile.go.dumppb.ForStmt) : Stmt()
+        data class RangeStmt(val rangeStmt: go2k.compile.go.dumppb.RangeStmt) : Stmt()
     }
 
     override operator fun plus(other: Stmt_?) = protoMergeImpl(other)
@@ -479,7 +479,7 @@ data class BadStmt(
 }
 
 data class DeclStmt(
-    val decl: go2k.compile.dumppb.Decl_? = null,
+    val decl: go2k.compile.go.dumppb.Decl_? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<DeclStmt> {
     override operator fun plus(other: DeclStmt?) = protoMergeImpl(other)
@@ -504,9 +504,9 @@ data class EmptyStmt(
 }
 
 data class LabeledStmt(
-    val label: go2k.compile.dumppb.Ident? = null,
+    val label: go2k.compile.go.dumppb.Ident? = null,
     val colon: Int = 0,
-    val stmt: go2k.compile.dumppb.Stmt_? = null,
+    val stmt: go2k.compile.go.dumppb.Stmt_? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<LabeledStmt> {
     override operator fun plus(other: LabeledStmt?) = protoMergeImpl(other)
@@ -518,7 +518,7 @@ data class LabeledStmt(
 }
 
 data class ExprStmt(
-    val x: go2k.compile.dumppb.Expr_? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ExprStmt> {
     override operator fun plus(other: ExprStmt?) = protoMergeImpl(other)
@@ -530,9 +530,9 @@ data class ExprStmt(
 }
 
 data class SendStmt(
-    val chan: go2k.compile.dumppb.Expr_? = null,
+    val chan: go2k.compile.go.dumppb.Expr_? = null,
     val arrow: Int = 0,
-    val value: go2k.compile.dumppb.Expr_? = null,
+    val value: go2k.compile.go.dumppb.Expr_? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<SendStmt> {
     override operator fun plus(other: SendStmt?) = protoMergeImpl(other)
@@ -544,9 +544,9 @@ data class SendStmt(
 }
 
 data class IncDecStmt(
-    val x: go2k.compile.dumppb.Expr_? = null,
+    val x: go2k.compile.go.dumppb.Expr_? = null,
     val tokPos: Int = 0,
-    val tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
+    val tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<IncDecStmt> {
     override operator fun plus(other: IncDecStmt?) = protoMergeImpl(other)
@@ -558,10 +558,10 @@ data class IncDecStmt(
 }
 
 data class AssignStmt(
-    val lhs: List<go2k.compile.dumppb.Expr_> = emptyList(),
+    val lhs: List<go2k.compile.go.dumppb.Expr_> = emptyList(),
     val tokPos: Int = 0,
-    val tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
-    val rhs: List<go2k.compile.dumppb.Expr_> = emptyList(),
+    val tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0),
+    val rhs: List<go2k.compile.go.dumppb.Expr_> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<AssignStmt> {
     override operator fun plus(other: AssignStmt?) = protoMergeImpl(other)
@@ -574,7 +574,7 @@ data class AssignStmt(
 
 data class GoStmt(
     val go: Int = 0,
-    val call: go2k.compile.dumppb.CallExpr? = null,
+    val call: go2k.compile.go.dumppb.CallExpr? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<GoStmt> {
     override operator fun plus(other: GoStmt?) = protoMergeImpl(other)
@@ -587,7 +587,7 @@ data class GoStmt(
 
 data class DeferStmt(
     val defer: Int = 0,
-    val call: go2k.compile.dumppb.CallExpr? = null,
+    val call: go2k.compile.go.dumppb.CallExpr? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<DeferStmt> {
     override operator fun plus(other: DeferStmt?) = protoMergeImpl(other)
@@ -600,7 +600,7 @@ data class DeferStmt(
 
 data class ReturnStmt(
     val `return`: Int = 0,
-    val results: List<go2k.compile.dumppb.Expr_> = emptyList(),
+    val results: List<go2k.compile.go.dumppb.Expr_> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ReturnStmt> {
     override operator fun plus(other: ReturnStmt?) = protoMergeImpl(other)
@@ -613,8 +613,8 @@ data class ReturnStmt(
 
 data class BranchStmt(
     val tokPos: Int = 0,
-    val tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
-    val label: go2k.compile.dumppb.Ident? = null,
+    val tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0),
+    val label: go2k.compile.go.dumppb.Ident? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<BranchStmt> {
     override operator fun plus(other: BranchStmt?) = protoMergeImpl(other)
@@ -627,7 +627,7 @@ data class BranchStmt(
 
 data class BlockStmt(
     val lbrace: Int = 0,
-    val list: List<go2k.compile.dumppb.Stmt_> = emptyList(),
+    val list: List<go2k.compile.go.dumppb.Stmt_> = emptyList(),
     val rbrace: Int = 0,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<BlockStmt> {
@@ -641,10 +641,10 @@ data class BlockStmt(
 
 data class IfStmt(
     val `if`: Int = 0,
-    val init: go2k.compile.dumppb.Stmt_? = null,
-    val cond: go2k.compile.dumppb.Expr_? = null,
-    val body: go2k.compile.dumppb.BlockStmt? = null,
-    val `else`: go2k.compile.dumppb.Stmt_? = null,
+    val init: go2k.compile.go.dumppb.Stmt_? = null,
+    val cond: go2k.compile.go.dumppb.Expr_? = null,
+    val body: go2k.compile.go.dumppb.BlockStmt? = null,
+    val `else`: go2k.compile.go.dumppb.Stmt_? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<IfStmt> {
     override operator fun plus(other: IfStmt?) = protoMergeImpl(other)
@@ -657,9 +657,9 @@ data class IfStmt(
 
 data class CaseClause(
     val case: Int = 0,
-    val list: List<go2k.compile.dumppb.Expr_> = emptyList(),
+    val list: List<go2k.compile.go.dumppb.Expr_> = emptyList(),
     val colon: Int = 0,
-    val body: List<go2k.compile.dumppb.Stmt_> = emptyList(),
+    val body: List<go2k.compile.go.dumppb.Stmt_> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<CaseClause> {
     override operator fun plus(other: CaseClause?) = protoMergeImpl(other)
@@ -672,9 +672,9 @@ data class CaseClause(
 
 data class SwitchStmt(
     val switch: Int = 0,
-    val init: go2k.compile.dumppb.Stmt_? = null,
-    val tag: go2k.compile.dumppb.Expr_? = null,
-    val body: go2k.compile.dumppb.BlockStmt? = null,
+    val init: go2k.compile.go.dumppb.Stmt_? = null,
+    val tag: go2k.compile.go.dumppb.Expr_? = null,
+    val body: go2k.compile.go.dumppb.BlockStmt? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<SwitchStmt> {
     override operator fun plus(other: SwitchStmt?) = protoMergeImpl(other)
@@ -687,9 +687,9 @@ data class SwitchStmt(
 
 data class TypeSwitchStmt(
     val switch: Int = 0,
-    val init: go2k.compile.dumppb.Stmt_? = null,
-    val assign: go2k.compile.dumppb.Stmt_? = null,
-    val body: go2k.compile.dumppb.BlockStmt? = null,
+    val init: go2k.compile.go.dumppb.Stmt_? = null,
+    val assign: go2k.compile.go.dumppb.Stmt_? = null,
+    val body: go2k.compile.go.dumppb.BlockStmt? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeSwitchStmt> {
     override operator fun plus(other: TypeSwitchStmt?) = protoMergeImpl(other)
@@ -702,9 +702,9 @@ data class TypeSwitchStmt(
 
 data class CommClause(
     val case: Int = 0,
-    val comm: go2k.compile.dumppb.Stmt_? = null,
+    val comm: go2k.compile.go.dumppb.Stmt_? = null,
     val colon: Int = 0,
-    val body: List<go2k.compile.dumppb.Stmt_> = emptyList(),
+    val body: List<go2k.compile.go.dumppb.Stmt_> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<CommClause> {
     override operator fun plus(other: CommClause?) = protoMergeImpl(other)
@@ -717,7 +717,7 @@ data class CommClause(
 
 data class SelectStmt(
     val select: Int = 0,
-    val body: go2k.compile.dumppb.BlockStmt? = null,
+    val body: go2k.compile.go.dumppb.BlockStmt? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<SelectStmt> {
     override operator fun plus(other: SelectStmt?) = protoMergeImpl(other)
@@ -730,10 +730,10 @@ data class SelectStmt(
 
 data class ForStmt(
     val `for`: Int = 0,
-    val init: go2k.compile.dumppb.Stmt_? = null,
-    val cond: go2k.compile.dumppb.Expr_? = null,
-    val post: go2k.compile.dumppb.Stmt_? = null,
-    val body: go2k.compile.dumppb.BlockStmt? = null,
+    val init: go2k.compile.go.dumppb.Stmt_? = null,
+    val cond: go2k.compile.go.dumppb.Expr_? = null,
+    val post: go2k.compile.go.dumppb.Stmt_? = null,
+    val body: go2k.compile.go.dumppb.BlockStmt? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ForStmt> {
     override operator fun plus(other: ForStmt?) = protoMergeImpl(other)
@@ -746,12 +746,12 @@ data class ForStmt(
 
 data class RangeStmt(
     val `for`: Int = 0,
-    val key: go2k.compile.dumppb.Expr_? = null,
-    val value: go2k.compile.dumppb.Expr_? = null,
+    val key: go2k.compile.go.dumppb.Expr_? = null,
+    val value: go2k.compile.go.dumppb.Expr_? = null,
     val tokPos: Int = 0,
-    val tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
-    val x: go2k.compile.dumppb.Expr_? = null,
-    val body: go2k.compile.dumppb.BlockStmt? = null,
+    val tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0),
+    val x: go2k.compile.go.dumppb.Expr_? = null,
+    val body: go2k.compile.go.dumppb.BlockStmt? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<RangeStmt> {
     override operator fun plus(other: RangeStmt?) = protoMergeImpl(other)
@@ -767,9 +767,9 @@ data class Spec_(
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Spec_> {
     sealed class Spec {
-        data class ImportSpec(val importSpec: go2k.compile.dumppb.ImportSpec) : Spec()
-        data class ValueSpec(val valueSpec: go2k.compile.dumppb.ValueSpec) : Spec()
-        data class TypeSpec(val typeSpec: go2k.compile.dumppb.TypeSpec) : Spec()
+        data class ImportSpec(val importSpec: go2k.compile.go.dumppb.ImportSpec) : Spec()
+        data class ValueSpec(val valueSpec: go2k.compile.go.dumppb.ValueSpec) : Spec()
+        data class TypeSpec(val typeSpec: go2k.compile.go.dumppb.TypeSpec) : Spec()
     }
 
     override operator fun plus(other: Spec_?) = protoMergeImpl(other)
@@ -781,10 +781,10 @@ data class Spec_(
 }
 
 data class ImportSpec(
-    val doc: go2k.compile.dumppb.CommentGroup? = null,
-    val name: go2k.compile.dumppb.Ident? = null,
-    val path: go2k.compile.dumppb.BasicLit? = null,
-    val comment: go2k.compile.dumppb.CommentGroup? = null,
+    val doc: go2k.compile.go.dumppb.CommentGroup? = null,
+    val name: go2k.compile.go.dumppb.Ident? = null,
+    val path: go2k.compile.go.dumppb.BasicLit? = null,
+    val comment: go2k.compile.go.dumppb.CommentGroup? = null,
     val endPos: Int = 0,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ImportSpec> {
@@ -797,11 +797,11 @@ data class ImportSpec(
 }
 
 data class ValueSpec(
-    val doc: go2k.compile.dumppb.CommentGroup? = null,
-    val names: List<go2k.compile.dumppb.Ident> = emptyList(),
-    val type: go2k.compile.dumppb.Expr_? = null,
-    val values: List<go2k.compile.dumppb.Expr_> = emptyList(),
-    val comment: go2k.compile.dumppb.CommentGroup? = null,
+    val doc: go2k.compile.go.dumppb.CommentGroup? = null,
+    val names: List<go2k.compile.go.dumppb.Ident> = emptyList(),
+    val type: go2k.compile.go.dumppb.Expr_? = null,
+    val values: List<go2k.compile.go.dumppb.Expr_> = emptyList(),
+    val comment: go2k.compile.go.dumppb.CommentGroup? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<ValueSpec> {
     override operator fun plus(other: ValueSpec?) = protoMergeImpl(other)
@@ -813,11 +813,11 @@ data class ValueSpec(
 }
 
 data class TypeSpec(
-    val doc: go2k.compile.dumppb.CommentGroup? = null,
-    val name: go2k.compile.dumppb.Ident? = null,
+    val doc: go2k.compile.go.dumppb.CommentGroup? = null,
+    val name: go2k.compile.go.dumppb.Ident? = null,
     val assign: Int = 0,
-    val type: go2k.compile.dumppb.Expr_? = null,
-    val comment: go2k.compile.dumppb.CommentGroup? = null,
+    val type: go2k.compile.go.dumppb.Expr_? = null,
+    val comment: go2k.compile.go.dumppb.CommentGroup? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<TypeSpec> {
     override operator fun plus(other: TypeSpec?) = protoMergeImpl(other)
@@ -833,9 +833,9 @@ data class Decl_(
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Decl_> {
     sealed class Decl {
-        data class BadDecl(val badDecl: go2k.compile.dumppb.BadDecl) : Decl()
-        data class GenDecl(val genDecl: go2k.compile.dumppb.GenDecl) : Decl()
-        data class FuncDecl(val funcDecl: go2k.compile.dumppb.FuncDecl) : Decl()
+        data class BadDecl(val badDecl: go2k.compile.go.dumppb.BadDecl) : Decl()
+        data class GenDecl(val genDecl: go2k.compile.go.dumppb.GenDecl) : Decl()
+        data class FuncDecl(val funcDecl: go2k.compile.go.dumppb.FuncDecl) : Decl()
     }
 
     override operator fun plus(other: Decl_?) = protoMergeImpl(other)
@@ -860,11 +860,11 @@ data class BadDecl(
 }
 
 data class GenDecl(
-    val doc: go2k.compile.dumppb.CommentGroup? = null,
+    val doc: go2k.compile.go.dumppb.CommentGroup? = null,
     val tokPos: Int = 0,
-    val tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0),
+    val tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0),
     val lparen: Int = 0,
-    val specs: List<go2k.compile.dumppb.Spec_> = emptyList(),
+    val specs: List<go2k.compile.go.dumppb.Spec_> = emptyList(),
     val rparen: Int = 0,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<GenDecl> {
@@ -877,11 +877,11 @@ data class GenDecl(
 }
 
 data class FuncDecl(
-    val doc: go2k.compile.dumppb.CommentGroup? = null,
-    val recv: go2k.compile.dumppb.FieldList? = null,
-    val name: go2k.compile.dumppb.Ident? = null,
-    val type: go2k.compile.dumppb.FuncType? = null,
-    val body: go2k.compile.dumppb.BlockStmt? = null,
+    val doc: go2k.compile.go.dumppb.CommentGroup? = null,
+    val recv: go2k.compile.go.dumppb.FieldList? = null,
+    val name: go2k.compile.go.dumppb.Ident? = null,
+    val type: go2k.compile.go.dumppb.FuncType? = null,
+    val body: go2k.compile.go.dumppb.BlockStmt? = null,
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<FuncDecl> {
     override operator fun plus(other: FuncDecl?) = protoMergeImpl(other)
@@ -894,13 +894,13 @@ data class FuncDecl(
 
 data class File(
     val fileName: String = "",
-    val doc: go2k.compile.dumppb.CommentGroup? = null,
+    val doc: go2k.compile.go.dumppb.CommentGroup? = null,
     val `package`: Int = 0,
-    val name: go2k.compile.dumppb.Ident? = null,
-    val decls: List<go2k.compile.dumppb.Decl_> = emptyList(),
-    val imports: List<go2k.compile.dumppb.ImportSpec> = emptyList(),
-    val unresolved: List<go2k.compile.dumppb.Ident> = emptyList(),
-    val comments: List<go2k.compile.dumppb.CommentGroup> = emptyList(),
+    val name: go2k.compile.go.dumppb.Ident? = null,
+    val decls: List<go2k.compile.go.dumppb.Decl_> = emptyList(),
+    val imports: List<go2k.compile.go.dumppb.ImportSpec> = emptyList(),
+    val unresolved: List<go2k.compile.go.dumppb.Ident> = emptyList(),
+    val comments: List<go2k.compile.go.dumppb.CommentGroup> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<File> {
     override operator fun plus(other: File?) = protoMergeImpl(other)
@@ -914,8 +914,8 @@ data class File(
 data class Package(
     val name: String = "",
     val path: String = "",
-    val files: List<go2k.compile.dumppb.File> = emptyList(),
-    val types: List<go2k.compile.dumppb.Type_> = emptyList(),
+    val files: List<go2k.compile.go.dumppb.File> = emptyList(),
+    val types: List<go2k.compile.go.dumppb.Type_> = emptyList(),
     val varInitOrder: List<String> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Package> {
@@ -928,7 +928,7 @@ data class Package(
 }
 
 data class Packages(
-    val packages: List<go2k.compile.dumppb.Package> = emptyList(),
+    val packages: List<go2k.compile.go.dumppb.Package> = emptyList(),
     val unknownFields: Map<Int, pbandk.UnknownField> = emptyMap()
 ) : pbandk.Message<Packages> {
     override operator fun plus(other: Packages?) = protoMergeImpl(other)
@@ -986,10 +986,10 @@ private fun CommentGroup.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun CommentGroup.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): CommentGroup {
-    var list: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Comment>? = null
+    var list: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Comment>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return CommentGroup(pbandk.ListWithSize.Builder.fixed(list), protoUnmarshal.unknownFields())
-        10 -> list = protoUnmarshal.readRepeatedMessage(list, go2k.compile.dumppb.Comment.Companion, true)
+        10 -> list = protoUnmarshal.readRepeatedMessage(list, go2k.compile.go.dumppb.Comment.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1024,19 +1024,19 @@ private fun Field.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun Field.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): Field {
-    var doc: go2k.compile.dumppb.CommentGroup? = null
-    var names: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Ident>? = null
-    var type: go2k.compile.dumppb.Expr_? = null
-    var tag: go2k.compile.dumppb.BasicLit? = null
-    var comment: go2k.compile.dumppb.CommentGroup? = null
+    var doc: go2k.compile.go.dumppb.CommentGroup? = null
+    var names: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Ident>? = null
+    var type: go2k.compile.go.dumppb.Expr_? = null
+    var tag: go2k.compile.go.dumppb.BasicLit? = null
+    var comment: go2k.compile.go.dumppb.CommentGroup? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Field(doc, pbandk.ListWithSize.Builder.fixed(names), type, tag,
             comment, protoUnmarshal.unknownFields())
-        10 -> doc = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
-        18 -> names = protoUnmarshal.readRepeatedMessage(names, go2k.compile.dumppb.Ident.Companion, true)
-        26 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> tag = protoUnmarshal.readMessage(go2k.compile.dumppb.BasicLit.Companion)
-        42 -> comment = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
+        10 -> doc = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
+        18 -> names = protoUnmarshal.readRepeatedMessage(names, go2k.compile.go.dumppb.Ident.Companion, true)
+        26 -> type = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> tag = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BasicLit.Companion)
+        42 -> comment = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1064,12 +1064,12 @@ private fun FieldList.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun FieldList.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): FieldList {
     var opening = 0
-    var list: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Field>? = null
+    var list: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Field>? = null
     var closing = 0
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return FieldList(opening, pbandk.ListWithSize.Builder.fixed(list), closing, protoUnmarshal.unknownFields())
         8 -> opening = protoUnmarshal.readInt32()
-        18 -> list = protoUnmarshal.readRepeatedMessage(list, go2k.compile.dumppb.Field.Companion, true)
+        18 -> list = protoUnmarshal.readRepeatedMessage(list, go2k.compile.go.dumppb.Field.Companion, true)
         24 -> closing = protoUnmarshal.readInt32()
         else -> protoUnmarshal.unknownField()
     }
@@ -1187,28 +1187,28 @@ private fun Expr_.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshall
     var expr: Expr_.Expr? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Expr_(expr, protoUnmarshal.unknownFields())
-        10 -> expr = Expr_.Expr.BadExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.BadExpr.Companion))
-        18 -> expr = Expr_.Expr.Ident(protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion))
-        26 -> expr = Expr_.Expr.Ellipsis(protoUnmarshal.readMessage(go2k.compile.dumppb.Ellipsis.Companion))
-        34 -> expr = Expr_.Expr.BasicLit(protoUnmarshal.readMessage(go2k.compile.dumppb.BasicLit.Companion))
-        42 -> expr = Expr_.Expr.FuncLit(protoUnmarshal.readMessage(go2k.compile.dumppb.FuncLit.Companion))
-        50 -> expr = Expr_.Expr.CompositeLit(protoUnmarshal.readMessage(go2k.compile.dumppb.CompositeLit.Companion))
-        58 -> expr = Expr_.Expr.ParenExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.ParenExpr.Companion))
-        66 -> expr = Expr_.Expr.SelectorExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.SelectorExpr.Companion))
-        74 -> expr = Expr_.Expr.IndexExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.IndexExpr.Companion))
-        82 -> expr = Expr_.Expr.SliceExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.SliceExpr.Companion))
-        90 -> expr = Expr_.Expr.TypeAssertExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeAssertExpr.Companion))
-        98 -> expr = Expr_.Expr.CallExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.CallExpr.Companion))
-        106 -> expr = Expr_.Expr.StarExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.StarExpr.Companion))
-        114 -> expr = Expr_.Expr.UnaryExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.UnaryExpr.Companion))
-        122 -> expr = Expr_.Expr.BinaryExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.BinaryExpr.Companion))
-        130 -> expr = Expr_.Expr.KeyValueExpr(protoUnmarshal.readMessage(go2k.compile.dumppb.KeyValueExpr.Companion))
-        138 -> expr = Expr_.Expr.ArrayType(protoUnmarshal.readMessage(go2k.compile.dumppb.ArrayType.Companion))
-        146 -> expr = Expr_.Expr.StructType(protoUnmarshal.readMessage(go2k.compile.dumppb.StructType.Companion))
-        154 -> expr = Expr_.Expr.FuncType(protoUnmarshal.readMessage(go2k.compile.dumppb.FuncType.Companion))
-        162 -> expr = Expr_.Expr.InterfaceType(protoUnmarshal.readMessage(go2k.compile.dumppb.InterfaceType.Companion))
-        170 -> expr = Expr_.Expr.MapType(protoUnmarshal.readMessage(go2k.compile.dumppb.MapType.Companion))
-        178 -> expr = Expr_.Expr.ChanType(protoUnmarshal.readMessage(go2k.compile.dumppb.ChanType.Companion))
+        10 -> expr = Expr_.Expr.BadExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.BadExpr.Companion))
+        18 -> expr = Expr_.Expr.Ident(protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ident.Companion))
+        26 -> expr = Expr_.Expr.Ellipsis(protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ellipsis.Companion))
+        34 -> expr = Expr_.Expr.BasicLit(protoUnmarshal.readMessage(go2k.compile.go.dumppb.BasicLit.Companion))
+        42 -> expr = Expr_.Expr.FuncLit(protoUnmarshal.readMessage(go2k.compile.go.dumppb.FuncLit.Companion))
+        50 -> expr = Expr_.Expr.CompositeLit(protoUnmarshal.readMessage(go2k.compile.go.dumppb.CompositeLit.Companion))
+        58 -> expr = Expr_.Expr.ParenExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.ParenExpr.Companion))
+        66 -> expr = Expr_.Expr.SelectorExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.SelectorExpr.Companion))
+        74 -> expr = Expr_.Expr.IndexExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.IndexExpr.Companion))
+        82 -> expr = Expr_.Expr.SliceExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.SliceExpr.Companion))
+        90 -> expr = Expr_.Expr.TypeAssertExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeAssertExpr.Companion))
+        98 -> expr = Expr_.Expr.CallExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.CallExpr.Companion))
+        106 -> expr = Expr_.Expr.StarExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.StarExpr.Companion))
+        114 -> expr = Expr_.Expr.UnaryExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.UnaryExpr.Companion))
+        122 -> expr = Expr_.Expr.BinaryExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.BinaryExpr.Companion))
+        130 -> expr = Expr_.Expr.KeyValueExpr(protoUnmarshal.readMessage(go2k.compile.go.dumppb.KeyValueExpr.Companion))
+        138 -> expr = Expr_.Expr.ArrayType(protoUnmarshal.readMessage(go2k.compile.go.dumppb.ArrayType.Companion))
+        146 -> expr = Expr_.Expr.StructType(protoUnmarshal.readMessage(go2k.compile.go.dumppb.StructType.Companion))
+        154 -> expr = Expr_.Expr.FuncType(protoUnmarshal.readMessage(go2k.compile.go.dumppb.FuncType.Companion))
+        162 -> expr = Expr_.Expr.InterfaceType(protoUnmarshal.readMessage(go2k.compile.go.dumppb.InterfaceType.Companion))
+        170 -> expr = Expr_.Expr.MapType(protoUnmarshal.readMessage(go2k.compile.go.dumppb.MapType.Companion))
+        178 -> expr = Expr_.Expr.ChanType(protoUnmarshal.readMessage(go2k.compile.go.dumppb.ChanType.Companion))
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1237,12 +1237,12 @@ private fun BadExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 private fun BadExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): BadExpr {
     var from = 0
     var to = 0
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return BadExpr(from, to, typeRef, protoUnmarshal.unknownFields())
         8 -> from = protoUnmarshal.readInt32()
         16 -> to = protoUnmarshal.readInt32()
-        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1274,14 +1274,14 @@ private fun Ident.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 private fun Ident.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): Ident {
     var namePos = 0
     var name = ""
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
-    var defTypeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
+    var defTypeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Ident(namePos, name, typeRef, defTypeRef, protoUnmarshal.unknownFields())
         8 -> namePos = protoUnmarshal.readInt32()
         18 -> name = protoUnmarshal.readString()
-        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
-        34 -> defTypeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
+        34 -> defTypeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1310,13 +1310,13 @@ private fun Ellipsis.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun Ellipsis.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): Ellipsis {
     var ellipsis = 0
-    var elt: go2k.compile.dumppb.Expr_? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var elt: go2k.compile.go.dumppb.Expr_? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Ellipsis(ellipsis, elt, typeRef, protoUnmarshal.unknownFields())
         8 -> ellipsis = protoUnmarshal.readInt32()
-        18 -> elt = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        18 -> elt = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1346,15 +1346,15 @@ private fun BasicLit.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun BasicLit.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): BasicLit {
     var valuePos = 0
-    var kind: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
+    var kind: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0)
     var value = ""
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return BasicLit(valuePos, kind, value, typeRef, protoUnmarshal.unknownFields())
         8 -> valuePos = protoUnmarshal.readInt32()
-        16 -> kind = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
+        16 -> kind = protoUnmarshal.readEnum(go2k.compile.go.dumppb.Token.Companion)
         26 -> value = protoUnmarshal.readString()
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1383,14 +1383,14 @@ private fun FuncLit.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun FuncLit.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): FuncLit {
-    var type: go2k.compile.dumppb.FuncType? = null
-    var body: go2k.compile.dumppb.BlockStmt? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var type: go2k.compile.go.dumppb.FuncType? = null
+    var body: go2k.compile.go.dumppb.BlockStmt? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return FuncLit(type, body, typeRef, protoUnmarshal.unknownFields())
-        10 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.FuncType.Companion)
-        18 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
-        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        10 -> type = protoUnmarshal.readMessage(go2k.compile.go.dumppb.FuncType.Companion)
+        18 -> body = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1423,19 +1423,19 @@ private fun CompositeLit.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun CompositeLit.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): CompositeLit {
-    var type: go2k.compile.dumppb.Expr_? = null
+    var type: go2k.compile.go.dumppb.Expr_? = null
     var lbrace = 0
-    var elts: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
+    var elts: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Expr_>? = null
     var rbrace = 0
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return CompositeLit(type, lbrace, pbandk.ListWithSize.Builder.fixed(elts), rbrace,
             typeRef, protoUnmarshal.unknownFields())
-        10 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> type = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> lbrace = protoUnmarshal.readInt32()
-        26 -> elts = protoUnmarshal.readRepeatedMessage(elts, go2k.compile.dumppb.Expr_.Companion, true)
+        26 -> elts = protoUnmarshal.readRepeatedMessage(elts, go2k.compile.go.dumppb.Expr_.Companion, true)
         32 -> rbrace = protoUnmarshal.readInt32()
-        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1466,15 +1466,15 @@ private fun ParenExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun ParenExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): ParenExpr {
     var lparen = 0
-    var x: go2k.compile.dumppb.Expr_? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
     var rparen = 0
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ParenExpr(lparen, x, rparen, typeRef, protoUnmarshal.unknownFields())
         8 -> lparen = protoUnmarshal.readInt32()
-        18 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        18 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         24 -> rparen = protoUnmarshal.readInt32()
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1503,14 +1503,14 @@ private fun SelectorExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun SelectorExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): SelectorExpr {
-    var x: go2k.compile.dumppb.Expr_? = null
-    var sel: go2k.compile.dumppb.Ident? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
+    var sel: go2k.compile.go.dumppb.Ident? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return SelectorExpr(x, sel, typeRef, protoUnmarshal.unknownFields())
-        10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        18 -> sel = protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion)
-        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        10 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        18 -> sel = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ident.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1543,19 +1543,19 @@ private fun IndexExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun IndexExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): IndexExpr {
-    var x: go2k.compile.dumppb.Expr_? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
     var lbrack = 0
-    var index: go2k.compile.dumppb.Expr_? = null
+    var index: go2k.compile.go.dumppb.Expr_? = null
     var rbrack = 0
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return IndexExpr(x, lbrack, index, rbrack,
             typeRef, protoUnmarshal.unknownFields())
-        10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> lbrack = protoUnmarshal.readInt32()
-        26 -> index = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        26 -> index = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         32 -> rbrack = protoUnmarshal.readInt32()
-        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1596,25 +1596,25 @@ private fun SliceExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun SliceExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): SliceExpr {
-    var x: go2k.compile.dumppb.Expr_? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
     var lbrack = 0
-    var low: go2k.compile.dumppb.Expr_? = null
-    var high: go2k.compile.dumppb.Expr_? = null
-    var max: go2k.compile.dumppb.Expr_? = null
+    var low: go2k.compile.go.dumppb.Expr_? = null
+    var high: go2k.compile.go.dumppb.Expr_? = null
+    var max: go2k.compile.go.dumppb.Expr_? = null
     var slice3 = false
     var rbrack = 0
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return SliceExpr(x, lbrack, low, high,
             max, slice3, rbrack, typeRef, protoUnmarshal.unknownFields())
-        10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> lbrack = protoUnmarshal.readInt32()
-        26 -> low = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> high = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        42 -> max = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        26 -> low = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> high = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        42 -> max = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         48 -> slice3 = protoUnmarshal.readBool()
         56 -> rbrack = protoUnmarshal.readInt32()
-        66 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        66 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1647,19 +1647,19 @@ private fun TypeAssertExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeAssertExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeAssertExpr {
-    var x: go2k.compile.dumppb.Expr_? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
     var lparen = 0
-    var type: go2k.compile.dumppb.Expr_? = null
+    var type: go2k.compile.go.dumppb.Expr_? = null
     var rparen = 0
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeAssertExpr(x, lparen, type, rparen,
             typeRef, protoUnmarshal.unknownFields())
-        10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> lparen = protoUnmarshal.readInt32()
-        26 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        26 -> type = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         32 -> rparen = protoUnmarshal.readInt32()
-        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1694,21 +1694,21 @@ private fun CallExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun CallExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): CallExpr {
-    var `fun`: go2k.compile.dumppb.Expr_? = null
+    var `fun`: go2k.compile.go.dumppb.Expr_? = null
     var lparen = 0
-    var args: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
+    var args: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Expr_>? = null
     var ellipsis = 0
     var rparen = 0
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return CallExpr(`fun`, lparen, pbandk.ListWithSize.Builder.fixed(args), ellipsis,
             rparen, typeRef, protoUnmarshal.unknownFields())
-        10 -> `fun` = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> `fun` = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> lparen = protoUnmarshal.readInt32()
-        26 -> args = protoUnmarshal.readRepeatedMessage(args, go2k.compile.dumppb.Expr_.Companion, true)
+        26 -> args = protoUnmarshal.readRepeatedMessage(args, go2k.compile.go.dumppb.Expr_.Companion, true)
         32 -> ellipsis = protoUnmarshal.readInt32()
         40 -> rparen = protoUnmarshal.readInt32()
-        50 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        50 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1737,13 +1737,13 @@ private fun StarExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun StarExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): StarExpr {
     var star = 0
-    var x: go2k.compile.dumppb.Expr_? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return StarExpr(star, x, typeRef, protoUnmarshal.unknownFields())
         8 -> star = protoUnmarshal.readInt32()
-        18 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        18 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        26 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1774,15 +1774,15 @@ private fun UnaryExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun UnaryExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): UnaryExpr {
     var opPos = 0
-    var op: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
-    var x: go2k.compile.dumppb.Expr_? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var op: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0)
+    var x: go2k.compile.go.dumppb.Expr_? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return UnaryExpr(opPos, op, x, typeRef, protoUnmarshal.unknownFields())
         8 -> opPos = protoUnmarshal.readInt32()
-        16 -> op = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
-        26 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        16 -> op = protoUnmarshal.readEnum(go2k.compile.go.dumppb.Token.Companion)
+        26 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1815,19 +1815,19 @@ private fun BinaryExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun BinaryExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): BinaryExpr {
-    var x: go2k.compile.dumppb.Expr_? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
     var opPos = 0
-    var op: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
-    var y: go2k.compile.dumppb.Expr_? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var op: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0)
+    var y: go2k.compile.go.dumppb.Expr_? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return BinaryExpr(x, opPos, op, y,
             typeRef, protoUnmarshal.unknownFields())
-        10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> opPos = protoUnmarshal.readInt32()
-        24 -> op = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
-        34 -> y = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        24 -> op = protoUnmarshal.readEnum(go2k.compile.go.dumppb.Token.Companion)
+        34 -> y = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        42 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1858,16 +1858,16 @@ private fun KeyValueExpr.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun KeyValueExpr.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): KeyValueExpr {
-    var key: go2k.compile.dumppb.Expr_? = null
+    var key: go2k.compile.go.dumppb.Expr_? = null
     var colon = 0
-    var value: go2k.compile.dumppb.Expr_? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var value: go2k.compile.go.dumppb.Expr_? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return KeyValueExpr(key, colon, value, typeRef, protoUnmarshal.unknownFields())
-        10 -> key = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> key = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> colon = protoUnmarshal.readInt32()
-        26 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        26 -> value = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1899,15 +1899,15 @@ private fun ArrayType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun ArrayType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): ArrayType {
     var lbrack = 0
-    var len: go2k.compile.dumppb.Expr_? = null
-    var elt: go2k.compile.dumppb.Expr_? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var len: go2k.compile.go.dumppb.Expr_? = null
+    var elt: go2k.compile.go.dumppb.Expr_? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ArrayType(lbrack, len, elt, typeRef, protoUnmarshal.unknownFields())
         8 -> lbrack = protoUnmarshal.readInt32()
-        18 -> len = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        26 -> elt = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        18 -> len = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        26 -> elt = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1938,15 +1938,15 @@ private fun StructType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun StructType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): StructType {
     var struct = 0
-    var fields: go2k.compile.dumppb.FieldList? = null
+    var fields: go2k.compile.go.dumppb.FieldList? = null
     var incomplete = false
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return StructType(struct, fields, incomplete, typeRef, protoUnmarshal.unknownFields())
         8 -> struct = protoUnmarshal.readInt32()
-        18 -> fields = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
+        18 -> fields = protoUnmarshal.readMessage(go2k.compile.go.dumppb.FieldList.Companion)
         24 -> incomplete = protoUnmarshal.readBool()
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -1978,15 +1978,15 @@ private fun FuncType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun FuncType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): FuncType {
     var func = 0
-    var params: go2k.compile.dumppb.FieldList? = null
-    var results: go2k.compile.dumppb.FieldList? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var params: go2k.compile.go.dumppb.FieldList? = null
+    var results: go2k.compile.go.dumppb.FieldList? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return FuncType(func, params, results, typeRef, protoUnmarshal.unknownFields())
         8 -> func = protoUnmarshal.readInt32()
-        18 -> params = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
-        26 -> results = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        18 -> params = protoUnmarshal.readMessage(go2k.compile.go.dumppb.FieldList.Companion)
+        26 -> results = protoUnmarshal.readMessage(go2k.compile.go.dumppb.FieldList.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2017,15 +2017,15 @@ private fun InterfaceType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun InterfaceType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): InterfaceType {
     var `interface` = 0
-    var methods: go2k.compile.dumppb.FieldList? = null
+    var methods: go2k.compile.go.dumppb.FieldList? = null
     var incomplete = false
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return InterfaceType(`interface`, methods, incomplete, typeRef, protoUnmarshal.unknownFields())
         8 -> `interface` = protoUnmarshal.readInt32()
-        18 -> methods = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
+        18 -> methods = protoUnmarshal.readMessage(go2k.compile.go.dumppb.FieldList.Companion)
         24 -> incomplete = protoUnmarshal.readBool()
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2057,15 +2057,15 @@ private fun MapType.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun MapType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): MapType {
     var map = 0
-    var key: go2k.compile.dumppb.Expr_? = null
-    var value: go2k.compile.dumppb.Expr_? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var key: go2k.compile.go.dumppb.Expr_? = null
+    var value: go2k.compile.go.dumppb.Expr_? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return MapType(map, key, value, typeRef, protoUnmarshal.unknownFields())
         8 -> map = protoUnmarshal.readInt32()
-        18 -> key = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        26 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        18 -> key = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        26 -> value = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2103,8 +2103,8 @@ private fun ChanType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsh
     var arrow = 0
     var sendDir = false
     var recvDir = false
-    var value: go2k.compile.dumppb.Expr_? = null
-    var typeRef: go2k.compile.dumppb.TypeRef? = null
+    var value: go2k.compile.go.dumppb.Expr_? = null
+    var typeRef: go2k.compile.go.dumppb.TypeRef? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ChanType(begin, arrow, sendDir, recvDir,
             value, typeRef, protoUnmarshal.unknownFields())
@@ -2112,8 +2112,8 @@ private fun ChanType.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarsh
         16 -> arrow = protoUnmarshal.readInt32()
         24 -> sendDir = protoUnmarshal.readBool()
         32 -> recvDir = protoUnmarshal.readBool()
-        42 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        50 -> typeRef = protoUnmarshal.readMessage(go2k.compile.dumppb.TypeRef.Companion)
+        42 -> value = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        50 -> typeRef = protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeRef.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2226,27 +2226,27 @@ private fun Stmt_.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshall
     var stmt: Stmt_.Stmt? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Stmt_(stmt, protoUnmarshal.unknownFields())
-        10 -> stmt = Stmt_.Stmt.BadStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.BadStmt.Companion))
-        18 -> stmt = Stmt_.Stmt.DeclStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.DeclStmt.Companion))
-        26 -> stmt = Stmt_.Stmt.EmptyStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.EmptyStmt.Companion))
-        34 -> stmt = Stmt_.Stmt.LabeledStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.LabeledStmt.Companion))
-        42 -> stmt = Stmt_.Stmt.ExprStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.ExprStmt.Companion))
-        50 -> stmt = Stmt_.Stmt.SendStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.SendStmt.Companion))
-        58 -> stmt = Stmt_.Stmt.IncDecStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.IncDecStmt.Companion))
-        66 -> stmt = Stmt_.Stmt.AssignStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.AssignStmt.Companion))
-        74 -> stmt = Stmt_.Stmt.GoStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.GoStmt.Companion))
-        82 -> stmt = Stmt_.Stmt.DeferStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.DeferStmt.Companion))
-        90 -> stmt = Stmt_.Stmt.ReturnStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.ReturnStmt.Companion))
-        98 -> stmt = Stmt_.Stmt.BranchStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.BranchStmt.Companion))
-        106 -> stmt = Stmt_.Stmt.BlockStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion))
-        114 -> stmt = Stmt_.Stmt.IfStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.IfStmt.Companion))
-        122 -> stmt = Stmt_.Stmt.CaseClause(protoUnmarshal.readMessage(go2k.compile.dumppb.CaseClause.Companion))
-        130 -> stmt = Stmt_.Stmt.SwitchStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.SwitchStmt.Companion))
-        138 -> stmt = Stmt_.Stmt.TypeSwitchStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSwitchStmt.Companion))
-        146 -> stmt = Stmt_.Stmt.CommClause(protoUnmarshal.readMessage(go2k.compile.dumppb.CommClause.Companion))
-        154 -> stmt = Stmt_.Stmt.SelectStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.SelectStmt.Companion))
-        162 -> stmt = Stmt_.Stmt.ForStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.ForStmt.Companion))
-        170 -> stmt = Stmt_.Stmt.RangeStmt(protoUnmarshal.readMessage(go2k.compile.dumppb.RangeStmt.Companion))
+        10 -> stmt = Stmt_.Stmt.BadStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.BadStmt.Companion))
+        18 -> stmt = Stmt_.Stmt.DeclStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.DeclStmt.Companion))
+        26 -> stmt = Stmt_.Stmt.EmptyStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.EmptyStmt.Companion))
+        34 -> stmt = Stmt_.Stmt.LabeledStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.LabeledStmt.Companion))
+        42 -> stmt = Stmt_.Stmt.ExprStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.ExprStmt.Companion))
+        50 -> stmt = Stmt_.Stmt.SendStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.SendStmt.Companion))
+        58 -> stmt = Stmt_.Stmt.IncDecStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.IncDecStmt.Companion))
+        66 -> stmt = Stmt_.Stmt.AssignStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.AssignStmt.Companion))
+        74 -> stmt = Stmt_.Stmt.GoStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.GoStmt.Companion))
+        82 -> stmt = Stmt_.Stmt.DeferStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.DeferStmt.Companion))
+        90 -> stmt = Stmt_.Stmt.ReturnStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.ReturnStmt.Companion))
+        98 -> stmt = Stmt_.Stmt.BranchStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.BranchStmt.Companion))
+        106 -> stmt = Stmt_.Stmt.BlockStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion))
+        114 -> stmt = Stmt_.Stmt.IfStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.IfStmt.Companion))
+        122 -> stmt = Stmt_.Stmt.CaseClause(protoUnmarshal.readMessage(go2k.compile.go.dumppb.CaseClause.Companion))
+        130 -> stmt = Stmt_.Stmt.SwitchStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.SwitchStmt.Companion))
+        138 -> stmt = Stmt_.Stmt.TypeSwitchStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeSwitchStmt.Companion))
+        146 -> stmt = Stmt_.Stmt.CommClause(protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommClause.Companion))
+        154 -> stmt = Stmt_.Stmt.SelectStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.SelectStmt.Companion))
+        162 -> stmt = Stmt_.Stmt.ForStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.ForStmt.Companion))
+        170 -> stmt = Stmt_.Stmt.RangeStmt(protoUnmarshal.readMessage(go2k.compile.go.dumppb.RangeStmt.Companion))
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2298,10 +2298,10 @@ private fun DeclStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun DeclStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): DeclStmt {
-    var decl: go2k.compile.dumppb.Decl_? = null
+    var decl: go2k.compile.go.dumppb.Decl_? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return DeclStmt(decl, protoUnmarshal.unknownFields())
-        10 -> decl = protoUnmarshal.readMessage(go2k.compile.dumppb.Decl_.Companion)
+        10 -> decl = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Decl_.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2358,14 +2358,14 @@ private fun LabeledStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun LabeledStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): LabeledStmt {
-    var label: go2k.compile.dumppb.Ident? = null
+    var label: go2k.compile.go.dumppb.Ident? = null
     var colon = 0
-    var stmt: go2k.compile.dumppb.Stmt_? = null
+    var stmt: go2k.compile.go.dumppb.Stmt_? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return LabeledStmt(label, colon, stmt, protoUnmarshal.unknownFields())
-        10 -> label = protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion)
+        10 -> label = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ident.Companion)
         16 -> colon = protoUnmarshal.readInt32()
-        26 -> stmt = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
+        26 -> stmt = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2388,10 +2388,10 @@ private fun ExprStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun ExprStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): ExprStmt {
-    var x: go2k.compile.dumppb.Expr_? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ExprStmt(x, protoUnmarshal.unknownFields())
-        10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2419,14 +2419,14 @@ private fun SendStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun SendStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): SendStmt {
-    var chan: go2k.compile.dumppb.Expr_? = null
+    var chan: go2k.compile.go.dumppb.Expr_? = null
     var arrow = 0
-    var value: go2k.compile.dumppb.Expr_? = null
+    var value: go2k.compile.go.dumppb.Expr_? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return SendStmt(chan, arrow, value, protoUnmarshal.unknownFields())
-        10 -> chan = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> chan = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> arrow = protoUnmarshal.readInt32()
-        26 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        26 -> value = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2453,14 +2453,14 @@ private fun IncDecStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun IncDecStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): IncDecStmt {
-    var x: go2k.compile.dumppb.Expr_? = null
+    var x: go2k.compile.go.dumppb.Expr_? = null
     var tokPos = 0
-    var tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
+    var tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0)
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return IncDecStmt(x, tokPos, tok, protoUnmarshal.unknownFields())
-        10 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        10 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         16 -> tokPos = protoUnmarshal.readInt32()
-        24 -> tok = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
+        24 -> tok = protoUnmarshal.readEnum(go2k.compile.go.dumppb.Token.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2490,16 +2490,16 @@ private fun AssignStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun AssignStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): AssignStmt {
-    var lhs: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
+    var lhs: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Expr_>? = null
     var tokPos = 0
-    var tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
-    var rhs: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
+    var tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0)
+    var rhs: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Expr_>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return AssignStmt(pbandk.ListWithSize.Builder.fixed(lhs), tokPos, tok, pbandk.ListWithSize.Builder.fixed(rhs), protoUnmarshal.unknownFields())
-        10 -> lhs = protoUnmarshal.readRepeatedMessage(lhs, go2k.compile.dumppb.Expr_.Companion, true)
+        10 -> lhs = protoUnmarshal.readRepeatedMessage(lhs, go2k.compile.go.dumppb.Expr_.Companion, true)
         16 -> tokPos = protoUnmarshal.readInt32()
-        24 -> tok = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
-        34 -> rhs = protoUnmarshal.readRepeatedMessage(rhs, go2k.compile.dumppb.Expr_.Companion, true)
+        24 -> tok = protoUnmarshal.readEnum(go2k.compile.go.dumppb.Token.Companion)
+        34 -> rhs = protoUnmarshal.readRepeatedMessage(rhs, go2k.compile.go.dumppb.Expr_.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2525,11 +2525,11 @@ private fun GoStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun GoStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): GoStmt {
     var go = 0
-    var call: go2k.compile.dumppb.CallExpr? = null
+    var call: go2k.compile.go.dumppb.CallExpr? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return GoStmt(go, call, protoUnmarshal.unknownFields())
         8 -> go = protoUnmarshal.readInt32()
-        18 -> call = protoUnmarshal.readMessage(go2k.compile.dumppb.CallExpr.Companion)
+        18 -> call = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CallExpr.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2555,11 +2555,11 @@ private fun DeferStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun DeferStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): DeferStmt {
     var defer = 0
-    var call: go2k.compile.dumppb.CallExpr? = null
+    var call: go2k.compile.go.dumppb.CallExpr? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return DeferStmt(defer, call, protoUnmarshal.unknownFields())
         8 -> defer = protoUnmarshal.readInt32()
-        18 -> call = protoUnmarshal.readMessage(go2k.compile.dumppb.CallExpr.Companion)
+        18 -> call = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CallExpr.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2585,11 +2585,11 @@ private fun ReturnStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun ReturnStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): ReturnStmt {
     var `return` = 0
-    var results: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
+    var results: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Expr_>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ReturnStmt(`return`, pbandk.ListWithSize.Builder.fixed(results), protoUnmarshal.unknownFields())
         8 -> `return` = protoUnmarshal.readInt32()
-        18 -> results = protoUnmarshal.readRepeatedMessage(results, go2k.compile.dumppb.Expr_.Companion, true)
+        18 -> results = protoUnmarshal.readRepeatedMessage(results, go2k.compile.go.dumppb.Expr_.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2617,13 +2617,13 @@ private fun BranchStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun BranchStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): BranchStmt {
     var tokPos = 0
-    var tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
-    var label: go2k.compile.dumppb.Ident? = null
+    var tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0)
+    var label: go2k.compile.go.dumppb.Ident? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return BranchStmt(tokPos, tok, label, protoUnmarshal.unknownFields())
         8 -> tokPos = protoUnmarshal.readInt32()
-        16 -> tok = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
-        26 -> label = protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion)
+        16 -> tok = protoUnmarshal.readEnum(go2k.compile.go.dumppb.Token.Companion)
+        26 -> label = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ident.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2651,12 +2651,12 @@ private fun BlockStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun BlockStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): BlockStmt {
     var lbrace = 0
-    var list: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Stmt_>? = null
+    var list: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Stmt_>? = null
     var rbrace = 0
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return BlockStmt(lbrace, pbandk.ListWithSize.Builder.fixed(list), rbrace, protoUnmarshal.unknownFields())
         8 -> lbrace = protoUnmarshal.readInt32()
-        18 -> list = protoUnmarshal.readRepeatedMessage(list, go2k.compile.dumppb.Stmt_.Companion, true)
+        18 -> list = protoUnmarshal.readRepeatedMessage(list, go2k.compile.go.dumppb.Stmt_.Companion, true)
         24 -> rbrace = protoUnmarshal.readInt32()
         else -> protoUnmarshal.unknownField()
     }
@@ -2692,18 +2692,18 @@ private fun IfStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun IfStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): IfStmt {
     var `if` = 0
-    var init: go2k.compile.dumppb.Stmt_? = null
-    var cond: go2k.compile.dumppb.Expr_? = null
-    var body: go2k.compile.dumppb.BlockStmt? = null
-    var `else`: go2k.compile.dumppb.Stmt_? = null
+    var init: go2k.compile.go.dumppb.Stmt_? = null
+    var cond: go2k.compile.go.dumppb.Expr_? = null
+    var body: go2k.compile.go.dumppb.BlockStmt? = null
+    var `else`: go2k.compile.go.dumppb.Stmt_? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return IfStmt(`if`, init, cond, body,
             `else`, protoUnmarshal.unknownFields())
         8 -> `if` = protoUnmarshal.readInt32()
-        18 -> init = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
-        26 -> cond = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
-        42 -> `else` = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
+        18 -> init = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
+        26 -> cond = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> body = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion)
+        42 -> `else` = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2734,15 +2734,15 @@ private fun CaseClause.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun CaseClause.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): CaseClause {
     var case = 0
-    var list: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
+    var list: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Expr_>? = null
     var colon = 0
-    var body: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Stmt_>? = null
+    var body: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Stmt_>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return CaseClause(case, pbandk.ListWithSize.Builder.fixed(list), colon, pbandk.ListWithSize.Builder.fixed(body), protoUnmarshal.unknownFields())
         8 -> case = protoUnmarshal.readInt32()
-        18 -> list = protoUnmarshal.readRepeatedMessage(list, go2k.compile.dumppb.Expr_.Companion, true)
+        18 -> list = protoUnmarshal.readRepeatedMessage(list, go2k.compile.go.dumppb.Expr_.Companion, true)
         24 -> colon = protoUnmarshal.readInt32()
-        34 -> body = protoUnmarshal.readRepeatedMessage(body, go2k.compile.dumppb.Stmt_.Companion, true)
+        34 -> body = protoUnmarshal.readRepeatedMessage(body, go2k.compile.go.dumppb.Stmt_.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2774,15 +2774,15 @@ private fun SwitchStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun SwitchStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): SwitchStmt {
     var switch = 0
-    var init: go2k.compile.dumppb.Stmt_? = null
-    var tag: go2k.compile.dumppb.Expr_? = null
-    var body: go2k.compile.dumppb.BlockStmt? = null
+    var init: go2k.compile.go.dumppb.Stmt_? = null
+    var tag: go2k.compile.go.dumppb.Expr_? = null
+    var body: go2k.compile.go.dumppb.BlockStmt? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return SwitchStmt(switch, init, tag, body, protoUnmarshal.unknownFields())
         8 -> switch = protoUnmarshal.readInt32()
-        18 -> init = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
-        26 -> tag = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
+        18 -> init = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
+        26 -> tag = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> body = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2814,15 +2814,15 @@ private fun TypeSwitchStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun TypeSwitchStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeSwitchStmt {
     var switch = 0
-    var init: go2k.compile.dumppb.Stmt_? = null
-    var assign: go2k.compile.dumppb.Stmt_? = null
-    var body: go2k.compile.dumppb.BlockStmt? = null
+    var init: go2k.compile.go.dumppb.Stmt_? = null
+    var assign: go2k.compile.go.dumppb.Stmt_? = null
+    var body: go2k.compile.go.dumppb.BlockStmt? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeSwitchStmt(switch, init, assign, body, protoUnmarshal.unknownFields())
         8 -> switch = protoUnmarshal.readInt32()
-        18 -> init = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
-        26 -> assign = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
-        34 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
+        18 -> init = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
+        26 -> assign = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
+        34 -> body = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2853,15 +2853,15 @@ private fun CommClause.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun CommClause.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): CommClause {
     var case = 0
-    var comm: go2k.compile.dumppb.Stmt_? = null
+    var comm: go2k.compile.go.dumppb.Stmt_? = null
     var colon = 0
-    var body: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Stmt_>? = null
+    var body: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Stmt_>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return CommClause(case, comm, colon, pbandk.ListWithSize.Builder.fixed(body), protoUnmarshal.unknownFields())
         8 -> case = protoUnmarshal.readInt32()
-        18 -> comm = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
+        18 -> comm = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
         24 -> colon = protoUnmarshal.readInt32()
-        34 -> body = protoUnmarshal.readRepeatedMessage(body, go2k.compile.dumppb.Stmt_.Companion, true)
+        34 -> body = protoUnmarshal.readRepeatedMessage(body, go2k.compile.go.dumppb.Stmt_.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2887,11 +2887,11 @@ private fun SelectStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun SelectStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): SelectStmt {
     var select = 0
-    var body: go2k.compile.dumppb.BlockStmt? = null
+    var body: go2k.compile.go.dumppb.BlockStmt? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return SelectStmt(select, body, protoUnmarshal.unknownFields())
         8 -> select = protoUnmarshal.readInt32()
-        18 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
+        18 -> body = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2926,18 +2926,18 @@ private fun ForStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun ForStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): ForStmt {
     var `for` = 0
-    var init: go2k.compile.dumppb.Stmt_? = null
-    var cond: go2k.compile.dumppb.Expr_? = null
-    var post: go2k.compile.dumppb.Stmt_? = null
-    var body: go2k.compile.dumppb.BlockStmt? = null
+    var init: go2k.compile.go.dumppb.Stmt_? = null
+    var cond: go2k.compile.go.dumppb.Expr_? = null
+    var post: go2k.compile.go.dumppb.Stmt_? = null
+    var body: go2k.compile.go.dumppb.BlockStmt? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ForStmt(`for`, init, cond, post,
             body, protoUnmarshal.unknownFields())
         8 -> `for` = protoUnmarshal.readInt32()
-        18 -> init = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
-        26 -> cond = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> post = protoUnmarshal.readMessage(go2k.compile.dumppb.Stmt_.Companion)
-        42 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
+        18 -> init = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
+        26 -> cond = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> post = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Stmt_.Companion)
+        42 -> body = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -2976,22 +2976,22 @@ private fun RangeStmt.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun RangeStmt.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): RangeStmt {
     var `for` = 0
-    var key: go2k.compile.dumppb.Expr_? = null
-    var value: go2k.compile.dumppb.Expr_? = null
+    var key: go2k.compile.go.dumppb.Expr_? = null
+    var value: go2k.compile.go.dumppb.Expr_? = null
     var tokPos = 0
-    var tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
-    var x: go2k.compile.dumppb.Expr_? = null
-    var body: go2k.compile.dumppb.BlockStmt? = null
+    var tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0)
+    var x: go2k.compile.go.dumppb.Expr_? = null
+    var body: go2k.compile.go.dumppb.BlockStmt? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return RangeStmt(`for`, key, value, tokPos,
             tok, x, body, protoUnmarshal.unknownFields())
         8 -> `for` = protoUnmarshal.readInt32()
-        18 -> key = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        26 -> value = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
+        18 -> key = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        26 -> value = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
         32 -> tokPos = protoUnmarshal.readInt32()
-        40 -> tok = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
-        50 -> x = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        58 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
+        40 -> tok = protoUnmarshal.readEnum(go2k.compile.go.dumppb.Token.Companion)
+        50 -> x = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        58 -> body = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -3032,9 +3032,9 @@ private fun Spec_.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshall
     var spec: Spec_.Spec? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Spec_(spec, protoUnmarshal.unknownFields())
-        10 -> spec = Spec_.Spec.ImportSpec(protoUnmarshal.readMessage(go2k.compile.dumppb.ImportSpec.Companion))
-        18 -> spec = Spec_.Spec.ValueSpec(protoUnmarshal.readMessage(go2k.compile.dumppb.ValueSpec.Companion))
-        26 -> spec = Spec_.Spec.TypeSpec(protoUnmarshal.readMessage(go2k.compile.dumppb.TypeSpec.Companion))
+        10 -> spec = Spec_.Spec.ImportSpec(protoUnmarshal.readMessage(go2k.compile.go.dumppb.ImportSpec.Companion))
+        18 -> spec = Spec_.Spec.ValueSpec(protoUnmarshal.readMessage(go2k.compile.go.dumppb.ValueSpec.Companion))
+        26 -> spec = Spec_.Spec.TypeSpec(protoUnmarshal.readMessage(go2k.compile.go.dumppb.TypeSpec.Companion))
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -3068,18 +3068,18 @@ private fun ImportSpec.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun ImportSpec.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): ImportSpec {
-    var doc: go2k.compile.dumppb.CommentGroup? = null
-    var name: go2k.compile.dumppb.Ident? = null
-    var path: go2k.compile.dumppb.BasicLit? = null
-    var comment: go2k.compile.dumppb.CommentGroup? = null
+    var doc: go2k.compile.go.dumppb.CommentGroup? = null
+    var name: go2k.compile.go.dumppb.Ident? = null
+    var path: go2k.compile.go.dumppb.BasicLit? = null
+    var comment: go2k.compile.go.dumppb.CommentGroup? = null
     var endPos = 0
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ImportSpec(doc, name, path, comment,
             endPos, protoUnmarshal.unknownFields())
-        10 -> doc = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
-        18 -> name = protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion)
-        26 -> path = protoUnmarshal.readMessage(go2k.compile.dumppb.BasicLit.Companion)
-        34 -> comment = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
+        10 -> doc = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
+        18 -> name = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ident.Companion)
+        26 -> path = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BasicLit.Companion)
+        34 -> comment = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
         40 -> endPos = protoUnmarshal.readInt32()
         else -> protoUnmarshal.unknownField()
     }
@@ -3115,19 +3115,19 @@ private fun ValueSpec.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun ValueSpec.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): ValueSpec {
-    var doc: go2k.compile.dumppb.CommentGroup? = null
-    var names: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Ident>? = null
-    var type: go2k.compile.dumppb.Expr_? = null
-    var values: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Expr_>? = null
-    var comment: go2k.compile.dumppb.CommentGroup? = null
+    var doc: go2k.compile.go.dumppb.CommentGroup? = null
+    var names: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Ident>? = null
+    var type: go2k.compile.go.dumppb.Expr_? = null
+    var values: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Expr_>? = null
+    var comment: go2k.compile.go.dumppb.CommentGroup? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return ValueSpec(doc, pbandk.ListWithSize.Builder.fixed(names), type, pbandk.ListWithSize.Builder.fixed(values),
             comment, protoUnmarshal.unknownFields())
-        10 -> doc = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
-        18 -> names = protoUnmarshal.readRepeatedMessage(names, go2k.compile.dumppb.Ident.Companion, true)
-        26 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        34 -> values = protoUnmarshal.readRepeatedMessage(values, go2k.compile.dumppb.Expr_.Companion, true)
-        42 -> comment = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
+        10 -> doc = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
+        18 -> names = protoUnmarshal.readRepeatedMessage(names, go2k.compile.go.dumppb.Ident.Companion, true)
+        26 -> type = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        34 -> values = protoUnmarshal.readRepeatedMessage(values, go2k.compile.go.dumppb.Expr_.Companion, true)
+        42 -> comment = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -3161,19 +3161,19 @@ private fun TypeSpec.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun TypeSpec.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): TypeSpec {
-    var doc: go2k.compile.dumppb.CommentGroup? = null
-    var name: go2k.compile.dumppb.Ident? = null
+    var doc: go2k.compile.go.dumppb.CommentGroup? = null
+    var name: go2k.compile.go.dumppb.Ident? = null
     var assign = 0
-    var type: go2k.compile.dumppb.Expr_? = null
-    var comment: go2k.compile.dumppb.CommentGroup? = null
+    var type: go2k.compile.go.dumppb.Expr_? = null
+    var comment: go2k.compile.go.dumppb.CommentGroup? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return TypeSpec(doc, name, assign, type,
             comment, protoUnmarshal.unknownFields())
-        10 -> doc = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
-        18 -> name = protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion)
+        10 -> doc = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
+        18 -> name = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ident.Companion)
         24 -> assign = protoUnmarshal.readInt32()
-        34 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.Expr_.Companion)
-        42 -> comment = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
+        34 -> type = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Expr_.Companion)
+        42 -> comment = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -3214,9 +3214,9 @@ private fun Decl_.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshall
     var decl: Decl_.Decl? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Decl_(decl, protoUnmarshal.unknownFields())
-        10 -> decl = Decl_.Decl.BadDecl(protoUnmarshal.readMessage(go2k.compile.dumppb.BadDecl.Companion))
-        18 -> decl = Decl_.Decl.GenDecl(protoUnmarshal.readMessage(go2k.compile.dumppb.GenDecl.Companion))
-        26 -> decl = Decl_.Decl.FuncDecl(protoUnmarshal.readMessage(go2k.compile.dumppb.FuncDecl.Companion))
+        10 -> decl = Decl_.Decl.BadDecl(protoUnmarshal.readMessage(go2k.compile.go.dumppb.BadDecl.Companion))
+        18 -> decl = Decl_.Decl.GenDecl(protoUnmarshal.readMessage(go2k.compile.go.dumppb.GenDecl.Companion))
+        26 -> decl = Decl_.Decl.FuncDecl(protoUnmarshal.readMessage(go2k.compile.go.dumppb.FuncDecl.Companion))
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -3279,20 +3279,20 @@ private fun GenDecl.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun GenDecl.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): GenDecl {
-    var doc: go2k.compile.dumppb.CommentGroup? = null
+    var doc: go2k.compile.go.dumppb.CommentGroup? = null
     var tokPos = 0
-    var tok: go2k.compile.dumppb.Token = go2k.compile.dumppb.Token.fromValue(0)
+    var tok: go2k.compile.go.dumppb.Token = go2k.compile.go.dumppb.Token.fromValue(0)
     var lparen = 0
-    var specs: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Spec_>? = null
+    var specs: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Spec_>? = null
     var rparen = 0
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return GenDecl(doc, tokPos, tok, lparen,
             pbandk.ListWithSize.Builder.fixed(specs), rparen, protoUnmarshal.unknownFields())
-        10 -> doc = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
+        10 -> doc = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
         16 -> tokPos = protoUnmarshal.readInt32()
-        24 -> tok = protoUnmarshal.readEnum(go2k.compile.dumppb.Token.Companion)
+        24 -> tok = protoUnmarshal.readEnum(go2k.compile.go.dumppb.Token.Companion)
         32 -> lparen = protoUnmarshal.readInt32()
-        42 -> specs = protoUnmarshal.readRepeatedMessage(specs, go2k.compile.dumppb.Spec_.Companion, true)
+        42 -> specs = protoUnmarshal.readRepeatedMessage(specs, go2k.compile.go.dumppb.Spec_.Companion, true)
         48 -> rparen = protoUnmarshal.readInt32()
         else -> protoUnmarshal.unknownField()
     }
@@ -3328,19 +3328,19 @@ private fun FuncDecl.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun FuncDecl.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): FuncDecl {
-    var doc: go2k.compile.dumppb.CommentGroup? = null
-    var recv: go2k.compile.dumppb.FieldList? = null
-    var name: go2k.compile.dumppb.Ident? = null
-    var type: go2k.compile.dumppb.FuncType? = null
-    var body: go2k.compile.dumppb.BlockStmt? = null
+    var doc: go2k.compile.go.dumppb.CommentGroup? = null
+    var recv: go2k.compile.go.dumppb.FieldList? = null
+    var name: go2k.compile.go.dumppb.Ident? = null
+    var type: go2k.compile.go.dumppb.FuncType? = null
+    var body: go2k.compile.go.dumppb.BlockStmt? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return FuncDecl(doc, recv, name, type,
             body, protoUnmarshal.unknownFields())
-        10 -> doc = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
-        18 -> recv = protoUnmarshal.readMessage(go2k.compile.dumppb.FieldList.Companion)
-        26 -> name = protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion)
-        34 -> type = protoUnmarshal.readMessage(go2k.compile.dumppb.FuncType.Companion)
-        42 -> body = protoUnmarshal.readMessage(go2k.compile.dumppb.BlockStmt.Companion)
+        10 -> doc = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
+        18 -> recv = protoUnmarshal.readMessage(go2k.compile.go.dumppb.FieldList.Companion)
+        26 -> name = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ident.Companion)
+        34 -> type = protoUnmarshal.readMessage(go2k.compile.go.dumppb.FuncType.Companion)
+        42 -> body = protoUnmarshal.readMessage(go2k.compile.go.dumppb.BlockStmt.Companion)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -3383,24 +3383,24 @@ private fun File.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 
 private fun File.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): File {
     var fileName = ""
-    var doc: go2k.compile.dumppb.CommentGroup? = null
+    var doc: go2k.compile.go.dumppb.CommentGroup? = null
     var `package` = 0
-    var name: go2k.compile.dumppb.Ident? = null
-    var decls: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Decl_>? = null
-    var imports: pbandk.ListWithSize.Builder<go2k.compile.dumppb.ImportSpec>? = null
-    var unresolved: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Ident>? = null
-    var comments: pbandk.ListWithSize.Builder<go2k.compile.dumppb.CommentGroup>? = null
+    var name: go2k.compile.go.dumppb.Ident? = null
+    var decls: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Decl_>? = null
+    var imports: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.ImportSpec>? = null
+    var unresolved: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Ident>? = null
+    var comments: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.CommentGroup>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return File(fileName, doc, `package`, name,
             pbandk.ListWithSize.Builder.fixed(decls), pbandk.ListWithSize.Builder.fixed(imports), pbandk.ListWithSize.Builder.fixed(unresolved), pbandk.ListWithSize.Builder.fixed(comments), protoUnmarshal.unknownFields())
         10 -> fileName = protoUnmarshal.readString()
-        18 -> doc = protoUnmarshal.readMessage(go2k.compile.dumppb.CommentGroup.Companion)
+        18 -> doc = protoUnmarshal.readMessage(go2k.compile.go.dumppb.CommentGroup.Companion)
         24 -> `package` = protoUnmarshal.readInt32()
-        34 -> name = protoUnmarshal.readMessage(go2k.compile.dumppb.Ident.Companion)
-        42 -> decls = protoUnmarshal.readRepeatedMessage(decls, go2k.compile.dumppb.Decl_.Companion, true)
-        50 -> imports = protoUnmarshal.readRepeatedMessage(imports, go2k.compile.dumppb.ImportSpec.Companion, true)
-        58 -> unresolved = protoUnmarshal.readRepeatedMessage(unresolved, go2k.compile.dumppb.Ident.Companion, true)
-        66 -> comments = protoUnmarshal.readRepeatedMessage(comments, go2k.compile.dumppb.CommentGroup.Companion, true)
+        34 -> name = protoUnmarshal.readMessage(go2k.compile.go.dumppb.Ident.Companion)
+        42 -> decls = protoUnmarshal.readRepeatedMessage(decls, go2k.compile.go.dumppb.Decl_.Companion, true)
+        50 -> imports = protoUnmarshal.readRepeatedMessage(imports, go2k.compile.go.dumppb.ImportSpec.Companion, true)
+        58 -> unresolved = protoUnmarshal.readRepeatedMessage(unresolved, go2k.compile.go.dumppb.Ident.Companion, true)
+        66 -> comments = protoUnmarshal.readRepeatedMessage(comments, go2k.compile.go.dumppb.CommentGroup.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
@@ -3435,16 +3435,16 @@ private fun Package.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 private fun Package.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): Package {
     var name = ""
     var path = ""
-    var files: pbandk.ListWithSize.Builder<go2k.compile.dumppb.File>? = null
-    var types: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Type_>? = null
+    var files: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.File>? = null
+    var types: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Type_>? = null
     var varInitOrder: pbandk.ListWithSize.Builder<String>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Package(name, path, pbandk.ListWithSize.Builder.fixed(files), pbandk.ListWithSize.Builder.fixed(types),
             pbandk.ListWithSize.Builder.fixed(varInitOrder), protoUnmarshal.unknownFields())
         10 -> name = protoUnmarshal.readString()
         18 -> path = protoUnmarshal.readString()
-        26 -> files = protoUnmarshal.readRepeatedMessage(files, go2k.compile.dumppb.File.Companion, true)
-        34 -> types = protoUnmarshal.readRepeatedMessage(types, go2k.compile.dumppb.Type_.Companion, true)
+        26 -> files = protoUnmarshal.readRepeatedMessage(files, go2k.compile.go.dumppb.File.Companion, true)
+        34 -> types = protoUnmarshal.readRepeatedMessage(types, go2k.compile.go.dumppb.Type_.Companion, true)
         42 -> varInitOrder = protoUnmarshal.readRepeated(varInitOrder, protoUnmarshal::readString, true)
         else -> protoUnmarshal.unknownField()
     }
@@ -3468,10 +3468,10 @@ private fun Packages.protoMarshalImpl(protoMarshal: pbandk.Marshaller) {
 }
 
 private fun Packages.Companion.protoUnmarshalImpl(protoUnmarshal: pbandk.Unmarshaller): Packages {
-    var packages: pbandk.ListWithSize.Builder<go2k.compile.dumppb.Package>? = null
+    var packages: pbandk.ListWithSize.Builder<go2k.compile.go.dumppb.Package>? = null
     while (true) when (protoUnmarshal.readTag()) {
         0 -> return Packages(pbandk.ListWithSize.Builder.fixed(packages), protoUnmarshal.unknownFields())
-        10 -> packages = protoUnmarshal.readRepeatedMessage(packages, go2k.compile.dumppb.Package.Companion, true)
+        10 -> packages = protoUnmarshal.readRepeatedMessage(packages, go2k.compile.go.dumppb.Package.Companion, true)
         else -> protoUnmarshal.unknownField()
     }
 }
