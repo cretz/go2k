@@ -1,6 +1,5 @@
 package go2k.compile.compiler
 
-import go2k.compile.Compiler
 import go2k.compile.TestBase
 import go2k.compile.TestUnit
 import go2k.compile.go.Parser
@@ -24,29 +23,20 @@ class CompilerTest : TestBase() {
         // Parse
         val parsed = Parser.parse(unit.mainFilePath.toString())
         debug { "Parsed: $parsed" }
-        // Compile
-        val compiled = parsed.packages.packages.map {
+        // Convert to GNodes
+        val packages = parsed.packages.packages.map { PbToGNode.convertPackage(it) }
+        // Compile to Kotlin
+        val kotlinCompiled = packages.map {
             // Change the package name to a temp package so we don't conflict
             val overrideName = it.name + UUID.randomUUID().toString().replace("-", "")
-            Compiler.compilePackage(it, overrideName).also {
+            compilePackage(it, overrideName).also {
                 it.files.forEach { (name, code) -> debug { "Code for $name:\n" + Writer.write(code) } }
             }
         }
-        debug { "Compiled: $compiled" }
-        // Check parity w/ refactor
-        val compiled2 = parsed.packages.packages.mapIndexed { index, p ->
-            val pkg = PbToGNode.convertPackage(p)
-            // Change the package name to orig above
-            val overrideName = compiled[index].files.values.first().pkg!!.names.first()
-            compilePackage(pkg, overrideName).also {
-                it.files.forEach { (name, code) -> debug { "Compiled2 code for $name:\n" + Writer.write(code) } }
-            }
-        }
-        val same = compiled.map { it.files } == compiled2.map { it.files }
-        debug { "Compiled2 (same=$same: $compiled2" }
-        assertEquals(true, same)
-        val compiler = if (unit.useExternalCompiler) externalCompiler else embeddedCompiler
-        val jvmCompiled = compiler.compilePackages(compiled)
+        debug { "Compiled: $kotlinCompiled" }
+        // Compile to JVM
+        val jvmCompiler = if (unit.useExternalCompiler) externalCompiler else embeddedCompiler
+        val jvmCompiled = jvmCompiler.compilePackages(kotlinCompiled)
         try {
             debug { "Main class: ${jvmCompiled.mainClassName}" }
             // Run and capture output

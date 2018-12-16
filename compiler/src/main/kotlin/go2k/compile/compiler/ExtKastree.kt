@@ -176,7 +176,7 @@ fun String.labelIdent() = "\$$this\$label"
 // TODO: escaping and stuff
 fun String.toDottedExpr() = split('.').let {
     it.drop(1).fold(Node.Expr.Name(it.first()) as Node.Expr) { expr, piece ->
-        go2k.compile.binaryOp(expr, Node.Expr.BinaryOp.Token.DOT, piece.toName())
+        binaryOp(expr, Node.Expr.BinaryOp.Token.DOT, piece.toName())
     }
 }
 

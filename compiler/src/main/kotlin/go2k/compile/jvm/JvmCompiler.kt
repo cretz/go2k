@@ -1,6 +1,6 @@
 package go2k.compile.jvm
 
-import go2k.compile.Compiler
+import go2k.compile.compiler.KPackage
 import kastree.ast.ExtrasMap
 import kastree.ast.Node
 import kastree.ast.Writer
@@ -34,7 +34,7 @@ import java.nio.file.Paths
 
 interface JvmCompiler {
 
-    fun compilePackages(pkgs: List<Compiler.KotlinPackage>): Compiled
+    fun compilePackages(pkgs: List<KPackage>): Compiled
 
     open class External(
         val kotlincPath: Path = Paths.get(System.getenv("KOTLINC_PATH") ?: error("Missing KOTLINC_PATH")),
@@ -42,7 +42,7 @@ interface JvmCompiler {
         val writer: (Node, ExtrasMap?) -> String = Writer.Companion::write,
         val printNonError: Boolean = true
     ) : JvmCompiler {
-        override fun compilePackages(pkgs: List<Compiler.KotlinPackage>): Compiled {
+        override fun compilePackages(pkgs: List<KPackage>): Compiled {
             val tempDir = Files.createTempDirectory(baseTempDir, "go2k-jvmcompile")
             val tempJar = tempDir.resolve("temp.jar")
             var mainClassName: String? = null
@@ -79,7 +79,7 @@ interface JvmCompiler {
         val writer: (Node, ExtrasMap?) -> String = Writer.Companion::write,
         val printNonError: Boolean = true
     ) : JvmCompiler {
-        override fun compilePackages(pkgs: List<Compiler.KotlinPackage>): Compiled {
+        override fun compilePackages(pkgs: List<KPackage>): Compiled {
             // Create a temp dir with all the files then delete the dir
             val dir = Files.createTempDirectory(baseTempDir, "go2k-jvmcompile")
             try {
