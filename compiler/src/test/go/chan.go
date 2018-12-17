@@ -15,6 +15,7 @@ func main() {
 	println("chan 3")
 	a <- 6
 	close(a)
+	<-a
 	println("chan 4")
 	// Send-only chan
 	a = make(chan int)

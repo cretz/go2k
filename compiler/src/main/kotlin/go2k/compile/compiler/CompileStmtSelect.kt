@@ -42,8 +42,8 @@ fun Context.compileStmtSelect(v: GNode.Stmt.Select, label: String? = null): Node
                 // Different call depending on whether there are two assignments or one
                 call(
                     expr =
-                        if (case.comm.lhs.size == 1) "go2k.runtime.builtin.selectRecv".toDottedExpr()
-                        else "go2k.runtime.builtin.selectRecvWithOk".toDottedExpr(),
+                        if (case.comm.lhs.size == 1) "go2k.runtime.selectRecv".toDottedExpr()
+                        else "go2k.runtime.selectRecvWithOk".toDottedExpr(),
                     args = listOf(valueArg(compileExpr(recv.x)), valueArg(compileTypeZeroExpr(chanType.elem))),
                     lambda = trailLambda(
                         params = lambdaParamNames.map { listOf(it) },
@@ -57,7 +57,7 @@ fun Context.compileStmtSelect(v: GNode.Stmt.Select, label: String? = null): Node
                 require(recv.token == GNode.Expr.Unary.Token.ARROW)
                 val chanType = recv.x.type.unnamedType() as GNode.Type.Chan
                 call(
-                    expr = "go2k.runtime.builtin.selectRecv".toDottedExpr(),
+                    expr = "go2k.runtime.selectRecv".toDottedExpr(),
                     args = listOf(valueArg(compileExpr(recv.x)), valueArg(compileTypeZeroExpr(chanType.elem))),
                     lambda = trailLambda(case.body.flatMap { compileStmt(it) })
                 ) to emptyList<Node.Stmt>()
@@ -65,7 +65,7 @@ fun Context.compileStmtSelect(v: GNode.Stmt.Select, label: String? = null): Node
             // Single send
             is GNode.Stmt.Send -> {
                 call(
-                    expr = "go2k.runtime.builtin.selectSend".toDottedExpr(),
+                    expr = "go2k.runtime.selectSend".toDottedExpr(),
                     args = listOf(valueArg(compileExpr(case.comm.chan)), valueArg(compileExpr(case.comm.value))),
                     lambda = trailLambda(case.body.flatMap { compileStmt(it) })
                 ) to emptyList<Node.Stmt>()
@@ -79,7 +79,7 @@ fun Context.compileStmtSelect(v: GNode.Stmt.Select, label: String? = null): Node
     return call(
         expr = "run".toDottedExpr(),
         lambda = trailLambda(label = breakLabel, stmts = listOf(call(
-            expr = "go2k.runtime.builtin.select".toDottedExpr(),
+            expr = "go2k.runtime.select".toDottedExpr(),
             lambda = trailLambda(listOf(Node.Expr.When(
                 expr = null,
                 entries = whenCondsAndBodies.map { (whenCond, additionalBodyStmts) ->

@@ -1,5 +1,10 @@
 package go2k.runtime
 
+var mapFactory: Map.Factory = Map.WithDefault
+
+inline fun <K, V> mapOf(defaultValue: V? = null, vararg pairs: Pair<K, V>) =
+    mapFactory.make(defaultValue as V, *pairs)
+
 interface Map<K, V> : MutableMap<K, V> {
     override fun get(key: K): V { TODO() }
 

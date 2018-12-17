@@ -45,7 +45,7 @@ fun Context.compileDeclFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Blo
         stmts = preStmts +
             if (!currFunc.hasDefer) compileStmtBlock(block).stmts
             else listOf(call(
-                expr = "go2k.runtime.builtin.withDefers".toDottedExpr(),
+                expr = "go2k.runtime.withDefers".toDottedExpr(),
                 lambda = trailLambda(compileStmtBlock(block).stmts)
             ).toStmt())
     )

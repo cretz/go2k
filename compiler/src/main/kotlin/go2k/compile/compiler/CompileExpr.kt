@@ -154,7 +154,7 @@ fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (val ut = v.x.type.unna
         if (v.low != null) args += valueArg(name = "low", expr = compileExpr(v.low))
         if (v.high != null) args += valueArg(name = "high", expr = compileExpr(v.high))
         if (v.max != null) args += valueArg(name = "max", expr = compileExpr(v.max))
-        call(expr = "go2k.runtime.builtin.slice".toDottedExpr(), args = args)
+        call(expr = "go2k.runtime.slice".toDottedExpr(), args = args)
     }
     else -> TODO()
 }
@@ -179,7 +179,7 @@ fun Context.compileExprUnary(v: GNode.Expr.Unary) = compileExpr(v.x).let { xExpr
         GNode.Expr.Unary.Token.ARROW -> call(
             // If the type is a tuple, it's the or-ok version
             expr = (v.type.unnamedType() is GNode.Type.Tuple).let { withOk ->
-                if (withOk) "go2k.runtime.builtin.recvWithOk" else "go2k.runtime.builtin.recv"
+                if (withOk) "go2k.runtime.recvWithOk" else "go2k.runtime.recv"
             }.toDottedExpr(),
             args = listOf(
                 valueArg(compileExpr(v.x)),

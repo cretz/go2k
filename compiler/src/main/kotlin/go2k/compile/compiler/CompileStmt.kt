@@ -168,6 +168,6 @@ fun Context.compileStmtReturn(v: GNode.Stmt.Return) = Node.Expr.Return(
 ).toStmt()
 
 fun Context.compileStmtSend(v: GNode.Stmt.Send) = call(
-    expr = "go2k.runtime.builtin.send".toDottedExpr(),
+    expr = "go2k.runtime.send".toDottedExpr(),
     args = listOf(valueArg(compileExpr(v.chan)), valueArg(compileExpr(v.value)))
 ).toStmt()

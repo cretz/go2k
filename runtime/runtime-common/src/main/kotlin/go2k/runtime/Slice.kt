@@ -1,5 +1,40 @@
 package go2k.runtime
 
+var sliceFactory: Slice.Factory = Slice.ArrayBased
+
+suspend inline fun slice(s: String, low: Int = 0, high: Int = s.length) = s.substring(low, high)
+suspend inline fun <T> slice(s: Slice<T>, low: Int = 0, high: Int? = null, max: Int? = null) = s.slice(low, high, max)
+
+inline fun <T> slice(arr: Array<T>, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newObjectSlice(arr, low, high, max)
+inline fun slice(arr: ByteArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newByteSlice(arr, low, high, max)
+inline fun slice(arr: UByteArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newUByteSlice(arr, low, high, max)
+inline fun slice(arr: ShortArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newShortSlice(arr, low, high, max)
+inline fun slice(arr: UShortArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newUShortSlice(arr, low, high, max)
+inline fun slice(arr: IntArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newIntSlice(arr, low, high, max)
+inline fun slice(arr: UIntArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newUIntSlice(arr, low, high, max)
+inline fun slice(arr: LongArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newLongSlice(arr, low, high, max)
+inline fun slice(arr: ULongArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newULongSlice(arr, low, high, max)
+inline fun slice(arr: FloatArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newFloatSlice(arr, low, high, max)
+inline fun slice(arr: DoubleArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newDoubleSlice(arr, low, high, max)
+inline fun slice(arr: BooleanArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newBooleanSlice(arr, low, high, max)
+inline fun slice(arr: CharArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
+    sliceFactory.newCharSlice(arr, low, high, max)
+
+// TODO
+data class PrimitiveSlicePtr<T>(val slice: Slice<T>, val v: T, val index: Int)
+
 @ExperimentalUnsignedTypes
 interface Slice<T> {
 

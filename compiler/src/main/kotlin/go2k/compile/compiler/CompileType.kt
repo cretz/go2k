@@ -1,8 +1,8 @@
 package go2k.compile.compiler
 
 import go2k.compile.go.GNode
+import go2k.runtime.GoInterface
 import go2k.runtime.Slice
-import go2k.runtime.builtin.EmptyInterface
 import kastree.ast.Node
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -52,7 +52,7 @@ fun Context.compileTypeInterface(v: GNode.Type.Interface): Node.Type {
         // in the same package that matches?)
         TODO()
     }
-    return EmptyInterface::class.toType().nullable()
+    return GoInterface.Empty::class.toType().nullable()
 }
 
 fun Context.compileTypeMultiResult(fields: List<GNode.Field>): Node.Type? {
@@ -82,7 +82,7 @@ fun Context.compileTypeRefExpr(v: GNode.Type): Node.Expr = when (v) {
             // in the same package that matches?)
             TODO()
         }
-        EmptyInterface::class.ref()
+        GoInterface.Empty::class.ref()
     }
     else -> TODO()
 }

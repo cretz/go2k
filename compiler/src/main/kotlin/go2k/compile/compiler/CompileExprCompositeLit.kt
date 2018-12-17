@@ -15,7 +15,7 @@ fun Context.compileExprCompositeLit(v: GNode.Expr.CompositeLit): Node.Expr = whe
         // Primitive types have defaults
         val firstArg = (type.elem as? GNode.Type.Basic)?.let { valueArg(compileTypeZeroExpr(it)) }
         call(
-            expr = "go2k.runtime.builtin.mapOf".toDottedExpr(),
+            expr = "go2k.runtime.mapOf".toDottedExpr(),
             typeArgs = listOf(compileType(type.key), compileType(type.elem)),
             args = listOfNotNull(firstArg) + v.elts.map { elt ->
                 elt as GNode.Expr.KeyValue
@@ -101,6 +101,6 @@ fun Context.compileExprCompositeLitArrayCreate(elemType: GNode.Type, len: Int) =
 }
 
 fun Context.compileExprCompositeLitSlice(type: GNode.Type.Slice, elems: List<GNode.Expr>) = call(
-    expr = "go2k.runtime.builtin.slice".toDottedExpr(),
+    expr = "go2k.runtime.slice".toDottedExpr(),
     args = listOf(valueArg(compileExprCompositeLitArray(type.elem, null, elems)))
 )

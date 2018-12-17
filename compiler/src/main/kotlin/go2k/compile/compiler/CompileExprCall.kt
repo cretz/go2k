@@ -41,7 +41,7 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
         args = args.take(sigType.params.size - 1) + args.drop(sigType.params.size - 1).let {
             val cls = (sigType.params.last() as? GNode.Type.Basic)?.kotlinPrimitiveType() ?: Any::class
             call(
-                expr = "go2k.runtime.builtin.slice".toDottedExpr(),
+                expr = "go2k.runtime.slice".toDottedExpr(),
                 args = listOf(valueArg(call(
                     expr = cls.arrayOfQualifiedFunctionName().toDottedExpr(),
                     args = it.map { valueArg(it) }

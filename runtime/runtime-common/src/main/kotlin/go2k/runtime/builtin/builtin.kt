@@ -1,13 +1,7 @@
 package go2k.runtime.builtin
 
 import go2k.runtime.*
-import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.selects.SelectBuilder
-
-// TODO: this has gotten a bit carried away w/ non-builtin-package calls invading this file
 
 suspend inline fun <T> append(slice: Slice<T>?, elems: Slice<T>?) =
     slice?.append(elems!!) ?: elems?.slice(0, null, null)
@@ -27,22 +21,12 @@ inline fun cap(v: BooleanArray) = v.size
 inline fun cap(v: CharArray) = v.size
 suspend inline fun cap(v: Slice<*>?) = v?.cap() ?: 0
 
+suspend inline fun close(ch: Channel<*>?) { require(ch!!.close()) { "Channel already closed" } }
+
 suspend inline fun <T> copy(dst: Slice<T>?, src: Slice<T>?) = dst?.let { src?.copyTo(it) } ?: 0
 suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, slice(Platform.stringToBytes(src)))
 
 inline fun <K> delete(m: go2k.runtime.Map<K, *>, k: K) { m.remove(k) }
-
-interface EmptyInterface : GoInterface {
-    companion object {
-        inline fun impl(v: Any?): EmptyInterface = when (v) {
-            is EmptyInterface -> v
-            is GoInterface -> EmptyInterfaceImpl(v.v)
-            else -> EmptyInterfaceImpl(v)
-        }
-    }
-}
-
-inline class EmptyInterfaceImpl(override val v: Any?) : EmptyInterface
 
 inline fun len(v: Array<*>) = v.size
 inline fun len(v: ByteArray) = v.size
@@ -61,14 +45,8 @@ suspend inline fun len(v: Slice<*>?) = v?.len() ?: 0
 inline fun len(v: String) = v.length
 inline fun len(v: go2k.runtime.Map<*, *>) = v.size
 
-var mapFactory: go2k.runtime.Map.Factory = go2k.runtime.Map.WithDefault
-
 inline fun <K, V> makeMap(defaultValue: V? = null, size: Int? = null) =
     mapFactory.make<K, V>(defaultValue as V, size)
-inline fun <K, V> mapOf(defaultValue: V? = null, vararg pairs: Pair<K, V>) =
-    mapFactory.make(defaultValue as V, *pairs)
-
-var sliceFactory: Slice.Factory = Slice.ArrayBased
 
 // TODO: no, this is wrong, they have to be instantiated to zero vals instead of nil
 inline fun <T> makeObjectSlice(len: Int, cap: Int? = null) =
@@ -100,113 +78,13 @@ inline fun makeCharSlice(len: Int, cap: Int? = null) =
 inline fun makeStringSlice(len: Int, cap: Int? = null) =
     slice(Array(cap ?: len) { "" }, high = len)
 
+fun <T> makeChan(cap: Int = 0) = Channel<T>(cap)
+
+suspend inline fun panic(v: Any?): Nothing = throw Panic(v?.let { GoInterface.Empty.impl(it) })
+
 // Usually these would be "args: Slice<*>" like other Go varargs, but these are special builtins
 // and Go handles them differently (e.g. you can't splat the args).
 suspend inline fun print(vararg args: Any?) = Platform.print(*args)
 suspend inline fun println(vararg args: Any?) = Platform.println(*args)
 
-suspend inline fun slice(s: String, low: Int = 0, high: Int = s.length) = s.substring(low, high)
-suspend inline fun <T> slice(s: Slice<T>, low: Int = 0, high: Int? = null, max: Int? = null) = s.slice(low, high, max)
-
-inline fun <T> slice(arr: Array<T>, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newObjectSlice(arr, low, high, max)
-inline fun slice(arr: ByteArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newByteSlice(arr, low, high, max)
-inline fun slice(arr: UByteArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newUByteSlice(arr, low, high, max)
-inline fun slice(arr: ShortArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newShortSlice(arr, low, high, max)
-inline fun slice(arr: UShortArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newUShortSlice(arr, low, high, max)
-inline fun slice(arr: IntArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newIntSlice(arr, low, high, max)
-inline fun slice(arr: UIntArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newUIntSlice(arr, low, high, max)
-inline fun slice(arr: LongArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newLongSlice(arr, low, high, max)
-inline fun slice(arr: ULongArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newULongSlice(arr, low, high, max)
-inline fun slice(arr: FloatArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newFloatSlice(arr, low, high, max)
-inline fun slice(arr: DoubleArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newDoubleSlice(arr, low, high, max)
-inline fun slice(arr: BooleanArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newBooleanSlice(arr, low, high, max)
-inline fun slice(arr: CharArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newCharSlice(arr, low, high, max)
-
-// TODO
-data class PrimitiveSlicePtr<T>(val slice: Slice<T>, val v: T, val index: Int)
-
-fun <T> makeChan(cap: Int = 0) = Channel<T>(cap)
-suspend inline fun close(ch: Channel<*>?) { require(ch!!.close()) { "Channel already closed" } }
-suspend fun <T> send(ch: SendChannel<T>?, v: T) {
-    // TODO: is this the best way to suspend forever
-    if (ch == null) delay(Long.MAX_VALUE) else ch.send(v)
-}
-suspend fun <T> recv(ch: ReceiveChannel<T>?, onNull: T) =
-    // TODO: is this the best way to suspend forever
-    if (ch == null) {
-        delay(Long.MAX_VALUE)
-        onNull
-    } else ch.receiveOrNull() ?: onNull
-suspend inline fun <T> recvWithOk(ch: ReceiveChannel<T>?, onNull: T) =
-    Tuple2(recv(ch, onNull), ch?.isClosedForReceive == false)
-suspend inline fun <T> selectRecv(ch: ReceiveChannel<T>?, onNull: T, fn: (T) -> Unit) =
-    // TODO: not thread-safe, ref: https://discuss.kotlinlang.org/t/thread-safe-receivechannel-poll-on-channel-with-nullable-elements/10731
-    if (ch == null || ch.isEmpty) false else true.also { fn(ch.poll() ?: onNull) }
-suspend inline fun <T> selectRecvWithOk(ch: ReceiveChannel<T>?, onNull: T, fn: (T, Boolean) -> Unit) =
-    // TODO: not thread-safe, ref: https://discuss.kotlinlang.org/t/thread-safe-receivechannel-poll-on-channel-with-nullable-elements/10731
-    if (ch == null || ch.isEmpty) false else true.also { fn(ch.poll() ?: onNull, !ch.isClosedForReceive) }
-suspend inline fun <T> selectSend(ch: SendChannel<T>?, v: T, fn: () -> Unit) =
-    ch != null && ch.offer(v).also { if (it) fn() }
-
-// TODO: Unused until https://youtrack.jetbrains.com/issue/KT-28752 is fixed
-//suspend inline fun go(noinline fn: suspend CoroutineScope.() -> Unit) { coroutineScope { launch { fn() } } }
-
-suspend inline fun select(fn: suspend () -> Unit) {
-    while (true) {
-        fn()
-        yield()
-    }
-}
-
-suspend inline fun recover(): EmptyInterface? = null
-
-suspend inline fun panic(v: Any?): Nothing = throw Panic(v?.let { EmptyInterface.impl(it) })
-
-suspend inline fun withDefers(fn: WithDefers.() -> Unit) {
-    val defers = WithDefers()
-    var err: Throwable? = null
-    try { defers.fn() }
-    catch (t: Throwable) { err = t }
-    defers.`$runDefers`(err)
-}
-
-class Recoverable(internal var panic: Panic?) {
-    fun recover() = panic?.v.also { panic = null }
-}
-
-internal class Defer<T>(val args: T, val fn: suspend Recoverable.(T) -> Unit) {
-    suspend fun run(r: Recoverable) { r.fn(args) }
-}
-
-class WithDefers {
-    internal val defers = mutableListOf<Defer<*>>()
-
-    suspend fun <T> defer(args: T, fn: suspend Recoverable.(T) -> Unit) {
-        defers += Defer(args, fn)
-    }
-
-    suspend fun `$runDefers`(t: Throwable?) {
-        val r = Recoverable(t?.let { throwableToPanic(it) })
-        defers.asReversed().forEach { defer ->
-            try { defer.run(r) }
-            catch (t: Throwable) { r.panic = throwableToPanic(t, r.panic) }
-        }
-        r.panic?.also { throw it }
-    }
-
-    internal fun throwableToPanic(t: Throwable, previous: Panic? = null) =
-        (if (t is Panic) t else Panic(EmptyInterface.impl(t), t)).also { if (previous != null) it.previous = previous }
-}
+suspend inline fun recover(): GoInterface.Empty? = null
