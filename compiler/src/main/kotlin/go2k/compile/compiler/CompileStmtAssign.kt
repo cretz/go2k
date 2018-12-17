@@ -9,6 +9,22 @@ fun Context.compileStmtAssign(v: GNode.Stmt.Assign) = when {
     else -> compileStmtAssignSingle(v)
 }
 
+fun Context.compileStmtAssignBinaryOp(
+    origLhsType: GNode.Type?,
+    lhs: Node.Expr,
+    op: Node.Expr.BinaryOp.Token,
+    origRhsType: GNode.Type?,
+    rhs: Node.Expr
+): Node.Expr {
+    var properRhs = rhs
+    // Coerce it
+    properRhs = coerceType(properRhs, origRhsType, origLhsType)
+    // Copy for by-value needs
+    properRhs = coerceTypeForByValueCopy(origRhsType, properRhs)
+    // Do the op
+    return binaryOp(lhs, op, properRhs)
+}
+
 fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
     // Single defines are normal properties. Multi-defines as results of
     // functions are destructurings. Multi-defines with multi-rhs are just
@@ -29,10 +45,12 @@ fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
             // If the ident is an underscore, we only do the RHS
             idents.singleOrNull() == "_" -> compileExpr(expr).toStmt()
             // If we're not a multi-on-single and we didn't define it here, just assign it
-            !multiDefineSingleRhs && (v.lhs[index] as GNode.Expr.Ident).defType == null -> binaryOp(
+            !multiDefineSingleRhs && (v.lhs[index] as GNode.Expr.Ident).defType == null -> compileStmtAssignBinaryOp(
+                origLhsType = v.lhs[index].type,
                 lhs = idents[index].toName(),
                 op = Node.Expr.BinaryOp.Token.ASSN,
-                rhs = compileExpr(expr, coerceTo = v.lhs[index], byValue = true)
+                origRhsType = expr.type,
+                rhs = compileExpr(expr)
             ).toStmt()
             // Otherwise, just a property
             else -> property(
@@ -58,14 +76,17 @@ fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
 fun Context.compileStmtAssignMulti(v: GNode.Stmt.Assign): List<Node.Stmt> {
     // If the multiple assignment is a result of a function, we make a temp var later
     // and do the destructuring ourselves
-    val rhsExprs =
-        if (v.rhs.size == 1) v.lhs.indices.map { call("\$temp".toName().dot("component${it + 1}")) }
-        else v.rhs.map { compileExpr(it, byValue = true) }
+    val rhsExprsAndTypes =
+        if (v.rhs.size != 1) v.rhs.map { compileExpr(it) to it.type }
+        else v.lhs.indices.map {
+            call("\$temp".toName().dot("component${it + 1}")) to
+                (v.rhs.single().type as? GNode.Type.Tuple)?.vars?.getOrNull(it)?.type
+        }
     // For multi-assign we use our helpers. They are based on whether there needs to be
     // an eager LHS and what it is.
     val multiAssignCall = call(
         expr = "go2k.runtime.Assign.multi".toDottedExpr(),
-        args = v.lhs.zip(rhsExprs) zip@ { lhs, rhsExpr ->
+        args = v.lhs.zip(rhsExprsAndTypes) zip@ { lhs, (rhsExpr, rhsType) ->
             val eagerLhsExpr: Node.Expr?
             val assignLambdaParams: List<List<String>>
             val assignLambdaLhsExpr: Node.Expr
@@ -101,9 +122,11 @@ fun Context.compileStmtAssignMulti(v: GNode.Stmt.Assign): List<Node.Stmt> {
                 eagerLhsExpr,
                 brace(
                     params = assignLambdaParams.map { it.map { propVar(it) } },
-                    stmts = listOf(binaryOp(
+                    stmts = listOf(compileStmtAssignBinaryOp(
+                        origLhsType = lhs.type,
                         lhs = assignLambdaLhsExpr,
                         op = Node.Expr.BinaryOp.Token.ASSN,
+                        origRhsType = rhsType,
                         rhs = (if (assignLambdaParams.isEmpty()) "it" else "\$rhs").toName()
                     ).toStmt())
                 ),
@@ -139,7 +162,8 @@ fun Context.compileStmtAssignSingle(v: GNode.Stmt.Assign): List<Node.Stmt> {
         else -> v.tok to v.rhs
     }
 
-    return listOf(binaryOp(
+    return listOf(compileStmtAssignBinaryOp(
+        origLhsType = v.lhs.single().type,
         lhs = compileExpr(v.lhs.single()),
         op = when (tok) {
             GNode.Stmt.Assign.Token.ASSIGN -> Node.Expr.BinaryOp.Token.ASSN
@@ -150,6 +174,7 @@ fun Context.compileStmtAssignSingle(v: GNode.Stmt.Assign): List<Node.Stmt> {
             GNode.Stmt.Assign.Token.REM -> Node.Expr.BinaryOp.Token.MOD_ASSN
             else -> error("Unrecognized token: $tok")
         },
-        rhs = compileExpr(rhs.single(), coerceTo = v.lhs.single(), byValue = true)
+        origRhsType = v.rhs.single().type,
+        rhs = compileExpr(rhs.single())
     ).toStmt())
 }

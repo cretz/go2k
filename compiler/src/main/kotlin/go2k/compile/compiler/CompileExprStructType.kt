@@ -79,6 +79,10 @@ fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.
     // Compile all the forwards as simple properties and methods
     return embedMembers.flatMap { (embedField, embedMemberSet) ->
         embedMemberSet.map { embedMember ->
+            // We do an unsafe null deref on nilable types
+            val embedFieldVar = v.fields.first { it.name == embedField.name.name }
+            var embedFieldRef: Node.Expr = embedField.name.name.toName()
+            if (embedFieldVar.type.unnamedType()?.isNullable == true) embedFieldRef = embedFieldRef.nullDeref()
             when (embedMember) {
                 is GNode.Type.Func -> func(
                     mods =
@@ -87,7 +91,7 @@ fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.
                     name = embedMember.name,
                     params = embedMember.type.params.map { param(name = it.name, type = compileType(it.type)) },
                     body = call(
-                        expr = embedField.name.name.toName().dot(embedMember.name),
+                        expr = embedFieldRef.dot(embedMember.name),
                         args = embedMember.type.params.map { valueArg(it.name.toName()) }
                     ).toFuncBody()
                 ) as Node.Decl // TODO: why is this cast needed?
@@ -100,7 +104,7 @@ fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.
                         Node.Decl.Property.Accessor.Get(
                             mods = listOf(Node.Modifier.Keyword.INLINE.toMod()),
                             type = null,
-                            body = embedField.name.name.toName().dot(embedMember.name).toFuncBody()
+                            body = embedFieldRef.dot(embedMember.name).toFuncBody()
                         ),
                         Node.Decl.Property.Accessor.Set(
                             mods = listOf(Node.Modifier.Keyword.INLINE.toMod()),
@@ -108,7 +112,7 @@ fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.
                             paramName = "\$v",
                             paramType = null,
                             body = block(listOf(binaryOp(
-                                lhs = embedField.name.name.toName().dot(embedMember.name),
+                                lhs = embedFieldRef.dot(embedMember.name),
                                 op = Node.Expr.BinaryOp.Token.ASSN,
                                 rhs = "\$v".toName()
                             ).toStmt())).toFuncBody()

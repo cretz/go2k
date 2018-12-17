@@ -6,15 +6,11 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
 
-fun Context.coerceType(v: GNode.Expr, expr: Node.Expr, to: GNode.Expr?, toType: GNode.Type?): Node.Expr {
-    return coerceType(
-        expr = expr,
-        from = v.type ?: return expr,
-        to = to?.type ?: toType ?: return expr
-    )
-}
+fun Context.coerceType(v: GNode.Expr, expr: Node.Expr, to: GNode.Expr?, toType: GNode.Type?) =
+    coerceType(expr, v.type, to?.type ?: toType)
 
-fun Context.coerceType(expr: Node.Expr, from: GNode.Type, to: GNode.Type): Node.Expr {
+fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Node.Expr {
+    if (from == null || to == null) return expr
     // If they both have primitive types, coerce that
     val fromPrim = from.kotlinPrimitiveType()
     val toPrim = to.kotlinPrimitiveType()
@@ -79,6 +75,18 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type, to: GNode.Type): Node.
         }
         else -> error("Unable to convert $from to $to")
     }
+}
+
+fun Context.coerceTypeForByValueCopy(v: GNode.Expr, expr: Node.Expr) =
+    coerceTypeForByValueCopy(v.type, expr)
+
+fun Context.coerceTypeForByValueCopy(t: GNode.Type?, expr: Node.Expr): Node.Expr {
+    // If the type is a struct and the expr is not a call instantiating it, we have to copy it
+    val needsCopy = t.unnamedType().let { type ->
+        type is GNode.Type.Named && type.underlying is GNode.Type.Struct &&
+            (expr !is Node.Expr.Call || expr.expr != type.name.name.toDottedExpr())
+    }
+    return if (!needsCopy) expr else call(expr.dot("\$copy"))
 }
 
 fun Context.coerceTypePrimitive(expr: Node.Expr, from: KClass<*>, to: KClass<*>) = when (to) {

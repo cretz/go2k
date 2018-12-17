@@ -72,7 +72,7 @@ fun Context.compileTypeNamed(v: GNode.Type.Named) = v.name.name.toDottedType()
 fun Context.compileTypePointer(v: GNode.Type.Pointer) = compileType(v.elem).let { type ->
     // Basically compile the underlying type, and if it's already nullable, this is nested
     if (type.ref !is Node.TypeRef.Nullable) type.nullable()
-    else NESTED_PTR_CLASS.toType(type)
+    else NESTED_PTR_CLASS.toType(type).nullable()
 }
 
 fun Context.compileTypeRefExpr(v: GNode.Type): Node.Expr = when (v) {

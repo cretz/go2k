@@ -27,7 +27,7 @@ fun Context.compileExpr(
     is GNode.Expr.Paren -> compileExprParen(v)
     is GNode.Expr.Selector -> compileExprSelector(v)
     is GNode.Expr.Slice -> compileExprSlice(v)
-    is GNode.Expr.Star -> TODO()
+    is GNode.Expr.Star -> compileExprStar(v)
     is GNode.Expr.StructType -> TODO()
     is GNode.Expr.TypeAssert -> TODO()
     is GNode.Expr.Unary -> compileExprUnary(v)
@@ -35,12 +35,8 @@ fun Context.compileExpr(
     // Coerce type (does nothing if not necessary)
     coerceType(v, expr, coerceTo, coerceToType)
 }.let { expr ->
-    // If by value requested, the type is a struct, the expr is not a call instantiating it, we have to copy it
-    val needsCopy = byValue && v.type.unnamedType().let { type ->
-        type is GNode.Type.Named && type.underlying is GNode.Type.Struct &&
-            (expr !is Node.Expr.Call || expr.expr != type.name.name.toDottedExpr())
-    }
-    if (!needsCopy) expr else call(expr.dot("\$copy"))
+    // Copy type (does nothing if not necessary)
+    if (!byValue) expr else coerceTypeForByValueCopy(v, expr)
 }
 
 fun Context.compileExprBasicLit(v: GNode.Expr.BasicLit) =  when (v.kind) {
@@ -144,7 +140,12 @@ fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
 
 fun Context.compileExprParen(v: GNode.Expr.Paren) = Node.Expr.Paren(compileExpr(v.x))
 
-fun Context.compileExprSelector(v: GNode.Expr.Selector) = compileExpr(v.x).dot(compileExprIdent(v.sel))
+fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
+    // If the LHS is nullable, we have to do an unsafe deref
+    var lhs = compileExpr(v.x)
+    if (v.x.type.unnamedType()?.isNullable == true) lhs = lhs.nullDeref()
+    return lhs.dot(compileExprIdent(v.sel))
+}
 
 fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (val ut = v.x.type.unnamedType()) {
     is GNode.Type.Array, is GNode.Type.Basic, is GNode.Type.Slice -> {
@@ -159,9 +160,16 @@ fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (val ut = v.x.type.unna
     else -> TODO()
 }
 
+fun Context.compileExprStar(v: GNode.Expr.Star): Node.Expr {
+    val derefed = compileExpr(v.x).nullDeref()
+    // If underlying isn't nullable we just deref, otherwise it's a nested pointer and we get the inner
+    val ptr = v.x.type.unnamedType() as GNode.Type.Pointer
+    return if (!ptr.elem.isNullable) derefed else derefed.dot("\$v")
+}
+
 fun Context.compileExprUnary(v: GNode.Expr.Unary) = compileExpr(v.x).let { xExpr ->
     when (v.token) {
-        // An "AND" op is a pointer deref
+        // An "AND" op is a pointer ref
         GNode.Expr.Unary.Token.AND -> {
             // Compile type of expr, and if it's not nullable, a simple "as" nullable form works.
             // Otherwise, it's a NestedPtr
