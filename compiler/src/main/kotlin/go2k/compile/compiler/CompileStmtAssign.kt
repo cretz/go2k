@@ -29,14 +29,19 @@ fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
     // Single defines are normal properties. Multi-defines as results of
     // functions are destructurings. Multi-defines with multi-rhs are just
     // one at a time.
-
     // Identifiers already defined and as a result of a function use temps
     val multiDefineSingleRhs = v.lhs.size > 1 && v.rhs.size == 1
+    // Sometimes, depending on LHS type, we have to wrap the RHS in a ref)
+    fun rhsAsRef(origLhs: String, rhsExpr: Node.Expr) =
+        if (!markVarDef(origLhs)) rhsExpr
+        else call(expr = "go2k.runtime.GoRef".toDottedExpr(), args = listOf(valueArg(rhsExpr)))
+    fun rhsAsRef(origLhs: GNode.Expr, rhsExpr: Node.Expr) = rhsAsRef((origLhs as GNode.Expr.Ident).name, rhsExpr)
     // Key is var name, val is temp name
     var identsUsingTemps = emptyList<Pair<String, String>>()
     val idents = v.lhs.map { ident ->
         ident as GNode.Expr.Ident
-        if (multiDefineSingleRhs && ident.defType == null) {
+        // Needs temp if multi-define and it's either really defined before or it's a ref
+        if (multiDefineSingleRhs && (ident.defType == null || varDefWillBeRef(ident.name))) {
             currFunc.newTempVar(ident.name).also { identsUsingTemps += ident.name to it }
         } else ident.name
     }
@@ -50,16 +55,16 @@ fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
                 lhs = idents[index].toName(),
                 op = Node.Expr.BinaryOp.Token.ASSN,
                 origRhsType = expr.type,
-                rhs = compileExpr(expr)
+                rhs = rhsAsRef(v.lhs[index], compileExpr(expr))
             ).toStmt()
             // Otherwise, just a property
             else -> property(
                 vars =
-                if (multiDefineSingleRhs) idents.map { if (it == "_") null else propVar(it) }
-                else listOf(propVar(idents[index])),
+                    if (multiDefineSingleRhs) idents.map { if (it == "_") null else propVar(it) }
+                    else listOf(propVar(idents[index])),
                 expr =
                     if (multiDefineSingleRhs) compileExpr(expr)
-                    else compileExpr(expr, coerceTo = v.lhs[index], byValue = true)
+                    else rhsAsRef(v.lhs[index], compileExpr(expr, coerceTo = v.lhs[index], byValue = true))
             ).toStmt()
         }
     }
@@ -68,7 +73,7 @@ fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
         binaryOp(
             lhs = ident.toName(),
             op = Node.Expr.BinaryOp.Token.ASSN,
-            rhs = temp.toName()
+            rhs = rhsAsRef(ident, temp.toName())
         ).toStmt()
     }
 }

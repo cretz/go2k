@@ -130,6 +130,7 @@ fun Context.compileExprIdent(v: GNode.Expr.Ident) = when {
     v.name == "true" -> true.toConst()
     v.name == "false" -> false.toConst()
     v.type is GNode.Type.BuiltIn -> "go2k.runtime.builtin.${v.name}".toDottedExpr()
+    varDefIsRef(v.name) -> v.name.toName().dot("\$v")
     else -> v.name.toName()
 }
 
@@ -160,52 +161,47 @@ fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (val ut = v.x.type.unna
     else -> TODO()
 }
 
-fun Context.compileExprStar(v: GNode.Expr.Star): Node.Expr {
-    val derefed = compileExpr(v.x).nullDeref()
-    // If underlying isn't nullable we just deref, otherwise it's a nested pointer and we get the inner
-    val ptr = v.x.type.unnamedType() as GNode.Type.Pointer
-    return if (!ptr.elem.isNullable) derefed else derefed.dot("\$v")
+fun Context.compileExprStar(v: GNode.Expr.Star) = compileExpr(v.x).nullDeref().dot("\$v")
+
+fun Context.compileExprUnary(v: GNode.Expr.Unary) = when (v.token) {
+    // An "AND" op is a pointer ref
+    GNode.Expr.Unary.Token.AND -> compileExprUnaryAddressOf(v)
+    // Receive from chan
+    GNode.Expr.Unary.Token.ARROW -> call(
+        // If the type is a tuple, it's the or-ok version
+        expr = (v.type.unnamedType() is GNode.Type.Tuple).let { withOk ->
+            if (withOk) "go2k.runtime.recvWithOk" else "go2k.runtime.recv"
+        }.toDottedExpr(),
+        args = listOf(
+            valueArg(compileExpr(v.x)),
+            // Needs zero value of chan element type
+            valueArg(compileTypeZeroExpr((v.x.type.unnamedType() as GNode.Type.Chan).elem))
+        )
+    )
+    // ^ is a bitwise complement
+    GNode.Expr.Unary.Token.XOR -> call(compileExpr(v.x).dot("inv"))
+    else -> unaryOp(
+        expr = compileExpr(v.x),
+        op = when (v.token) {
+            GNode.Expr.Unary.Token.ADD -> Node.Expr.UnaryOp.Token.POS
+            GNode.Expr.Unary.Token.DEC -> Node.Expr.UnaryOp.Token.DEC
+            GNode.Expr.Unary.Token.INC -> Node.Expr.UnaryOp.Token.INC
+            GNode.Expr.Unary.Token.NOT -> Node.Expr.UnaryOp.Token.NOT
+            GNode.Expr.Unary.Token.SUB -> Node.Expr.UnaryOp.Token.NEG
+            else -> error("Unrecognized unary op: ${v.token}")
+        },
+        prefix = v.token != GNode.Expr.Unary.Token.INC && v.token != GNode.Expr.Unary.Token.DEC
+    )
 }
 
-fun Context.compileExprUnary(v: GNode.Expr.Unary) = compileExpr(v.x).let { xExpr ->
-    when (v.token) {
-        // An "AND" op is a pointer ref
-        GNode.Expr.Unary.Token.AND -> {
-            // If pointer form of the type is boxed, we wrap it
-            if (v.x.type!!.pointerIsBoxed()) call(
-                expr = GO_PTR_CLASS.ref(),
-                args = listOf(valueArg(xExpr))
-            ) else typeOp(
-                lhs = xExpr,
-                op = Node.Expr.TypeOp.Token.AS,
-                rhs = compileType(v.x.type!!).nullable()
-            )
-        }
-        // Receive from chan
-        GNode.Expr.Unary.Token.ARROW -> call(
-            // If the type is a tuple, it's the or-ok version
-            expr = (v.type.unnamedType() is GNode.Type.Tuple).let { withOk ->
-                if (withOk) "go2k.runtime.recvWithOk" else "go2k.runtime.recv"
-            }.toDottedExpr(),
-            args = listOf(
-                valueArg(compileExpr(v.x)),
-                // Needs zero value of chan element type
-                valueArg(compileTypeZeroExpr((v.x.type.unnamedType() as GNode.Type.Chan).elem))
-            )
-        )
-        // ^ is a bitwise complement
-        GNode.Expr.Unary.Token.XOR -> call(xExpr.dot("inv"))
-        else -> unaryOp(
-            expr = xExpr,
-            op = when (v.token) {
-                GNode.Expr.Unary.Token.ADD -> Node.Expr.UnaryOp.Token.POS
-                GNode.Expr.Unary.Token.DEC -> Node.Expr.UnaryOp.Token.DEC
-                GNode.Expr.Unary.Token.INC -> Node.Expr.UnaryOp.Token.INC
-                GNode.Expr.Unary.Token.NOT -> Node.Expr.UnaryOp.Token.NOT
-                GNode.Expr.Unary.Token.SUB -> Node.Expr.UnaryOp.Token.NEG
-                else -> error("Unrecognized unary op: ${v.token}")
-            },
-            prefix = v.token != GNode.Expr.Unary.Token.INC && v.token != GNode.Expr.Unary.Token.DEC
-        )
-    }
+fun Context.compileExprUnaryAddressOf(v: GNode.Expr.Unary) = when (v.x) {
+    is GNode.Expr.Ident -> call(
+        expr = GO_PTR_CLASS.ref().dot("ref"),
+        args = listOf(valueArg(v.x.name.toName()))
+    )
+    is GNode.Expr.Index -> call(
+        expr = GO_PTR_CLASS.ref().dot("index"),
+        args = listOf(valueArg(compileExpr(v.x.x)), valueArg(compileExpr(v.x.index)))
+    )
+    else -> error("Not addressable expr")
 }

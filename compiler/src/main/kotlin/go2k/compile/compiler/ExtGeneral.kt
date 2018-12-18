@@ -14,6 +14,15 @@ val ULONG_ARRAY_CLASS = Class.forName("kotlin.ULongArray").kotlin as KClass<ULon
 
 val GO_PTR_CLASS = Class.forName("go2k.runtime.GoPtr").kotlin as KClass<GoPtr<*>>
 
+// From: kotlin.reflect.jvm.internal.impl.utils.addToStdlib.firstNotNullResult
+inline fun <T, R : Any> Iterable<T>.firstNotNullResult(transform: (T) -> R?): R? {
+    for (element in this) {
+        val result = transform(element)
+        if (result != null) return result
+    }
+    return null
+}
+
 fun KClass<*>.primitiveArrayClass() = when (this) {
     Boolean::class -> BooleanArray::class
     Byte::class -> ByteArray::class

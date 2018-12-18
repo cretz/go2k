@@ -15,7 +15,19 @@ class Context(
     val currFunc get() = funcContexts.last()
     fun pushFunc(type: GNode.Expr.FuncType) { funcContexts += FuncContext(type) }
     fun popFunc() = funcContexts.removeAt(funcContexts.lastIndex)
-    fun <T> withFunc(type: GNode.Expr.FuncType, fn: Context.() -> T) = apply { pushFunc(type) }.fn().also { popFunc() }
+    fun <T> withFunc(type: GNode.Expr.FuncType, fn: Context.() -> T) =
+        apply { pushFunc(type) }.fn().also { popFunc() }
+
+    val varDefStack = mutableListOf<VarDefSet>()
+    fun pushVarDefSet(varDefsNeedingRefs: Set<String>) { varDefStack += VarDefSet(varDefsNeedingRefs) }
+    fun popVarDefSet() { varDefStack.removeAt(varDefStack.lastIndex) }
+    fun <T> withVarDefSet(varDefsNeedingRefs: Set<String>, fn: Context.() -> T) =
+        apply { pushVarDefSet(varDefsNeedingRefs) }.fn().also { popVarDefSet() }
+    // Returns true if it must be a ref
+    fun varDefWillBeRef(name: String) = varDefStack.lastOrNull()?.varDefWillBeRef(name) ?: false
+    fun markVarDef(name: String) = varDefStack.lastOrNull()?.markVarDef(name) ?: false
+    fun varDefIsRef(name: String) =
+        varDefStack.asReversed().firstNotNullResult { it.varDefIsRef(name) } ?: false
 
     class FuncContext(val type: GNode.Expr.FuncType) {
         val breakables = Branchable("break")
@@ -47,5 +59,16 @@ class Context(
         fun mark(labelPrefix: String? = null) = (labelPrefix?.let(::labelName) ?: used.last().first).also { label ->
             used[used.indexOfLast { it.first == label }] = label to true
         }
+    }
+
+    class VarDefSet(val varDefsNeedingRefs: Set<String>) {
+        // Keyed by name, value is true if it's a ref
+        val varDefs = mutableMapOf<String, Boolean>()
+
+        fun varDefWillBeRef(name: String) = varDefsNeedingRefs.contains(name)
+
+        fun markVarDef(name: String) = varDefWillBeRef(name).also { varDefs[name] = it }
+
+        fun varDefIsRef(name: String) = varDefs[name]
     }
 }

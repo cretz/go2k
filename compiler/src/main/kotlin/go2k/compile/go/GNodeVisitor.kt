@@ -279,10 +279,13 @@ open class GNodeVisitor {
     protected open fun visitNodeChildren(self: GNode, v: List<GNode?>) { v.forEach { visitNodeChildren(self, it) } }
 
     companion object {
-        fun visit(v: GNode, skipTypes: Boolean = false, fn: (v: GNode, parent: GNode) -> Unit) = object : GNodeVisitor() {
+        fun visit(
+            v: GNode,
+            skipTypes: Boolean = true,
+            fn: (v: GNode, parent: GNode) -> Boolean
+        ) = object : GNodeVisitor() {
             override fun visit(v: GNode, parent: GNode) {
-                fn(v, parent)
-                super.visit(v, parent)
+                if (fn(v, parent)) super.visit(v, parent)
             }
 
             override fun visitNodeChildren(self: GNode, v: GNode?) {

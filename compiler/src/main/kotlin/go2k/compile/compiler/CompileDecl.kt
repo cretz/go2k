@@ -66,6 +66,9 @@ fun Context.compileDeclVar(v: GNode.Decl.Var, topLevel: Boolean) = v.specs.flatM
                 needsLateinit -> null
                 topLevel || value == null -> compileTypeZeroExpr(type)
                 else -> compileExpr(value)
+            }?.let { rhsExpr ->
+                if (!markVarDef(id.name)) rhsExpr
+                else call(expr = "go2k.runtime.GoRef".toDottedExpr(), args = listOf(valueArg(rhsExpr)))
             }
         )
     }

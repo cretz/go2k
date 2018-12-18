@@ -1,9 +1,14 @@
 package go2k.compile.compiler
 
 import go2k.compile.go.GNode
+import go2k.compile.go.GNodeVisitor
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
+
+fun GNode.childrenAreNewScope() = this is GNode.Expr.FuncLit || this is GNode.Stmt.Block ||
+    this is GNode.Stmt.For || this is GNode.Stmt.If || this is GNode.Stmt.Range ||
+    this is GNode.Stmt.Select.CommClause || this is GNode.Stmt.Switch || this is GNode.Stmt.Switch.CaseClause
 
 fun GNode.Package.defaultPackageName() = path.split('/').filter(String::isNotEmpty).let { pieces ->
     val first = pieces.first().let {
@@ -13,33 +18,58 @@ fun GNode.Package.defaultPackageName() = path.split('/').filter(String::isNotEmp
     (listOf(first) + pieces.drop(1)).joinToString(".")
 }
 
-// Does not include nested functions
-fun GNode.Stmt.visitStmts(fn: (GNode.Stmt) -> Unit) {
-    fn(this)
-    when (this) {
-        is GNode.Stmt.Block -> stmts.forEach { it.visitStmts(fn) }
-        is GNode.Stmt.For -> {
-            init?.visitStmts(fn)
-            post?.visitStmts(fn)
-            body.visitStmts(fn)
-        }
-        is GNode.Stmt.If -> {
-            init?.visitStmts(fn)
-            body.visitStmts(fn)
-            elseStmt?.visitStmts(fn)
-        }
-        is GNode.Stmt.Labeled -> stmt.visitStmts(fn)
-        is GNode.Stmt.Range -> body.visitStmts(fn)
-        is GNode.Stmt.Select -> cases.forEach {
-            it.comm?.visitStmts(fn)
-            it.body.forEach { it.visitStmts(fn) }
-        }
-        is GNode.Stmt.Switch -> {
-            init?.visitStmts(fn)
-            tag?.visitStmts(fn)
-            cases.forEach { it.body.forEach { it.visitStmts(fn) } }
+// Gets all var defs in the child of this stmt (but not nested scopes) that need to
+// be "refs" (i.e. their address is taken)
+fun GNode.Stmt.childVarDefsNeedingRefs(): Set<String> {
+    val visitor = object : GNodeVisitor() {
+        var varDefsInTheseStmts = emptySet<String>()
+        var varDefsInOtherStmts = emptySet<String>()
+        var varsNeedingRefsInTheseStmts = emptySet<String>()
+        var first = true
+        var inTheseStmts = true
+
+        override fun visit(v: GNode, parent: GNode) {
+            // Just skip types
+            if (v is GNode.Type) return
+            // First visit means we just go to this children without any checks
+            if (first) {
+                first = false
+                return super.visit(v, parent)
+            }
+            // Unary &'s on local vars are addresses needing refs
+            if (v is GNode.Expr.Unary &&
+                v.token == GNode.Expr.Unary.Token.AND &&
+                v.x is GNode.Expr.Ident &&
+                !varDefsInOtherStmts.contains(v.x.name) &&
+                varDefsInTheseStmts.contains(v.x.name)) varsNeedingRefsInTheseStmts += v.x.name
+            // Local var defs need to be marked
+            when (v) {
+                is GNode.Stmt.Assign -> v.lhs.takeIf { v.tok == GNode.Stmt.Assign.Token.DEFINE }.orEmpty().mapNotNull {
+                    it as? GNode.Expr.Ident
+                }
+                is GNode.Spec.Value -> v.names
+                else -> emptyList()
+            }.filter { it.defType != null }.forEach {
+                if (inTheseStmts) varDefsInTheseStmts += it.name
+                else varDefsInOtherStmts += it.name
+            }
+            // We have to reset some vals at the end if we enter a new scope
+            val childIsNewScope = v.childrenAreNewScope()
+            val currInTheseStmts = inTheseStmts
+            val currVarDefsInOtherStmts = varDefsInOtherStmts
+            if (childIsNewScope) inTheseStmts = false
+            // Traverse children
+            super.visit(v, parent)
+            // Reset some vals
+            if (childIsNewScope) {
+                inTheseStmts = currInTheseStmts
+                varDefsInOtherStmts = currVarDefsInOtherStmts
+            }
         }
     }
+    visitor.visit(this)
+    // Return all var defs that happened here only if they needed refs
+    return visitor.varDefsInTheseStmts.intersect(visitor.varsNeedingRefsInTheseStmts)
 }
 
 fun GNode.Type.derefed() = if (this is GNode.Type.Pointer) this.elem else this
@@ -48,7 +78,7 @@ val GNode.Type.isArray get() = this is GNode.Type.Array
 val GNode.Type.isJavaPrimitive get() = this is GNode.Type.Basic && kind != GNode.Type.Basic.Kind.STRING
 val GNode.Type.isNullable get() = when (this) {
     is GNode.Type.Chan, is GNode.Type.Func, is GNode.Type.Interface,
-        is GNode.Type.Map, is GNode.Type.Pointer, is GNode.Type.Slice -> true
+    is GNode.Type.Map, is GNode.Type.Pointer, is GNode.Type.Slice -> true
     else -> false
 }
 

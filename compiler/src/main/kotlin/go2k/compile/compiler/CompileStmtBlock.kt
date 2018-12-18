@@ -1,10 +1,16 @@
 package go2k.compile.compiler
 
 import go2k.compile.go.GNode
+import go2k.compile.go.GNodeVisitor
 import kastree.ast.Node
 
-fun Context.compileStmtBlock(v: GNode.Stmt.Block): Node.Block {
-    // Due to how labels work, we have to do some special work here. Goto labels become just a
+fun Context.compileStmtBlock(v: GNode.Stmt.Block): Node.Block = withVarDefSet(v.childVarDefsNeedingRefs()) {
+    // Due to how local variable pointers work, we have to do some special work. Kotlin does not
+    // have a way to have references to local properties (yet: https://youtrack.jetbrains.com/issue/KT-16303),
+    // so if we need to support them we need to know ahead of time that their addresses will be taken, hence
+    // the "with" this function is wrapped in.
+
+    // Also due to how labels work, we have to do some special work here. Goto labels become just a
     // huge lambda (with next labels inside them). Basically, we first find out whether any label
     // we might have is invoked via goto (as opposed to just break or continue). Then, we compile
     // all the statements putting them in statement sets of either the top level or as a child of
@@ -16,11 +22,13 @@ fun Context.compileStmtBlock(v: GNode.Stmt.Block): Node.Block {
     // We need to know all labels that are goto asked for ahead of time to skip ones that are
     // never asked for (i.e. are only for break/continue).
     val gotoRefLabels = mutableSetOf<String>()
-    v.visitStmts {
-        if (it is GNode.Stmt.Branch && it.tok == GNode.Stmt.Branch.Token.GOTO) gotoRefLabels += it.label!!.name
+    GNodeVisitor.visit(v) { n, _ ->
+        if (n is GNode.Stmt.Branch && n.tok == GNode.Stmt.Branch.Token.GOTO) gotoRefLabels += n.label!!.name
+        // Do not count nested functions
+        n !is GNode.Expr.FuncLit
     }
 
-    // Fold the set of labels marking each one as a child of the last seen
+    // Fold the set of labels marking each one as a child of the last seen and compile the stmts
     val multi = StmtBlockLabelNode.Multi(null, mutableListOf())
     v.stmts.fold(multi) { multi, stmt ->
         // Compile the stmts
@@ -95,7 +103,7 @@ fun Context.compileStmtBlock(v: GNode.Stmt.Block): Node.Block {
         }
     }
 
-    return block(stmts(multi))
+    block(stmts(multi))
 }
 
 fun Context.compileStmtBlockStandalone(v: GNode.Stmt.Block) = call(
