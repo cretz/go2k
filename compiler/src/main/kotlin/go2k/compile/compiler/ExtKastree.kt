@@ -161,6 +161,8 @@ fun Node.Expr.nullDeref() = unaryOp(this, Node.Expr.UnaryOp.Token.NULL_DEREF, fa
 
 fun Node.Expr.paren() = Node.Expr.Paren(this)
 
+fun Node.Expr.ptrDeref() = nullDeref().dot("\$v")
+
 fun Node.Expr.toFuncBody() = Node.Decl.Func.Body.Expr(this)
 
 fun Node.Expr.toStmt() = Node.Stmt.Expr(this)

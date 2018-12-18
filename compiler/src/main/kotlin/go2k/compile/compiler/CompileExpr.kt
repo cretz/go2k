@@ -100,7 +100,7 @@ fun Context.compileExprBinary(v: GNode.Expr.Binary) = when (v.op) {
     )
 }
 
-fun Context.compileExprFuncLit(v: GNode.Expr.FuncLit): Node.Expr {
+fun Context.compileExprFuncLit(v: GNode.Expr.FuncLit): Node.Expr = withVarDefSet(v.childVarDefsNeedingRefs()) {
     // TODO: once https://youtrack.jetbrains.com/issue/KT-18346 is fixed, return Node.Expr.AnonFunc(decl)
     // In the meantime, we have to turn the function into a suspended lambda sadly
     val tempVar = currFunc.newTempVar("anonFunc")
@@ -111,7 +111,7 @@ fun Context.compileExprFuncLit(v: GNode.Expr.FuncLit): Node.Expr {
     currFunc.inDefer = inDefer
     val (params, resultType, stmts) = compileDeclFuncBody(v.funcType, v.body)
     popFunc()
-    return call(
+    call(
         expr = "go2k.runtime.anonFunc".toDottedExpr(),
         typeArgs = listOf(Node.Type(
             mods = listOf(Node.Modifier.Keyword.SUSPEND.toMod()),
@@ -135,16 +135,27 @@ fun Context.compileExprIdent(v: GNode.Expr.Ident) = when {
 }
 
 fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
-    expr = compileExpr(v.x).nullDeref(),
+    expr = compileExpr(v.x).let { xExpr ->
+        v.x.type.unnamedType().let { xType ->
+            // Need to deref the pointer and deref nulls
+            when {
+                xType is GNode.Type.Pointer -> xExpr.ptrDeref().let { xExpr ->
+                    if (xType.elem.unnamedType()?.isNullable == true) xExpr.nullDeref() else xExpr
+                }
+                xType?.isNullable == true -> xExpr.nullDeref()
+                else -> xExpr
+            }
+        }
+    },
     indices = listOf(compileExpr(v.index))
 )
 
 fun Context.compileExprParen(v: GNode.Expr.Paren) = Node.Expr.Paren(compileExpr(v.x))
 
 fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
-    // If the LHS is nullable, we have to do an unsafe deref
     var lhs = compileExpr(v.x)
-    if (v.x.type.unnamedType()?.isNullable == true) lhs = lhs.nullDeref()
+    // If the LHS is pointer we deref
+    if (v.x.type.unnamedType() is GNode.Type.Pointer) lhs = lhs.ptrDeref()
     return lhs.dot(compileExprIdent(v.sel))
 }
 
@@ -165,7 +176,7 @@ fun Context.compileExprStar(v: GNode.Expr.Star) = compileExpr(v.x).nullDeref().d
 
 fun Context.compileExprUnary(v: GNode.Expr.Unary) = when (v.token) {
     // An "AND" op is a pointer ref
-    GNode.Expr.Unary.Token.AND -> compileExprUnaryAddressOf(v)
+    GNode.Expr.Unary.Token.AND -> compileExprUnaryAddressOf(v.x)
     // Receive from chan
     GNode.Expr.Unary.Token.ARROW -> call(
         // If the type is a tuple, it's the or-ok version
@@ -194,14 +205,38 @@ fun Context.compileExprUnary(v: GNode.Expr.Unary) = when (v.token) {
     )
 }
 
-fun Context.compileExprUnaryAddressOf(v: GNode.Expr.Unary) = when (v.x) {
+fun Context.compileExprUnaryAddressOf(v: GNode.Expr): Node.Expr = when (v) {
+    is GNode.Expr.CompositeLit -> call(
+        expr = GO_PTR_CLASS.ref().dot("lit"),
+        args = listOf(valueArg(compileExpr(v)))
+    )
     is GNode.Expr.Ident -> call(
         expr = GO_PTR_CLASS.ref().dot("ref"),
-        args = listOf(valueArg(v.x.name.toName()))
+        args = listOf(valueArg(v.name.toName()))
     )
     is GNode.Expr.Index -> call(
         expr = GO_PTR_CLASS.ref().dot("index"),
-        args = listOf(valueArg(compileExpr(v.x.x)), valueArg(compileExpr(v.x.index)))
+        args = listOf(valueArg(compileExpr(v.x)), valueArg(compileExpr(v.index)))
+    )
+    is GNode.Expr.Paren -> compileExprUnaryAddressOf(v.x)
+    // We choose not to use property references here to keep the reflection lib out
+    is GNode.Expr.Selector -> call(
+        expr = GO_PTR_CLASS.ref().dot("field"),
+        args = listOf(
+            valueArg(compileExpr(v.x)),
+            valueArg(brace(
+                params = listOf(listOf(propVar("\$s"))),
+                stmts = listOf("\$s".toName().dot(v.sel.name).toStmt())
+            )),
+            valueArg(brace(
+                params = listOf(listOf(propVar("\$s")), listOf(propVar("\$v"))),
+                stmts = listOf(binaryOp(
+                    lhs = "\$s".toName().dot(v.sel.name),
+                    op = Node.Expr.BinaryOp.Token.ASSN,
+                    rhs = "\$v".toName()
+                ).toStmt())
+            ))
+        )
     )
     else -> error("Not addressable expr")
 }

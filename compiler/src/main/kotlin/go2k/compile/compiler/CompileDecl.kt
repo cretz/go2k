@@ -60,7 +60,10 @@ fun Context.compileDeclVar(v: GNode.Decl.Var, topLevel: Boolean) = v.specs.flatM
             // We only put the type if it's top level or explicitly specified
             vars = listOf(propVar(
                 name = id.name,
-                type = if (topLevel || spec.type != null) compileType(type) else null
+                type = if (!topLevel && spec.type == null) null else compileType(type).let {
+                    // If the type needs to be a ref, we have to wrap it
+                    if (varDefWillBeRef(id.name)) "go2k.runtime.GoRef".toDottedType(it) else it
+                }
             )),
             expr = when {
                 needsLateinit -> null

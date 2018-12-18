@@ -10,66 +10,68 @@ fun GNode.childrenAreNewScope() = this is GNode.Expr.FuncLit || this is GNode.St
     this is GNode.Stmt.For || this is GNode.Stmt.If || this is GNode.Stmt.Range ||
     this is GNode.Stmt.Select.CommClause || this is GNode.Stmt.Switch || this is GNode.Stmt.Switch.CaseClause
 
+// Gets all var defs in the child of this node (but not nested scopes) that need to
+// be "refs" (i.e. their address is taken at any depth)
+fun GNode.childVarDefsNeedingRefs(): Set<String> {
+    val visitor = object : GNodeVisitor() {
+        var varDefsInThisNode = emptySet<String>()
+        var varDefsInOtherNodes = emptySet<String>()
+        var varsNeedingRefsInThisNode = emptySet<String>()
+        var first = true
+        var inThisNode = true
+
+        override fun visit(v: GNode, parent: GNode) {
+            // Just skip types
+            if (v is GNode.Type) return
+            // Unary &'s on local vars are addresses needing refs
+            if (v is GNode.Expr.Unary &&
+                v.token == GNode.Expr.Unary.Token.AND &&
+                v.x is GNode.Expr.Ident &&
+                !varDefsInOtherNodes.contains(v.x.name) &&
+                varDefsInThisNode.contains(v.x.name)) varsNeedingRefsInThisNode += v.x.name
+            // Local var defs need to be marked
+            when (v) {
+                is GNode.Decl.Func -> v.recv.flatMap { it.names }
+                is GNode.Expr.FuncType -> v.params.flatMap { it.names } + v.results.flatMap { it.names }
+                is GNode.Spec.Value -> v.names
+                is GNode.Stmt.Assign -> v.lhs.takeIf { v.tok == GNode.Stmt.Assign.Token.DEFINE }.orEmpty().mapNotNull {
+                    it as? GNode.Expr.Ident
+                }
+                is GNode.Stmt.Range ->
+                    if (!v.define) emptyList()
+                    else listOfNotNull(v.key as? GNode.Expr.Ident, v.value as? GNode.Expr.Ident)
+                else -> emptyList()
+            }.filter { it.defType != null }.forEach {
+                if (inThisNode) varDefsInThisNode += it.name
+                else varDefsInOtherNodes += it.name
+            }
+            // We have to reset some vals at the end if we enter a new scope.
+            // Note, it's not a new scope if this is the first element
+            val childIsNewScope = !first && v.childrenAreNewScope()
+            if (first) first = false
+            val currInTheseStmts = inThisNode
+            val currVarDefsInOtherStmts = varDefsInOtherNodes
+            if (childIsNewScope) inThisNode = false
+            // Traverse children
+            super.visit(v, parent)
+            // Reset some vals
+            if (childIsNewScope) {
+                inThisNode = currInTheseStmts
+                varDefsInOtherNodes = currVarDefsInOtherStmts
+            }
+        }
+    }
+    visitor.visit(this)
+    // Return all var defs that happened here only if they needed refs
+    return visitor.varDefsInThisNode.intersect(visitor.varsNeedingRefsInThisNode)
+}
+
 fun GNode.Package.defaultPackageName() = path.split('/').filter(String::isNotEmpty).let { pieces ->
     val first = pieces.first().let {
         val dotIndex = it.indexOf('.')
         if (dotIndex == -1) it else it.substring(dotIndex + 1) + '.' + it.substring(0, dotIndex)
     }
     (listOf(first) + pieces.drop(1)).joinToString(".")
-}
-
-// Gets all var defs in the child of this stmt (but not nested scopes) that need to
-// be "refs" (i.e. their address is taken)
-fun GNode.Stmt.childVarDefsNeedingRefs(): Set<String> {
-    val visitor = object : GNodeVisitor() {
-        var varDefsInTheseStmts = emptySet<String>()
-        var varDefsInOtherStmts = emptySet<String>()
-        var varsNeedingRefsInTheseStmts = emptySet<String>()
-        var first = true
-        var inTheseStmts = true
-
-        override fun visit(v: GNode, parent: GNode) {
-            // Just skip types
-            if (v is GNode.Type) return
-            // First visit means we just go to this children without any checks
-            if (first) {
-                first = false
-                return super.visit(v, parent)
-            }
-            // Unary &'s on local vars are addresses needing refs
-            if (v is GNode.Expr.Unary &&
-                v.token == GNode.Expr.Unary.Token.AND &&
-                v.x is GNode.Expr.Ident &&
-                !varDefsInOtherStmts.contains(v.x.name) &&
-                varDefsInTheseStmts.contains(v.x.name)) varsNeedingRefsInTheseStmts += v.x.name
-            // Local var defs need to be marked
-            when (v) {
-                is GNode.Stmt.Assign -> v.lhs.takeIf { v.tok == GNode.Stmt.Assign.Token.DEFINE }.orEmpty().mapNotNull {
-                    it as? GNode.Expr.Ident
-                }
-                is GNode.Spec.Value -> v.names
-                else -> emptyList()
-            }.filter { it.defType != null }.forEach {
-                if (inTheseStmts) varDefsInTheseStmts += it.name
-                else varDefsInOtherStmts += it.name
-            }
-            // We have to reset some vals at the end if we enter a new scope
-            val childIsNewScope = v.childrenAreNewScope()
-            val currInTheseStmts = inTheseStmts
-            val currVarDefsInOtherStmts = varDefsInOtherStmts
-            if (childIsNewScope) inTheseStmts = false
-            // Traverse children
-            super.visit(v, parent)
-            // Reset some vals
-            if (childIsNewScope) {
-                inTheseStmts = currInTheseStmts
-                varDefsInOtherStmts = currVarDefsInOtherStmts
-            }
-        }
-    }
-    visitor.visit(this)
-    // Return all var defs that happened here only if they needed refs
-    return visitor.varDefsInTheseStmts.intersect(visitor.varsNeedingRefsInTheseStmts)
 }
 
 fun GNode.Type.derefed() = if (this is GNode.Type.Pointer) this.elem else this

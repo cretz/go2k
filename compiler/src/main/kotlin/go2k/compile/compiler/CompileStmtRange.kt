@@ -3,7 +3,10 @@ package go2k.compile.compiler
 import go2k.compile.go.GNode
 import kastree.ast.Node
 
-fun Context.compileStmtRange(v: GNode.Stmt.Range, label: String? = null): Node.Stmt {
+fun Context.compileStmtRange(
+    v: GNode.Stmt.Range,
+    label: String? = null
+): Node.Stmt = withVarDefSet(v.childVarDefsNeedingRefs()) {
     // Range loops are first surrounded by a run for breaking and then labeled for continuing.
     // They are iterated via forEach and forEachIndexed depending upon what is ranged on.
     val hasKeyParam = v.key != null && (v.key !is GNode.Expr.Ident || v.key.name != "_")
@@ -33,6 +36,7 @@ fun Context.compileStmtRange(v: GNode.Stmt.Range, label: String? = null): Node.S
     }
     // Build lambda params
     var initStmts = emptyList<Node.Stmt>()
+    var preStmts = emptyList<Node.Stmt>()
     // Define uses lambda params, otherwise we set from temp vars
     if (!v.define) {
         if (hasKeyParam) {
@@ -41,6 +45,32 @@ fun Context.compileStmtRange(v: GNode.Stmt.Range, label: String? = null): Node.S
         }
         if (hasValParam) {
             initStmts += binaryOp(compileExpr(v.value!!), Node.Expr.BinaryOp.Token.ASSN, "\$tempVal".toName()).toStmt()
+            valParamName = "\$tempVal"
+        }
+    } else {
+        // Wait, if the define are refs, we also have to use temps
+        if (keyParamName != null && markVarDef(keyParamName)) {
+            val type = (v.key as GNode.Expr.Ident).let { it.type ?: it.defType }!!
+            preStmts += property(
+                vars = listOf(propVar(keyParamName)),
+                expr = call(
+                    expr = "go2k.runtime.GoRef".toDottedExpr(),
+                    args = listOf(valueArg(compileTypeZeroExpr(type)))
+                )
+            ).toStmt()
+            initStmts += binaryOp(compileExpr(v.key), Node.Expr.BinaryOp.Token.ASSN, "\$tempKey".toName()).toStmt()
+            keyParamName = "\$tempKey"
+        }
+        if (valParamName != null && markVarDef(valParamName)) {
+            val type = (v.value as GNode.Expr.Ident).let { it.type ?: it.defType }!!
+            preStmts += property(
+                vars = listOf(propVar(valParamName)),
+                expr = call(
+                    expr = "go2k.runtime.GoRef".toDottedExpr(),
+                    args = listOf(valueArg(compileTypeZeroExpr(type)))
+                )
+            ).toStmt()
+            initStmts += binaryOp(compileExpr(v.value), Node.Expr.BinaryOp.Token.ASSN, "\$tempVal".toName()).toStmt()
             valParamName = "\$tempVal"
         }
     }
@@ -67,9 +97,9 @@ fun Context.compileStmtRange(v: GNode.Stmt.Range, label: String? = null): Node.S
             stmts = initStmts + bodyStmts
         )
     ).toStmt()
-    if (breakCalled) stmt = call(
+    if (breakCalled || preStmts.isNotEmpty()) stmt = call(
         expr = "run".toName(),
-        lambda = trailLambda(label = breakLabel, stmts = listOf(stmt))
+        lambda = trailLambda(label = breakLabel.takeIf { breakCalled }, stmts = preStmts + listOf(stmt))
     ).toStmt()
-    return stmt
+    stmt
 }

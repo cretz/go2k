@@ -6,7 +6,12 @@ import kastree.ast.Node
 fun Context.compileStmtSwitch(v: GNode.Stmt.Switch, label: String? = null) =
     if (v.type) compileStmtSwitchType(v, label) else compileStmtSwitchExpr(v, label)
 
-fun Context.compileStmtSwitchExpr(v: GNode.Stmt.Switch, label: String? = null): Node.Stmt {
+fun Context.compileStmtSwitchExpr(
+    v: GNode.Stmt.Switch,
+    label: String? = null
+): Node.Stmt = withVarDefSet(v.childVarDefsNeedingRefs()) {
+    // Compile init first to set var def
+    val initStmts = v.init?.let { compileStmt(it) }.orEmpty()
     // Track break usage
     currFunc.breakables.push(label)
     val entries = v.cases.mapIndexed { index, case ->
@@ -43,14 +48,14 @@ fun Context.compileStmtSwitchExpr(v: GNode.Stmt.Switch, label: String? = null): 
     ).toStmt()
     // If there is an init or break, we do it in a run clause. Note, we cannot use when-with-subject-decl
     // here when it applies because Kotlin only allows "val" whereas Go allows mutable var.
-    if (v.init != null || breakCalled) stmt = call(
+    if (initStmts.isNotEmpty() || breakCalled) stmt = call(
         expr = "run".toName(),
         lambda = trailLambda(
             label = breakLabel.takeIf { breakCalled },
-            stmts = (v.init?.let { compileStmt(it) } ?: emptyList()) + stmt
+            stmts = initStmts + stmt
         )
     ).toStmt()
-    return stmt
+    stmt
 }
 
 fun Context.compileStmtSwitchType(v: GNode.Stmt.Switch, label: String? = null): Node.Stmt = TODO()

@@ -71,12 +71,17 @@ fun Context.compileStmtDefer(v: GNode.Stmt.Defer): Node.Stmt {
 
 fun Context.compileStmtExpr(v: GNode.Stmt.Expr) = compileExpr(v.x).toStmt()
 
-fun Context.compileStmtFor(v: GNode.Stmt.For, label: String? = null): Node.Stmt {
+fun Context.compileStmtFor(
+    v: GNode.Stmt.For,
+    label: String? = null
+): Node.Stmt = withVarDefSet(v.childVarDefsNeedingRefs()) {
     // Non-range for loops, due to their requirement to support break/continue and that break/continue
     // may be in another run clause or something, we have to use our own style akin to what is explained
     // at https://stackoverflow.com/a/34642869/547546. So we have a run around everything that is where
     // a break breaks out of. Then we have a forLoop fn where a continue returns.
 
+    // Need to call init first because it might def a var
+    val initStmts = v.init?.let { compileStmt(it) }.orEmpty()
     // Compile the block and see if anything had break/continue
     currFunc.breakables.push(label)
     currFunc.continuables.push(label)
@@ -84,7 +89,7 @@ fun Context.compileStmtFor(v: GNode.Stmt.For, label: String? = null): Node.Stmt 
     val (breakLabel, breakCalled) = currFunc.breakables.pop()
     val (continueLabel, continueCalled) = currFunc.continuables.pop()
 
-    val stmts = v.init?.let { compileStmt(it) }.orEmpty() + call(
+    val stmts = initStmts + call(
         expr = "go2k.runtime.forLoop".toDottedExpr(),
         args = listOf(
             // Condition or "true"
@@ -98,7 +103,7 @@ fun Context.compileStmtFor(v: GNode.Stmt.For, label: String? = null): Node.Stmt 
         )
     ).toStmt()
     // If there is an init or a break label, we have to wrap in a run
-    return if (stmts.size == 1 && !breakCalled) stmts.single() else call(
+    if (stmts.size == 1 && !breakCalled) stmts.single() else call(
         expr = "run".toName(),
         lambda = trailLambda(
             label = breakLabel.takeIf { breakCalled },
@@ -117,7 +122,9 @@ fun Context.compileStmtGo(v: GNode.Stmt.Go): Node.Stmt {
     ).toStmt()
 }
 
-fun Context.compileStmtIf(v: GNode.Stmt.If): Node.Stmt.Expr {
+fun Context.compileStmtIf(v: GNode.Stmt.If): Node.Stmt.Expr = withVarDefSet(v.childVarDefsNeedingRefs()) {
+    // Compile init first to capture var defs
+    val initStmts = v.init?.let { compileStmt(it) }.orEmpty()
     var expr: Node.Expr = Node.Expr.If(
         expr = compileExpr(v.cond),
         body = Node.Expr.Brace(emptyList(), compileStmtBlock(v.body)),
@@ -130,11 +137,11 @@ fun Context.compileStmtIf(v: GNode.Stmt.If): Node.Stmt.Expr {
         }
     )
     // If there is an init, we are going to do it inside of a run block and then do the if
-    if (v.init != null) expr = call(
+    if (initStmts.isNotEmpty()) expr = call(
         expr = "run".toName(),
-        lambda = trailLambda(compileStmt(v.init) + expr.toStmt())
+        lambda = trailLambda(initStmts + expr.toStmt())
     )
-    return expr.toStmt()
+    expr.toStmt()
 }
 
 fun Context.compileStmtIncDec(v: GNode.Stmt.IncDec) = Node.Expr.UnaryOp(

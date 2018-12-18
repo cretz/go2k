@@ -5,23 +5,43 @@ import go2k.runtime.Slice
 import kastree.ast.Node
 
 fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
-    compileDeclFuncBody(v.type, v.body).let { (params, returnType, stmts) ->
-        func(
-            mods = listOfNotNull(
-                Node.Modifier.Keyword.SUSPEND.toMod(),
-                Node.Modifier.Keyword.INTERNAL?.takeIf { v.name.first().isLowerCase() }?.toMod()
-            ),
-            name = v.name,
-            params = params,
-            type = returnType,
-            body = block(stmts).toFuncBody()
-        )
+    withVarDefSet(v.childVarDefsNeedingRefs()) {
+        // Mark recv as defined and redefine if needs to be ref
+        val preStmts: List<Node.Stmt> = v.recv.flatMap {
+            it.names.mapNotNull {
+                if (!markVarDef(it.name)) null else property(
+                    vars = listOf(propVar(it.name)),
+                    expr = call(expr = "go2k.runtime.GoRef".toDottedExpr(), args = listOf(valueArg(it.name.toName())))
+                ).toStmt()
+            }
+        }
+        compileDeclFuncBody(v.type, v.body).let { (params, returnType, stmts) ->
+            func(
+                mods = listOfNotNull(
+                    Node.Modifier.Keyword.SUSPEND.toMod(),
+                    Node.Modifier.Keyword.INTERNAL?.takeIf { v.name.first().isLowerCase() }?.toMod()
+                ),
+                name = v.name,
+                params = params,
+                type = returnType,
+                body = block(preStmts + stmts).toFuncBody()
+            )
+        }
     }
 }
 
 fun Context.compileDeclFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Block): DeclFuncBody {
+    // Mark all params/results as defined, making ones that need refs to be refs
+    var preStmts: List<Node.Stmt> = (type.params + type.results).flatMap {
+        it.names.mapNotNull {
+            if (!markVarDef(it.name)) null else property(
+                vars = listOf(propVar(it.name)),
+                expr = call(expr = "go2k.runtime.GoRef".toDottedExpr(), args = listOf(valueArg(it.name.toName())))
+            ).toStmt()
+        }
+    }
     // Named return idents need to be declared with zero vals up front
-    val preStmts = type.results.flatMap { field ->
+    preStmts += type.results.flatMap { field ->
         field.names.map { ident ->
             property(
                 vars = listOf(propVar(ident.name)),
