@@ -1,6 +1,6 @@
 package go2k.compile.compiler
 
-import go2k.runtime.NestedPtr
+import go2k.runtime.GoPtr
 import kotlin.reflect.KClass
 
 val UBYTE_CLASS = Class.forName("kotlin.UByte").kotlin as KClass<UByte>
@@ -12,7 +12,7 @@ val UINT_ARRAY_CLASS = Class.forName("kotlin.UIntArray").kotlin as KClass<UIntAr
 val ULONG_CLASS = Class.forName("kotlin.ULong").kotlin as KClass<ULong>
 val ULONG_ARRAY_CLASS = Class.forName("kotlin.ULongArray").kotlin as KClass<ULongArray>
 
-val NESTED_PTR_CLASS = Class.forName("go2k.runtime.NestedPtr").kotlin as KClass<NestedPtr<*>>
+val GO_PTR_CLASS = Class.forName("go2k.runtime.GoPtr").kotlin as KClass<GoPtr<*>>
 
 fun KClass<*>.primitiveArrayClass() = when (this) {
     Boolean::class -> BooleanArray::class

@@ -27,7 +27,9 @@ fun Context.compileExprStructType(name: String, v: GNode.Type.Struct) = structur
         type = GoStruct::class.toType().ref as Node.TypeRef.Simple,
         by = null
     )),
-    members = compileExprStructTypeEmbedForwards(v) + compileExprStructTypeCopyMethod(name, v)
+    members = compileExprStructTypeEmbedForwards(v) +
+        compileExprStructTypeCopyMethod(name, v) +
+        compileExprStructTypeAssignFrom(name, v)
 )
 
 fun Context.compileExprStructTypeCopyMethod(name: String, type: GNode.Type.Struct) = func(
@@ -43,6 +45,18 @@ fun Context.compileExprStructTypeCopyMethod(name: String, type: GNode.Type.Struc
             })
         }
     ).toFuncBody()
+)
+
+fun Context.compileExprStructTypeAssignFrom(name: String, v: GNode.Type.Struct) = func(
+    name = "\$assignFrom",
+    params = listOf(param(name = "\$v", type = name.toDottedType())),
+    body = block(v.fields.map { field ->
+        binaryOp(
+            lhs = "\$v".toName().dot(field.name),
+            op = Node.Expr.BinaryOp.Token.ASSN,
+            rhs = field.name.toName()
+        ).toStmt()
+    }).toFuncBody()
 )
 
 fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.Decl> {

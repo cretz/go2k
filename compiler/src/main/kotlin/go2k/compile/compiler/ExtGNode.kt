@@ -59,6 +59,12 @@ fun GNode.Type.kotlinPrimitiveType(): KClass<*>? = when (this) {
     else -> null
 }
 
+fun GNode.Type.pointerIsBoxed() = when (val type = unnamedType()) {
+    is GNode.Type.Named -> type.underlying !is GNode.Type.Struct
+    is GNode.Type.Struct -> false
+    else -> true
+}
+
 // The type not specific to the current name
 fun GNode.Type?.unnamedType(): GNode.Type? =
     if (this is GNode.Type.NamedEntity) type?.unnamedType() else this

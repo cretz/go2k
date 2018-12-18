@@ -171,16 +171,14 @@ fun Context.compileExprUnary(v: GNode.Expr.Unary) = compileExpr(v.x).let { xExpr
     when (v.token) {
         // An "AND" op is a pointer ref
         GNode.Expr.Unary.Token.AND -> {
-            // Compile type of expr, and if it's not nullable, a simple "as" nullable form works.
-            // Otherwise, it's a NestedPtr
-            val xType = compileType(v.x.type!!)
-            if (xType.ref !is Node.TypeRef.Nullable) typeOp(
+            // If pointer form of the type is boxed, we wrap it
+            if (v.x.type!!.pointerIsBoxed()) call(
+                expr = GO_PTR_CLASS.ref(),
+                args = listOf(valueArg(xExpr))
+            ) else typeOp(
                 lhs = xExpr,
                 op = Node.Expr.TypeOp.Token.AS,
-                rhs = xType.nullable()
-            ) else call(
-                expr = NESTED_PTR_CLASS.ref(),
-                args = listOf(valueArg(xExpr))
+                rhs = compileType(v.x.type!!).nullable()
             )
         }
         // Receive from chan
