@@ -67,13 +67,10 @@ fun Context.compileTypeMultiResult(fields: List<GNode.Field>): Node.Type? {
     }
 }
 
-fun Context.compileTypeNamed(v: GNode.Type.Named) = v.name.name.toDottedType()
+fun Context.compileTypeNamed(v: GNode.Type.Named) = v.name().name.toDottedType()
 
-fun Context.compileTypePointer(v: GNode.Type.Pointer) = compileType(v.elem).let { type ->
-    // Basically, only structs do not have their pointers boxed
-    if (v.elem.pointerIsBoxed()) GO_PTR_CLASS.toType(type).nullable()
-    else type.nullable()
-}
+// For now all pointers are boxed
+fun Context.compileTypePointer(v: GNode.Type.Pointer) = GO_PTR_CLASS.toType(compileType(v.elem)).nullable()
 
 fun Context.compileTypeRefExpr(v: GNode.Type): Node.Expr = when (v) {
     is GNode.Type.Interface -> {
@@ -134,7 +131,7 @@ fun Context.compileTypeZeroExpr(v: GNode.Type): Node.Expr = when (v) {
     is GNode.Type.Label -> compileTypeZeroExpr(v.type!!)
     is GNode.Type.Map -> NullConst
     // TODO: qualify
-    is GNode.Type.Named -> call(v.name.name.toName())
+    is GNode.Type.Named -> call(v.name().name.toName())
     is GNode.Type.Nil -> NullConst
     is GNode.Type.Pointer -> NullConst
     is GNode.Type.Slice -> NullConst

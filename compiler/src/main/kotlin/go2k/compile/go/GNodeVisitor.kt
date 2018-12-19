@@ -1,6 +1,6 @@
 package go2k.compile.go
 
-open class GNodeVisitor {
+open class GNodeVisitor(val visitLazy: Boolean = false) {
     fun visit(v: GNode) = visit(v, v)
 
     protected open fun visit(v: GNode, parent: GNode) = v.run<GNode, Unit> {
@@ -240,7 +240,7 @@ open class GNodeVisitor {
                 visitChildren(key)
             }
             is GNode.Type.Named -> {
-                visitChildren(name)
+                if (visitLazy) visitChildren(name())
                 visitChildren(underlying)
                 visitChildren(methods)
             }
@@ -250,7 +250,7 @@ open class GNodeVisitor {
                 visitChildren(elem)
             }
             is GNode.Type.Signature -> {
-                visitChildren(recv)
+                if (visitLazy) visitChildren(recv())
                 visitChildren(params)
                 visitChildren(results)
             }

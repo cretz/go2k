@@ -30,7 +30,7 @@ fun Context.compileExprCompositeLit(v: GNode.Expr.CompositeLit): Node.Expr = whe
     is GNode.Expr.Ident -> {
         val type = v.type.unnamedType() as GNode.Type.Named
         call(
-            expr = type.name.name.toName(),
+            expr = type.name().name.toName(),
             args = v.elts.map { elt ->
                 if (elt !is GNode.Expr.KeyValue) valueArg(compileExpr(elt))
                 else valueArg(name = (elt.key as GNode.Expr.Ident).name, expr = compileExpr(elt.value))

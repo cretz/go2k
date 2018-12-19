@@ -84,7 +84,7 @@ fun Context.coerceTypeForByValueCopy(t: GNode.Type?, expr: Node.Expr): Node.Expr
     // If the type is a struct and the expr is not a call instantiating it, we have to copy it
     val needsCopy = t.unnamedType().let { type ->
         type is GNode.Type.Named && type.underlying is GNode.Type.Struct &&
-            (expr !is Node.Expr.Call || expr.expr != type.name.name.toDottedExpr())
+            (expr !is Node.Expr.Call || expr.expr != type.name().name.toDottedExpr())
     }
     return if (!needsCopy) expr else call(expr.dot("\$copy"))
 }

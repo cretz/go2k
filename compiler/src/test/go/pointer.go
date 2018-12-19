@@ -127,6 +127,7 @@ func main() {
 	// pointer indirect
 	// struct method, incl nil ptr receiver
 	// struct method ref
+	// pointer to pointer
 }
 
 type struct1 struct {

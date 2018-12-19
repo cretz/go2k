@@ -235,6 +235,9 @@ sealed class GNode {
             val name: String
             val type: Type?
         }
+        data class Lazy<T: Type>(val type: () -> T) {
+            inline operator fun invoke() = type()
+        }
 
         data class Array(val elem: Type, val len: Long) : Type()
         data class Basic(val name: String, val kind: Kind) : Type() {
@@ -270,16 +273,18 @@ sealed class GNode {
             override val type: Type?
         ) : Type(), NamedEntity
         data class Map(val elem: Type, val key: Type) : Type()
-        data class Named(val name: TypeName, val underlying: Type, val methods: List<Func>) : Type()
+        data class Named(val name: Lazy<TypeName>, val underlying: Type, val methods: List<Func>) : Type()
         object Nil : Type()
         data class Package(val name: String) : Type()
         data class Pointer(val elem: Type) : Type()
         data class Signature(
-            val recv: Var?,
+            val recv: Lazy<Var>?,
             val params: List<Var>,
             val results: List<Var>,
             val variadic: Boolean
-        ) : Type()
+        ) : Type() {
+            inline fun recv() = recv?.invoke()
+        }
         data class Slice(val elem: Type) : Type()
         data class Struct(val fields: List<Var>, val tags: List<String>) : Type()
         data class Tuple(val vars: List<Var>) : Type()

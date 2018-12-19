@@ -417,10 +417,8 @@ class PbToGNode(val pkg: Package) {
             type = convertType(t.typeName)
         )
         is Type_.Type.TypeNamed -> GNode.Type.Named(
-            // Just set the pkg and name to prevent stack overflow
-            name = pkg.types[t.typeNamed.typeName!!.id].let {
-                GNode.Type.TypeName(pkg = it.pkg, name = it.name, type = null)
-            },
+            // Has recursion
+            name = t.typeNamed.typeName!!.id.let { GNode.Type.Lazy { convertTypeId(it) as GNode.Type.TypeName } },
             underlying = convertType(t.typeNamed.type!!),
             methods = t.typeNamed.methods.map { convertType(it) as GNode.Type.Func }
         )
@@ -451,7 +449,8 @@ class PbToGNode(val pkg: Package) {
     }
 
     fun convertTypeSignature(v: TypeSignature) = GNode.Type.Signature(
-        recv = v.recv?.let { convertType(it) as GNode.Type.Var },
+        // Has recursion
+        recv = v.recv?.id?.let { GNode.Type.Lazy { convertTypeId(it) as GNode.Type.Var } },
         params = v.params.map { convertType(it) as GNode.Type.Var },
         results = v.results.map { convertType(it) as GNode.Type.Var },
         variadic = v.variadic

@@ -94,9 +94,9 @@ fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.
     return embedMembers.flatMap { (embedField, embedMemberSet) ->
         embedMemberSet.map { embedMember ->
             // We do an unsafe null deref on nilable types
-            val embedFieldVar = v.fields.first { it.name == embedField.name.name }
-            var embedFieldRef: Node.Expr = embedField.name.name.toName()
-            if (embedFieldVar.type.unnamedType()?.isNullable == true) embedFieldRef = embedFieldRef.nullDeref()
+            val embedFieldVar = v.fields.first { it.name == embedField.name().name }
+            var embedFieldRef: Node.Expr = embedField.name().name.toName()
+            if (embedFieldVar.type.unnamedType() is GNode.Type.Pointer) embedFieldRef = embedFieldRef.ptrDeref()
             when (embedMember) {
                 is GNode.Type.Func -> func(
                     mods =
