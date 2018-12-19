@@ -5,7 +5,8 @@ import go2k.compile.go.GNode
 // File-level context
 class Context(
     val pkg: GNode.Package,
-    val pkgName: String
+    val pkgName: String,
+    val anonStructTypes: Map<AnonStructType, String>
 ) {
 
     // Key is the full path, value is the alias value if necessary
@@ -70,5 +71,15 @@ class Context(
         fun markVarDef(name: String) = varDefWillBeRef(name).also { varDefs[name] = it }
 
         fun varDefIsRef(name: String) = varDefs[name]
+    }
+
+    data class AnonStructType(val fields: List<Pair<String, FieldType>>) {
+        // This var is not part of hashCode on purpose
+        lateinit var raw: GNode.Type.Struct
+
+        sealed class FieldType {
+            data class Anon(val v: AnonStructType) : FieldType()
+            data class Known(val v: GNode.Type) : FieldType()
+        }
     }
 }

@@ -418,7 +418,7 @@ class PbToGNode(val pkg: Package) {
         )
         is Type_.Type.TypeNamed -> GNode.Type.Named(
             // Has recursion
-            name = t.typeNamed.typeName!!.id.let { GNode.Type.Lazy { convertTypeId(it) as GNode.Type.TypeName } },
+            name = convertTypeMaybeLazy(t.typeNamed.typeName!!) as GNode.Type.MaybeLazy<GNode.Type.TypeName>,
             underlying = convertType(t.typeNamed.type!!),
             methods = t.typeNamed.methods.map { convertType(it) as GNode.Type.Func }
         )
@@ -443,14 +443,20 @@ class PbToGNode(val pkg: Package) {
         is Type_.Type.TypeVar -> GNode.Type.Var(
             pkg = v.pkg,
             name = v.name,
-            type = convertType(t.typeVar.type!!),
+            lazyType = convertTypeMaybeLazy(t.typeVar.type!!),
             embedded = t.typeVar.embedded
         )
     }
 
+    fun convertTypeMaybeLazy(v: TypeRef): GNode.Type.MaybeLazy<GNode.Type> {
+        val maybeType = lazyTypes[v.id]
+        return if (maybeType != null) GNode.Type.MaybeLazy.Eager(maybeType)
+            else GNode.Type.MaybeLazy.Lazy { convertTypeId(v.id) }
+    }
+
     fun convertTypeSignature(v: TypeSignature) = GNode.Type.Signature(
         // Has recursion
-        recv = v.recv?.id?.let { GNode.Type.Lazy { convertTypeId(it) as GNode.Type.Var } },
+        recv = v.recv?.let { convertType(it) as GNode.Type.Var },
         params = v.params.map { convertType(it) as GNode.Type.Var },
         results = v.results.map { convertType(it) as GNode.Type.Var },
         variadic = v.variadic

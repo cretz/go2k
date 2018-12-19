@@ -240,7 +240,7 @@ open class GNodeVisitor(val visitLazy: Boolean = false) {
                 visitChildren(key)
             }
             is GNode.Type.Named -> {
-                if (visitLazy) visitChildren(name())
+                if (visitLazy || name is GNode.Type.MaybeLazy.Eager) visitChildren(name())
                 visitChildren(underlying)
                 visitChildren(methods)
             }
@@ -250,7 +250,7 @@ open class GNodeVisitor(val visitLazy: Boolean = false) {
                 visitChildren(elem)
             }
             is GNode.Type.Signature -> {
-                if (visitLazy) visitChildren(recv())
+                visitChildren(recv)
                 visitChildren(params)
                 visitChildren(results)
             }
@@ -267,7 +267,7 @@ open class GNodeVisitor(val visitLazy: Boolean = false) {
                 visitChildren(type)
             }
             is GNode.Type.Var -> {
-                visitChildren(type)
+                if (visitLazy || lazyType is GNode.Type.MaybeLazy.Eager) visitChildren(type) else { }
             }
         }
     }

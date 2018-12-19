@@ -73,6 +73,22 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             )
             else -> TODO()
         }
+        is GNode.Type.Struct -> when (fromUt) {
+            // If they aren't the same struct then we need to assign all fields because it might be an anon
+            is GNode.Type.Struct -> {
+                require(to is GNode.Type.Struct && from is GNode.Type.Const)
+                val anonType = to.toAnonType()
+                val anonTypeName = anonStructTypes[anonType] ?: error("Missing struct for $anonType")
+                call(
+                    expr = expr.dot("run"),
+                    lambda = trailLambda(listOf(call(
+                        expr = anonTypeName.toName(),
+                        args = to.fields.map { valueArg(it.name.toName(), it.name) }
+                    ).toStmt()))
+                )
+            }
+            else -> TODO()
+        }
         else -> error("Unable to convert $from to $to")
     }
 }

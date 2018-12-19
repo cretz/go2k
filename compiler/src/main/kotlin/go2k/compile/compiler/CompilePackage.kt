@@ -1,12 +1,15 @@
 package go2k.compile.compiler
 
 import go2k.compile.go.GNode
+import go2k.compile.go.GNodeVisitor
 import kastree.ast.Node
 
 fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPackage {
+    // Have to pre-calc anon struct types
+    val anonStructTypes = compilePackageAnonStructTypes(v)
     var initCount = 0
     return KPackage(v.files.mapIndexed { index, file ->
-        "${file.fileName}.kt" to Context(v, name).compilePackageFile(
+        "${file.fileName}.kt" to Context(v, name, anonStructTypes).compilePackageFile(
             v = file,
             mutateDecl = { decl ->
                 // Make init function names unique
@@ -20,8 +23,47 @@ fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPa
     }.toMap())
 }
 
+fun Context.compilePackageAnonStructs(types: Map<Context.AnonStructType, String>) =
+    types.map { (type, name) -> compileExprStructType(name, type.raw) }
+
+fun compilePackageAnonStructTypes(v: GNode.Package): LinkedHashMap<Context.AnonStructType, String> {
+    // Get all top level anon types
+    val topLevelAnonTypes = mutableListOf<Context.AnonStructType>()
+    (object : GNodeVisitor() {
+        val nodeStack = mutableListOf<GNode>()
+        // Store the seen just to save cycles
+        val seenStructTypes = mutableSetOf<GNode.Type.Struct>()
+        override fun visit(v: GNode, parent: GNode) {
+            nodeStack.add(v)
+            if (v is GNode.Type.Struct && !seenStructTypes.contains(v)) {
+                // The struct is named if the parent is named or the parent
+                // is const, then expr struct type, then type name
+                val named = parent is GNode.Type.Named || (
+                    nodeStack.getOrNull(nodeStack.size - 2) is GNode.Type.Const &&
+                    nodeStack.getOrNull(nodeStack.size - 3) is GNode.Expr.StructType &&
+                    nodeStack.getOrNull(nodeStack.size - 4) is GNode.Spec.Type
+                )
+                if (!named) topLevelAnonTypes += v.toAnonType().also { seenStructTypes += v }
+            }
+            super.visit(v, parent)
+            nodeStack.removeAt(nodeStack.lastIndex)
+        }
+    }).visit(v)
+    // Now, recursively add them to a set to make sure we capture them all, and give them names
+    val allAnonTypes = linkedSetOf<Context.AnonStructType>()
+    fun addAnon(v: Context.AnonStructType) {
+        allAnonTypes += v
+        v.fields.forEach { (_, type) -> if (type is Context.AnonStructType.FieldType.Anon) addAnon(type.v) }
+    }
+    topLevelAnonTypes.forEach(::addAnon)
+    // Give them all names and return as linked map
+    return linkedMapOf<Context.AnonStructType, String>().also { map ->
+        allAnonTypes.forEachIndexed { index, type -> map[type] = "\$Anon${index + 1}" }
+    }
+}
+
 fun Context.compilePackageArtifacts(initCount: Int) =
-    listOfNotNull(compilePackageInit(initCount), compilePackageMain())
+    listOfNotNull(compilePackageInit(initCount), compilePackageMain()) + compilePackageAnonStructs(anonStructTypes)
 
 fun Context.compilePackageFile(
     v: GNode.File,

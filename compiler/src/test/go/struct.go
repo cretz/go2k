@@ -49,10 +49,42 @@ func main() {
 	j := e
 	*e = Struct5{num2: 13}
 	println("struct 12", e.num2, j.num2)
-	// // Struct method no pointer
-	// k := Struct7{"foo"}
-	// k.Method3("bar")
-	// println("struct 13", k.str)
+	// Struct method non-pointer receiver
+	k := Struct7{"foo"}
+	println("struct 13", k.Method1())
+	l := k.Method3("bar")
+	println("struct 14", k.str, l.str)
+	// Struct method pointer receiver
+	m := Struct7{"foo"}
+	println("struct 15", m.Method2())
+	n := &Struct7{"bar"}
+	o := n.Method4("baz")
+	println("struct 16", n.str, o.str)
+	p := Struct7{"qux"}
+	p.Method5()
+	println("struct 17", p.str)
+	// Local
+	type LocalStruct struct {
+		str string
+	}
+	q := LocalStruct{"foo"}
+	println("struct 18", q.str)
+	r := &LocalStruct{"bar"}
+	println("struct 19", r.str)
+	// Anon
+	s := struct{ str string }{"foo"}
+	println("struct 20", s.str)
+	s = struct{ str string }{"bar"}
+	println("struct 21", s.str)
+	t := struct{ foo struct{ str string } }{}
+	println("struct 22", t.foo.str)
+	t = struct{ foo struct{ str string } }{foo: struct{ str string }{"baz"}}
+	println("struct 23", t.foo.str)
+	// TODO: assign anon to regular struct
+	// var u = Struct2{5}
+	// println("struct 23", u.num)
+	// u = struct{ num int }{6}
+	// println("struct 24", u.num)
 
 	// TODO:
 	// empty struct
@@ -63,6 +95,8 @@ func main() {
 	// tags
 	// struct embedded but with var overrides and method overrides
 	// nested embeddeds with top level multi-depth access and name ambiguities
+	// same-named method and top-level-func called inside other method of same type w/ unnamed receiver (testing "this" ambiguity issues)
+	// equality
 }
 
 type Struct1 struct {
@@ -95,12 +129,20 @@ type Struct6 struct {
 	num   int
 }
 
-// type Struct7 struct {
-// 	str string
-// }
+type Struct7 struct {
+	str string
+}
 
-// func (Struct7) Method1() string  { return "method 1" }
-// func (*Struct7) Method2() string { return "method 2" }
-// func (s Struct7) Method3(str string) {
-// 	s.str = str
-// }
+func (Struct7) Method1() string  { return "method 1" }
+func (*Struct7) Method2() string { return "method 2" }
+func (s Struct7) Method3(str string) *Struct7 {
+	s.str = "method-3-" + str
+	return &s
+}
+func (s *Struct7) Method4(str string) *Struct7 {
+	s.str = "method-4-" + str
+	return s
+}
+func (s *Struct7) Method5() {
+	*s = Struct7{"method-5-" + s.str}
+}

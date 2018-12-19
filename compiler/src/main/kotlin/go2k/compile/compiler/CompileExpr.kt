@@ -153,9 +153,17 @@ fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
 fun Context.compileExprParen(v: GNode.Expr.Paren) = Node.Expr.Paren(compileExpr(v.x))
 
 fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
-    var lhs = compileExpr(v.x)
-    // If the LHS is pointer we deref
-    if (v.x.type.unnamedType() is GNode.Type.Pointer) lhs = lhs.ptrDeref()
+    val lhs = when {
+        // Take different approach for pointer receiver methods
+        (v.sel.type.unnamedType() as? GNode.Type.Signature)?.recv?.type is GNode.Type.Pointer ->
+            // If the LHS is a non-pointer and the RHS is a method w/ a pointer receiver,
+            // we have to wrap the LHS in a pointer.
+            if (v.x.type.unnamedType() !is GNode.Type.Pointer) compileExprUnaryAddressOf(v.x)
+            else compileExpr(v.x)
+        // If the LHS is pointer we deref
+        v.x.type.unnamedType() is GNode.Type.Pointer -> compileExpr(v.x).ptrDeref()
+        else -> compileExpr(v.x)
+    }
     return lhs.dot(compileExprIdent(v.sel))
 }
 

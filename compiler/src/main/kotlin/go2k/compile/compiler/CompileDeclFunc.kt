@@ -6,13 +6,18 @@ import kastree.ast.Node
 
 fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
     withVarDefSet(v.childVarDefsNeedingRefs()) {
-        // Mark recv as defined and redefine if needs to be ref
-        val preStmts: List<Node.Stmt> = v.recv.flatMap {
-            it.names.mapNotNull {
-                if (!markVarDef(it.name)) null else property(
-                    vars = listOf(propVar(it.name)),
-                    expr = call(expr = "go2k.runtime.GoRef".toDottedExpr(), args = listOf(valueArg(it.name.toName())))
-                ).toStmt()
+        // Mark recv as defined and decl it if named
+        val preStmts: List<Node.Stmt> = v.recv.flatMap { field ->
+            field.names.map { name ->
+                var expr: Node.Expr = Node.Expr.This(null)
+                // Receiver is copied if necessary
+                if (field.type.type.unnamedType() !is GNode.Type.Pointer) expr = call(expr.dot("\$copy"))
+                // Receiver var becomes ref if necessary
+                if (markVarDef(name.name)) expr = call(
+                    expr = "go2k.runtime.GoRef".toDottedExpr(),
+                    args = listOf(valueArg(expr))
+                )
+                property(vars = listOf(propVar(name.name)), expr = expr).toStmt()
             }
         }
         compileDeclFuncBody(v.type, v.body).let { (params, returnType, stmts) ->
@@ -21,6 +26,7 @@ fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
                     Node.Modifier.Keyword.SUSPEND.toMod(),
                     Node.Modifier.Keyword.INTERNAL?.takeIf { v.name.first().isLowerCase() }?.toMod()
                 ),
+                receiverType = v.recv.singleOrNull()?.let { compileType(it.type.type!!) },
                 name = v.name,
                 params = params,
                 type = returnType,

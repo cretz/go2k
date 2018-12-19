@@ -235,8 +235,15 @@ sealed class GNode {
             val name: String
             val type: Type?
         }
-        data class Lazy<T: Type>(val type: () -> T) {
-            inline operator fun invoke() = type()
+
+        sealed class MaybeLazy<T: Type> {
+            abstract operator fun invoke(): T
+            data class Lazy<T: Type>(val type: () -> T) : MaybeLazy<T>() {
+                override operator fun invoke() = type()
+            }
+            data class Eager<T: Type>(val type: T) : MaybeLazy<T>() {
+                override operator fun invoke() = type
+            }
         }
 
         data class Array(val elem: Type, val len: Long) : Type()
@@ -273,18 +280,16 @@ sealed class GNode {
             override val type: Type?
         ) : Type(), NamedEntity
         data class Map(val elem: Type, val key: Type) : Type()
-        data class Named(val name: Lazy<TypeName>, val underlying: Type, val methods: List<Func>) : Type()
+        data class Named(val name: MaybeLazy<TypeName>, val underlying: Type, val methods: List<Func>) : Type()
         object Nil : Type()
         data class Package(val name: String) : Type()
         data class Pointer(val elem: Type) : Type()
         data class Signature(
-            val recv: Lazy<Var>?,
+            val recv: Var?,
             val params: List<Var>,
             val results: List<Var>,
             val variadic: Boolean
-        ) : Type() {
-            inline fun recv() = recv?.invoke()
-        }
+        ) : Type()
         data class Slice(val elem: Type) : Type()
         data class Struct(val fields: List<Var>, val tags: List<String>) : Type()
         data class Tuple(val vars: List<Var>) : Type()
@@ -296,8 +301,11 @@ sealed class GNode {
         data class Var(
             override val pkg: String?,
             override val name: String,
-            override val type: Type,
+            // Type is lazy due to self references (e.g. struct method w/ a param of itself)
+            val lazyType: MaybeLazy<Type>,
             val embedded: Boolean
-        ) : Type(), NamedEntity
+        ) : Type(), NamedEntity {
+            override val type get() = lazyType()
+        }
     }
 }

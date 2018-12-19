@@ -24,7 +24,7 @@ fun Context.compileType(v: GNode.Type): Node.Type = when (v) {
     is GNode.Type.Pointer -> compileTypePointer(v)
     is GNode.Type.Signature -> compileTypeSignature(v)
     is GNode.Type.Slice -> compileTypeSlice(v)
-    is GNode.Type.Struct -> TODO()
+    is GNode.Type.Struct -> compileTypeStruct(v)
     is GNode.Type.Tuple -> TODO()
     is GNode.Type.TypeName -> compileTypeTypeName(v)
     is GNode.Type.Var -> compileTypeVar(v)
@@ -101,6 +101,10 @@ fun Context.compileTypeSignature(v: GNode.Type.Signature) = Node.Type(
 
 fun Context.compileTypeSlice(v: GNode.Type.Slice) = Slice::class.toType(compileType(v.elem)).nullable()
 
+fun Context.compileTypeStruct(v: GNode.Type.Struct) =
+    // This is an anonymous struct, so just get the name
+    anonStructTypes[v.toAnonType()]?.toDottedType() ?: error("Unable to find anon struct for $v")
+
 fun Context.compileTypeTypeName(v: GNode.Type.TypeName) = compileType(v.type!!)
 
 fun Context.compileTypeVar(v: GNode.Type.Var) = compileType(v.type)
@@ -135,6 +139,9 @@ fun Context.compileTypeZeroExpr(v: GNode.Type): Node.Expr = when (v) {
     is GNode.Type.Nil -> NullConst
     is GNode.Type.Pointer -> NullConst
     is GNode.Type.Slice -> NullConst
+    // This is an anon struct, so just instantiate the anon struct name
+    is GNode.Type.Struct ->
+        call(anonStructTypes[v.toAnonType()]?.toName() ?: error("Unable to find anon struct for $v"))
     is GNode.Type.TypeName -> compileTypeZeroExpr(v.type!!)
     is GNode.Type.Var -> compileTypeZeroExpr(v.type)
     else -> error("No zero expr for type $v")

@@ -37,7 +37,19 @@ fun Context.compileExprCompositeLit(v: GNode.Expr.CompositeLit): Node.Expr = whe
             }
         )
     }
-    else -> error("Unknown composite lit type: ${v.type}")
+    // Struct type is anon struct
+    is GNode.Expr.StructType -> {
+        val anonType = ((v.type as GNode.Type.Const).type as GNode.Type.Struct).toAnonType()
+        val anonTypeName = anonStructTypes[anonType] ?: error("Unable to find struct type for $anonType")
+        call(
+            expr = anonTypeName.toName(),
+            args = v.elts.map { elt ->
+                if (elt !is GNode.Expr.KeyValue) valueArg(compileExpr(elt))
+                else valueArg(name = (elt.key as GNode.Expr.Ident).name, expr = compileExpr(elt.value))
+            }
+        )
+    }
+    else -> error("Unknown composite lit type: ${v.litType}")
 }
 
 fun Context.compileExprCompositeLitArray(type: GNode.Type.Array, elems: List<GNode.Expr>) =

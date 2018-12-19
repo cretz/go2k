@@ -29,6 +29,14 @@ fun GNode.childVarDefsNeedingRefs(): Set<String> {
                 v.x is GNode.Expr.Ident &&
                 !varDefsInOtherNodes.contains(v.x.name) &&
                 varDefsInThisNode.contains(v.x.name)) varsNeedingRefsInThisNode += v.x.name
+            // Selectors where the LHS is a non-pointer struct and the RHS is a method with a pointer
+            // receiver are vars needing refs
+            if (v is GNode.Expr.Selector && v.x is GNode.Expr.Ident) {
+                val lhsType = v.x.type.unnamedType() as? GNode.Type.Named
+                val rhsIsPointer = (v.sel.type.unnamedType() as? GNode.Type.Signature)?.recv?.type is GNode.Type.Pointer
+                if (lhsType?.underlying?.unnamedType() is GNode.Type.Struct && rhsIsPointer)
+                    varsNeedingRefsInThisNode += v.x.name
+            }
             // Local var defs need to be marked
             when (v) {
                 is GNode.Decl.Func -> v.recv.flatMap { it.names }
@@ -150,6 +158,15 @@ fun GNode.Type.Interface.recursiveEmbedded(): List<GNode.Type.Named> {
     }
     return mutableListOf<GNode.Type.Named>().also { embeds(this, it) }
 }
+
+fun GNode.Type.Struct.toAnonType(): Context.AnonStructType = Context.AnonStructType(
+    fields = fields.map { field ->
+        field.name to field.type.let { type ->
+            if (type is GNode.Type.Struct) Context.AnonStructType.FieldType.Anon(type.toAnonType())
+            else Context.AnonStructType.FieldType.Known(type)
+        }
+    }
+).also { it.raw = this }
 
 // Dereferences pointer as necessary, no dupes on recursive
 fun GNode.Type.Struct.embeddeds(recursive: Boolean = false): List<GNode.Type.Named> {
