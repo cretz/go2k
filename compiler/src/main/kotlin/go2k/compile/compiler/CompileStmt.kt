@@ -161,7 +161,9 @@ fun Context.compileStmtLabeled(v: GNode.Stmt.Labeled): List<Node.Stmt> = when (v
 
 fun Context.compileStmtReturn(v: GNode.Stmt.Return) = Node.Expr.Return(
     label = currFunc.returnLabelStack.lastOrNull()?.labelIdent(),
-    expr = v.results.map { compileExpr(it) }.let {
+    expr = v.results.mapIndexed { index, expr ->
+        compileExpr(expr, coerceToType = currFunc.type.results[index].type.type)
+    }.let {
         var results = it
         // If it's a naked return but there are named returns, return those
         if (results.isEmpty() && currFunc.type.results.isNotEmpty())

@@ -24,7 +24,8 @@ fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPa
 }
 
 fun Context.compilePackageAnonStructs(types: Map<Context.AnonStructType, String>) =
-    types.map { (type, name) -> compileExprStructType(name, type.raw) }
+    // Don't compile the empty one
+    types.filter { (type, _) -> type.fields.isNotEmpty() }.map { (type, name) -> compileExprStructType(name, type.raw) }
 
 fun compilePackageAnonStructTypes(v: GNode.Package): LinkedHashMap<Context.AnonStructType, String> {
     // Get all top level anon types
@@ -56,9 +57,10 @@ fun compilePackageAnonStructTypes(v: GNode.Package): LinkedHashMap<Context.AnonS
         v.fields.forEach { (_, type) -> if (type is Context.AnonStructType.FieldType.Anon) addAnon(type.v) }
     }
     topLevelAnonTypes.forEach(::addAnon)
-    // Give them all names and return as linked map
+    // Give them all names and return as linked map, with empty always explicit
     return linkedMapOf<Context.AnonStructType, String>().also { map ->
-        allAnonTypes.forEachIndexed { index, type -> map[type] = "\$Anon${index + 1}" }
+        allAnonTypes.forEachIndexed { index, type -> map[type] = "Anon\$Struct${index + 1}" }
+        map[Context.AnonStructType(emptyList())] = "go2k.runtime.GoStruct.Empty"
     }
 }
 

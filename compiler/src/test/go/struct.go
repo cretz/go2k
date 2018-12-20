@@ -80,11 +80,30 @@ func main() {
 	println("struct 22", t.foo.str)
 	t = struct{ foo struct{ str string } }{foo: struct{ str string }{"baz"}}
 	println("struct 23", t.foo.str)
-	// TODO: assign anon to regular struct
-	// var u = Struct2{5}
-	// println("struct 23", u.num)
-	// u = struct{ num int }{6}
-	// println("struct 24", u.num)
+	// Anon assign to/from defined
+	u := Struct2{5}
+	println("struct 23", u.num)
+	u = struct{ num int }{6}
+	println("struct 24", u.num)
+	v := struct{ num int }{7}
+	println("struct 25", v.num)
+	v = Struct2{8}
+	println("struct 26", v.num)
+	// Anon pointer/copy
+	w := struct{ str string }{"foo"}
+	x := w
+	w.str = "bar"
+	println("struct 27", w.str, x.str)
+	// Empty struct
+	type LocalEmpty struct{}
+	y := struct{}{}
+	z := LocalEmpty{}
+	y, z = z, y
+	// Anon param and return
+	aa := Func1(struct{ str string }{"foo"})
+	println("struct 28", aa.str)
+	var ab Struct7 = Func1(Struct7{"bar"})
+	println("struct 29", ab.str)
 
 	// TODO:
 	// empty struct
@@ -92,6 +111,7 @@ func main() {
 	// local structs
 	// anonymous structs (locally, as params, as arrays, nested, etc)
 	// non-pointer struct copying on call args
+	// struct as child of slice without name of struct
 	// tags
 	// struct embedded but with var overrides and method overrides
 	// nested embeddeds with top level multi-depth access and name ambiguities
@@ -145,4 +165,8 @@ func (s *Struct7) Method4(str string) *Struct7 {
 }
 func (s *Struct7) Method5() {
 	*s = Struct7{"method-5-" + s.str}
+}
+
+func Func1(p1 struct{ str string }) struct{ str string } {
+	return Struct7{"func-1-" + p1.str}
 }

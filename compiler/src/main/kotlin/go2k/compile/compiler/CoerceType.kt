@@ -51,6 +51,20 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             )
             else -> error("Unable to convert $from to $to")
         }
+        is GNode.Type.Named -> when (fromUt) {
+            // Anon struct assign to named struct
+            is GNode.Type.Struct -> {
+                require(toUt.underlying is GNode.Type.Struct)
+                call(
+                    expr = expr.dot("run"),
+                    lambda = trailLambda(listOf(call(
+                        expr = toUt.name().name.toName(),
+                        args = toUt.underlying.fields.map { valueArg(it.name.toName(), it.name) }
+                    ).toStmt()))
+                )
+            }
+            else -> error("Unable to convert $from to $to")
+        }
         is GNode.Type.Nil -> expr
         is GNode.Type.Pointer -> {
             // For interfaces - expr?.v ?: null
@@ -73,21 +87,22 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             )
             else -> TODO()
         }
-        is GNode.Type.Struct -> when (fromUt) {
-            // If they aren't the same struct then we need to assign all fields because it might be an anon
-            is GNode.Type.Struct -> {
-                require(to is GNode.Type.Struct && from is GNode.Type.Const)
-                val anonType = to.toAnonType()
-                val anonTypeName = anonStructTypes[anonType] ?: error("Missing struct for $anonType")
-                call(
+        is GNode.Type.Struct -> {
+            val anonType = toUt.toAnonType()
+            val anonTypeName = anonStructTypes[anonType] ?: error("Missing struct for $anonType")
+            // If from is the same, we anon type, we don't need to do any convert
+            if (fromUt is GNode.Type.Struct && anonType == fromUt.toAnonType()) expr
+            else when (fromUt) {
+                // Anon to anon or to regular struct
+                is GNode.Type.Named, is GNode.Type.Struct -> call(
                     expr = expr.dot("run"),
                     lambda = trailLambda(listOf(call(
-                        expr = anonTypeName.toName(),
-                        args = to.fields.map { valueArg(it.name.toName(), it.name) }
+                        expr = anonTypeName.toDottedExpr(),
+                        args = toUt.fields.map { valueArg(it.name.toName(), it.name) }
                     ).toStmt()))
                 )
+                else -> error("Unable to convert $from to $to")
             }
-            else -> TODO()
         }
         else -> error("Unable to convert $from to $to")
     }
@@ -98,11 +113,17 @@ fun Context.coerceTypeForByValueCopy(v: GNode.Expr, expr: Node.Expr) =
 
 fun Context.coerceTypeForByValueCopy(t: GNode.Type?, expr: Node.Expr): Node.Expr {
     // If the type is a struct and the expr is not a call instantiating it, we have to copy it
-    val needsCopy = t.unnamedType().let { type ->
-        type is GNode.Type.Named && type.underlying is GNode.Type.Struct &&
-            (expr !is Node.Expr.Call || expr.expr != type.name().name.toDottedExpr())
+    val type = t.unnamedType()
+    val structName = when {
+        // Anon is just struct
+        type is GNode.Type.Struct -> anonStructTypes[type.toAnonType()] ?: error("Can't find anon for $type")
+        // Otherwise, named struct
+        type is GNode.Type.Named && type.underlying is GNode.Type.Struct -> type.name().name
+        else -> null
     }
-    return if (!needsCopy) expr else call(expr.dot("\$copy"))
+    // Only a copy if there is a name and it's not an instantiation
+    return if (structName == null || (expr is Node.Expr.Call && expr.expr == structName.toDottedExpr())) expr
+        else call(expr.dot("\$copy"))
 }
 
 fun Context.coerceTypePrimitive(expr: Node.Expr, from: KClass<*>, to: KClass<*>) = when (to) {

@@ -1,3 +1,12 @@
 package go2k.runtime
 
-interface GoStruct
+interface GoStruct {
+
+    object Empty {
+        fun `$copy`() = this
+    }
+
+    companion object {
+        fun Empty() = Empty
+    }
+}

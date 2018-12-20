@@ -141,7 +141,7 @@ fun Context.compileTypeZeroExpr(v: GNode.Type): Node.Expr = when (v) {
     is GNode.Type.Slice -> NullConst
     // This is an anon struct, so just instantiate the anon struct name
     is GNode.Type.Struct ->
-        call(anonStructTypes[v.toAnonType()]?.toName() ?: error("Unable to find anon struct for $v"))
+        call(anonStructTypes[v.toAnonType()]?.toDottedExpr() ?: error("Unable to find anon struct for $v"))
     is GNode.Type.TypeName -> compileTypeZeroExpr(v.type!!)
     is GNode.Type.Var -> compileTypeZeroExpr(v.type)
     else -> error("No zero expr for type $v")
