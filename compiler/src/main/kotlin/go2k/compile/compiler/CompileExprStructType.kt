@@ -27,7 +27,9 @@ fun Context.compileExprStructType(name: String, v: GNode.Type.Struct) = structur
         type = GoStruct::class.toType().ref as Node.TypeRef.Simple,
         by = null
     )),
-    members = compileExprStructTypeEmbedForwards(v) +
+    members =
+        compileExprStructTypeEmbedForwards(v) +
+        compileExprStructTypeFieldValsMethod(v) +
         compileExprStructTypeCopyMethod(name, v)
 )
 
@@ -125,3 +127,18 @@ fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.
         }
     }
 }
+
+fun Context.compileExprStructTypeFieldValsMethod(v: GNode.Type.Struct) = func(
+    mods = listOf(Node.Modifier.Keyword.OVERRIDE.toMod()),
+    name = "\$fieldVals",
+    body = call(
+        expr = "kotlin.collections.mapOf".toDottedExpr(),
+        typeArgs = listOf("kotlin.String".toDottedType(), "kotlin.Any".toDottedType().nullable()),
+        args = v.fields.map { field ->
+            valueArg(call(
+                expr = "kotlin.Pair".toDottedExpr(),
+                args = listOf(valueArg(field.name.toStringTmpl()), valueArg(field.name.toName()))
+            ))
+        }
+    ).toFuncBody()
+)

@@ -26,7 +26,7 @@ suspend inline fun close(ch: Channel<*>?) { require(ch!!.close()) { "Channel alr
 suspend inline fun <T> copy(dst: Slice<T>?, src: Slice<T>?) = dst?.let { src?.copyTo(it) } ?: 0
 suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, slice(Platform.stringToBytes(src)))
 
-inline fun <K> delete(m: go2k.runtime.Map<K, *>, k: K) { m.remove(k) }
+inline fun <K> delete(m: go2k.runtime.GoMap<K, *>, k: K) { m.remove(k) }
 
 inline fun len(v: Array<*>) = v.size
 inline fun len(v: ByteArray) = v.size
@@ -43,7 +43,7 @@ inline fun len(v: BooleanArray) = v.size
 inline fun len(v: CharArray) = v.size
 suspend inline fun len(v: Slice<*>?) = v?.len() ?: 0
 inline fun len(v: String) = v.length
-inline fun len(v: go2k.runtime.Map<*, *>) = v.size
+inline fun len(v: go2k.runtime.GoMap<*, *>) = v.size
 
 inline fun <K, V> makeMap(defaultValue: V? = null, size: Int? = null) =
     mapFactory.make<K, V>(defaultValue as V, size)

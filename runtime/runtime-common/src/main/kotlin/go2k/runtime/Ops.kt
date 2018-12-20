@@ -3,6 +3,7 @@ package go2k.runtime
 object Ops {
     fun eql(lhs: Any?, rhs: Any?): Boolean {
         // TODO: optimize of course
+        if (lhs is GoStruct && rhs is GoStruct) return lhs.`$eql`(rhs)
         // TODO: interfaces containing nil items need to fail when compared to nil
         if (lhs is GoInterface) return eql(lhs.v, rhs)
         if (rhs is GoInterface) return eql(lhs, rhs.v)

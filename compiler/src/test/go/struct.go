@@ -104,6 +104,12 @@ func main() {
 	println("struct 28", aa.str)
 	var ab Struct7 = Func1(Struct7{"bar"})
 	println("struct 29", ab.str)
+	// Equality
+	ac := Struct7{"foo"}
+	ad := Struct7{"bar"}
+	println("struct 30", ac == ad)
+	ac.str = "bad"
+	println("struct 31", ac == ad)
 
 	// TODO:
 	// empty struct
