@@ -6,7 +6,8 @@ import go2k.compile.go.GNode
 class Context(
     val pkg: GNode.Package,
     val pkgName: String,
-    val anonStructTypes: Map<AnonStructType, String>
+    val anonStructTypes: Map<AnonStructType, String>,
+    val methodNameClashes: Map<MethodNameClash, String>
 ) {
 
     // Key is the full path, value is the alias value if necessary
@@ -82,4 +83,6 @@ class Context(
             data class Known(val v: GNode.Type) : FieldType()
         }
     }
+
+    data class MethodNameClash(val typeName: String, val methodName: String)
 }

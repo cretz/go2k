@@ -20,9 +20,14 @@ fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
                 property(vars = listOf(propVar(name.name)), expr = expr).toStmt()
             }
         }
+        val anns: List<Node.Modifier> = v.clashableRecvTypeName()?.let { clashTypeName ->
+            methodNameClashes[Context.MethodNameClash(clashTypeName, v.name)]?.let { jvmName ->
+                listOf(ann("kotlin.jvm.JvmName", listOf(valueArg(jvmName.toStringTmpl()))).toSet())
+            }
+        }.orEmpty()
         compileDeclFuncBody(v.type, v.body).let { (params, returnType, stmts) ->
             func(
-                mods = listOfNotNull(
+                mods = anns + listOfNotNull(
                     Node.Modifier.Keyword.SUSPEND.toMod(),
                     Node.Modifier.Keyword.INTERNAL?.takeIf { v.name.first().isLowerCase() }?.toMod()
                 ),

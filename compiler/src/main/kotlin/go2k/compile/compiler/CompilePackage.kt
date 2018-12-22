@@ -5,11 +5,18 @@ import go2k.compile.go.GNodeVisitor
 import kastree.ast.Node
 
 fun compilePackage(v: GNode.Package, name: String = v.defaultPackageName()): KPackage {
-    // Have to pre-calc anon struct types
+    // Have to pre-calc anon struct types and name clashes
     val anonStructTypes = compilePackageAnonStructTypes(v)
+    val methodNameClashes = compilePackageMethodNameClashes(v)
     var initCount = 0
     return KPackage(v.files.mapIndexed { index, file ->
-        "${file.fileName}.kt" to Context(v, name, anonStructTypes).compilePackageFile(
+        val ctx = Context(
+            pkg = v,
+            pkgName = name,
+            anonStructTypes = anonStructTypes,
+            methodNameClashes = methodNameClashes
+        )
+        "${file.fileName}.kt" to ctx.compilePackageFile(
             v = file,
             mutateDecl = { decl ->
                 // Make init function names unique
@@ -115,6 +122,29 @@ fun Context.compilePackageMain(): Node.Decl.Func? {
             )
         ).toFuncBody()
     )
+}
+
+fun compilePackageMethodNameClashes(v: GNode.Package): Map<Context.MethodNameClash, String> {
+    // Keyed by method name
+    var clashableMethods = emptyMap<String, List<String>>()
+    v.files.forEach { file ->
+        file.decls.mapNotNull { it as? GNode.Decl.Func }.forEach { func ->
+            func.clashableRecvTypeName()?.also { typeName ->
+                clashableMethods += func.name to (clashableMethods[func.name].orEmpty() + typeName)
+            }
+        }
+    }
+    // Now return duplicates w/ new method names
+    var usedMethodNames = clashableMethods.keys
+    return clashableMethods.filter { (_, v) -> v.size > 1 }.flatMap { (methodName, typeNames) ->
+        typeNames.map { typeName ->
+            var newName = "${methodName}On$typeName"
+            var index = 0
+            while (usedMethodNames.contains(newName)) newName = "${methodName}On$typeName${++index}"
+            usedMethodNames += newName
+            Context.MethodNameClash(typeName, methodName) to newName
+        }
+    }.toMap()
 }
 
 data class KPackage(

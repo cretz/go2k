@@ -227,24 +227,26 @@ fun Context.compileExprUnaryAddressOf(v: GNode.Expr): Node.Expr = when (v) {
         args = listOf(valueArg(compileExpr(v.x)), valueArg(compileExpr(v.index)))
     )
     is GNode.Expr.Paren -> compileExprUnaryAddressOf(v.x)
-    // We choose not to use property references here to keep the reflection lib out
-    is GNode.Expr.Selector -> call(
-        expr = GO_PTR_CLASS.ref().dot("field"),
-        args = listOf(
-            valueArg(compileExpr(v.x)),
-            valueArg(brace(
-                params = listOf(listOf(propVar("\$s"))),
-                stmts = listOf("\$s".toName().dot(v.sel.name).toStmt())
-            )),
-            valueArg(brace(
-                params = listOf(listOf(propVar("\$s")), listOf(propVar("\$v"))),
-                stmts = listOf(binaryOp(
-                    lhs = "\$s".toName().dot(v.sel.name),
-                    op = Node.Expr.BinaryOp.Token.ASSN,
-                    rhs = "\$v".toName()
-                ).toStmt())
-            ))
-        )
-    )
+    is GNode.Expr.Selector -> compileExprUnaryAddressOfField(compileExpr(v.x), v.sel.name)
     else -> error("Not addressable expr")
 }
+
+// We choose not to use property references here to keep the reflection lib out
+fun Context.compileExprUnaryAddressOfField(subject: Node.Expr, fieldName: String) = call(
+    expr = GO_PTR_CLASS.ref().dot("field"),
+    args = listOf(
+        valueArg(subject),
+        valueArg(brace(
+            params = listOf(listOf(propVar("\$s"))),
+            stmts = listOf("\$s".toName().dot(fieldName).toStmt())
+        )),
+        valueArg(brace(
+            params = listOf(listOf(propVar("\$s")), listOf(propVar("\$v"))),
+            stmts = listOf(binaryOp(
+                lhs = "\$s".toName().dot(fieldName),
+                op = Node.Expr.BinaryOp.Token.ASSN,
+                rhs = "\$v".toName()
+            ).toStmt())
+        ))
+    )
+)

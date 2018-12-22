@@ -110,14 +110,18 @@ func main() {
 	println("struct 30", ac == ad)
 	ac.str = "bad"
 	println("struct 31", ac == ad)
+	// Different struct same field equality
+	ae := Struct7{"foo"}
+	af := struct{ str string }{"foo"}
+	println("struct 32", ae == af)
+	// Slice of structs without struct name
+	ag := []*Struct7{{"foo"}, {}, {"bar"}}
+	println("struct 33", len(ag), ag[0].str, ag[1].str, ag[2].str)
+	// Struct with embedded method override
+	ah := Struct8{&Struct7{"foo"}}
+	println("struct 34", ah.Method1(), ah.Method2(), ah.Method4("test").str)
 
 	// TODO:
-	// empty struct
-	// struct methods
-	// local structs
-	// anonymous structs (locally, as params, as arrays, nested, etc)
-	// non-pointer struct copying on call args
-	// struct as child of slice without name of struct
 	// tags
 	// struct embedded but with var overrides and method overrides
 	// nested embeddeds with top level multi-depth access and name ambiguities
@@ -159,8 +163,8 @@ type Struct7 struct {
 	str string
 }
 
-func (Struct7) Method1() string  { return "method 1" }
-func (*Struct7) Method2() string { return "method 2" }
+func (Struct7) Method1() string  { return "method-1" }
+func (*Struct7) Method2() string { return "method-2" }
 func (s Struct7) Method3(str string) *Struct7 {
 	s.str = "method-3-" + str
 	return &s
@@ -175,4 +179,14 @@ func (s *Struct7) Method5() {
 
 func Func1(p1 struct{ str string }) struct{ str string } {
 	return Struct7{"func-1-" + p1.str}
+}
+
+type Struct8 struct {
+	*Struct7
+}
+
+func (*Struct8) Method2() string { return "other-method-2" }
+func (s Struct8) Method4(str string) Struct8 {
+	s.str = "other-method-4-" + str
+	return s
 }

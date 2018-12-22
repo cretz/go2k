@@ -9,6 +9,12 @@ val NullConst = Node.Expr.Const("null", Node.Expr.Const.Form.NULL)
 
 // Order alphabetical by receiver then func name
 
+fun ann(name: String, args: List<Node.ValueArg> = emptyList()) = Node.Modifier.AnnotationSet.Annotation(
+    names = name.split('.'),
+    typeArgs = emptyList(),
+    args = args
+)
+
 fun arrayType(of: KClass<*>) = "kotlin.Array".toDottedType(of.toType())
 
 fun binaryOp(lhs: Node.Expr, op: Node.Expr.BinaryOp.Token, rhs: Node.Expr) =
@@ -168,6 +174,9 @@ fun Node.Expr.toFuncBody() = Node.Decl.Func.Body.Expr(this)
 fun Node.Expr.toStmt() = Node.Stmt.Expr(this)
 
 fun Node.Expr.BinaryOp.Token.toOper() = Node.Expr.BinaryOp.Oper.Token(this)
+
+fun Node.Modifier.AnnotationSet.Annotation.toSet(target: Node.Modifier.AnnotationSet.Target? = null) =
+    Node.Modifier.AnnotationSet(target, listOf(this))
 
 fun Node.Modifier.Keyword.toMod() = Node.Modifier.Lit(this)
 

@@ -49,82 +49,52 @@ fun Context.compileExprStructTypeCopyMethod(name: String, type: GNode.Type.Struc
 )
 
 fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.Decl> {
-    // We need to copy all embedded members that are not more-specifically defined in the package
-    val definedMemberNames = v.fields.map { it.name }.toSet() + v.packageMethods(this).map { it.name }
-    // Embedded fields are fields that are not on the current type but on only one of the embedded ones
-    // First is this embedded var, second is the downstream field (var) or method (func)
-    val seenEmbedNames = mutableListOf<String>()
-    val embedMembers = v.embeddeds().map { embedType ->
-        // All embedded types including this one
-        val embeddedTypes = listOf(embedType) + when (val raw = embedType.underlying.derefed()) {
-            is GNode.Type.Interface -> raw.recursiveEmbedded()
-            is GNode.Type.Struct -> raw.embeddeds(recursive = true)
-            else -> error("Unknown embed type $raw")
-        }.filterNot { it == embedType }
-        // Now go over fields and methods
-        embedType to embeddedTypes.flatMap { subEmbedType ->
-            when (val raw = subEmbedType.underlying.derefed()) {
-                is GNode.Type.Interface -> raw.methods
-                is GNode.Type.Struct -> raw.fields + raw.packageMethods(this)
-                else -> error("Unknown embed type $raw")
-            }
-        }.filterNot {
-            // Make sure not in defined member names and add to running name list
-            definedMemberNames.contains((it as GNode.Type.NamedEntity).name.also { seenEmbedNames += it })
+    // Forwards are embed members that are not self
+    return compileExprStructTypeGetEmbedMembers(v).filterNot { it.self }.map { member ->
+        var embedFieldRef: Node.Expr = member.embedFieldName!!.toName()
+        if (member.pointer != member.recvPointer) {
+            if (member.pointer) embedFieldRef = embedFieldRef.ptrDeref()
+            else embedFieldRef = compileExprUnaryAddressOfField(Node.Expr.This(null), member.name)
         }
-    }.map { (embedField, embedMemberSet) ->
-        // Remove any members that have names that have been seen more than once
-        embedField to embedMemberSet.filterNot { embedMember ->
-            embedMember as GNode.Type.NamedEntity
-            seenEmbedNames.count { it == embedMember.name } > 1
-        }
-    }
-    // Compile all the forwards as simple properties and methods
-    return embedMembers.flatMap { (embedField, embedMemberSet) ->
-        embedMemberSet.map { embedMember ->
-            // We do an unsafe null deref on nilable types
-            val embedFieldVar = v.fields.first { it.name == embedField.name().name }
-            var embedFieldRef: Node.Expr = embedField.name().name.toName()
-            if (embedFieldVar.type.unnamedType() is GNode.Type.Pointer) embedFieldRef = embedFieldRef.ptrDeref()
-            when (embedMember) {
-                is GNode.Type.Func -> func(
-                    mods =
-                        if (embedMember.name.first().isUpperCase()) emptyList()
-                        else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
-                    name = embedMember.name,
-                    params = embedMember.type.params.map { param(name = it.name, type = compileType(it.type)) },
-                    body = call(
-                        expr = embedFieldRef.dot(embedMember.name),
-                        args = embedMember.type.params.map { valueArg(it.name.toName()) }
-                    ).toFuncBody()
-                ) as Node.Decl // TODO: why is this cast needed?
-                is GNode.Type.Var -> property(
-                    mods =
-                        if (embedMember.name.first().isUpperCase()) emptyList()
-                        else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
-                    vars = listOf(propVar(embedMember.name)),
-                    accessors = Node.Decl.Property.Accessors(
-                        Node.Decl.Property.Accessor.Get(
-                            mods = listOf(Node.Modifier.Keyword.INLINE.toMod()),
-                            type = null,
-                            body = embedFieldRef.dot(embedMember.name).toFuncBody()
-                        ),
-                        Node.Decl.Property.Accessor.Set(
-                            mods = listOf(Node.Modifier.Keyword.INLINE.toMod()),
-                            paramMods = emptyList(),
-                            paramName = "\$v",
-                            paramType = null,
-                            body = block(listOf(binaryOp(
-                                lhs = embedFieldRef.dot(embedMember.name),
-                                op = Node.Expr.BinaryOp.Token.ASSN,
-                                rhs = "\$v".toName()
-                            ).toStmt())).toFuncBody()
-                        )
+        val mods =
+            if (member.name.first().isUpperCase() && member.embedFieldName.first().isUpperCase()) emptyList()
+            else listOf(Node.Modifier.Keyword.INTERNAL.toMod())
+        if (member.params == null) {
+            property(
+                mods = mods,
+                vars = listOf(propVar(member.name)),
+                accessors = Node.Decl.Property.Accessors(
+                    Node.Decl.Property.Accessor.Get(
+                        mods = listOf(Node.Modifier.Keyword.INLINE.toMod()),
+                        type = null,
+                        body = embedFieldRef.dot(member.name).toFuncBody()
+                    ),
+                    Node.Decl.Property.Accessor.Set(
+                        mods = listOf(Node.Modifier.Keyword.INLINE.toMod()),
+                        paramMods = emptyList(),
+                        paramName = "\$v",
+                        paramType = null,
+                        body = block(listOf(binaryOp(
+                            lhs = embedFieldRef.dot(member.name),
+                            op = Node.Expr.BinaryOp.Token.ASSN,
+                            rhs = "\$v".toName()
+                        ).toStmt())).toFuncBody()
                     )
                 )
-                else -> error("Bad embed member: $embedMember")
-            }
-        }
+            ) as Node.Decl // TODO: why is this required?
+        } else func(
+            mods = mods + Node.Modifier.Keyword.SUSPEND.toMod(),
+            name = member.name,
+            params = member.params.map { (name, type) ->
+                param(name = name, type = compileType(type))
+            },
+            body = call(
+                expr = embedFieldRef.dot(member.name),
+                args = member.params.map { (name, _) ->
+                    valueArg(name.toName())
+                }
+            ).toFuncBody()
+        )
     }
 }
 
@@ -142,3 +112,77 @@ fun Context.compileExprStructTypeFieldValsMethod(v: GNode.Type.Struct) = func(
         }
     ).toFuncBody()
 )
+
+fun Context.compileExprStructTypeGetEmbedMembers(
+    v: GNode.Type.Struct,
+    structName: String? = null,
+    pointer: Boolean = false,
+    alreadySeen: Set<GNode.Type.Named> = emptySet()
+): List<ExprStructTypeEmbedMember> {
+    var alreadySeen = alreadySeen
+    // Load all regular members
+    val members = v.fields.map { field ->
+        ExprStructTypeEmbedMember(
+            embedFieldName = structName,
+            pointer = pointer,
+            name = field.name,
+            recvPointer = field.type is GNode.Type.Pointer
+        )
+    } + v.packageMethods(this).map { method ->
+        ExprStructTypeEmbedMember(
+            embedFieldName = structName,
+            pointer = pointer,
+            name = method.name,
+            recvPointer = method.recv.singleOrNull()?.type?.type.unnamedType() is GNode.Type.Pointer,
+            params = method.type.params.flatMap { field ->
+                field.names.map { it.name to field.type.type!! }
+            }
+        )
+    }
+    // Load all promoted
+    val promotedMembers = v.fields.filter { it.embedded }.flatMap { field ->
+        val (named, fieldPointer) =
+            if (field.type is GNode.Type.Named) Pair(field.type as GNode.Type.Named, false)
+            else Pair((field.type as GNode.Type.Pointer).elem as GNode.Type.Named, true)
+        val fieldStructName = structName ?: named.name().name
+        if (alreadySeen.contains(named)) emptyList() else {
+            alreadySeen += named
+            when (val type = named.underlying) {
+                // Interfaces just promote all the methods
+                is GNode.Type.Interface -> type.allEmbedded().flatMap { (_, embedded) ->
+                    embedded.methods.map { method ->
+                        ExprStructTypeEmbedMember(
+                            embedFieldName = fieldStructName,
+                            pointer = fieldPointer,
+                            name = method.name,
+                            recvPointer = false,
+                            params = method.type.params.map { it.name to it.type }
+                        )
+                    }
+                }
+                // Structs call recursively
+                is GNode.Type.Struct ->
+                    compileExprStructTypeGetEmbedMembers(type, fieldStructName, fieldPointer, alreadySeen)
+                else -> error("Not iface or strct")
+            }
+        }
+    }
+    // Return all members and all promoted that are not already in members or in promoted twice
+    return members + promotedMembers.filter { promotedMember ->
+        members.none { it.name == promotedMember.name } &&
+            promotedMembers.count { it.name == promotedMember.name } < 2
+    }
+}
+
+data class ExprStructTypeEmbedMember(
+    // Null if self
+    val embedFieldName: String?,
+    // Null if self
+    val pointer: Boolean,
+    val name: String,
+    val recvPointer: Boolean,
+    // Null if field
+    val params: List<Pair<String, GNode.Type>>? = null
+) {
+    val self get() = embedFieldName == null
+}

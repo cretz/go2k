@@ -74,6 +74,15 @@ fun GNode.childVarDefsNeedingRefs(): Set<String> {
     return visitor.varDefsInThisNode.intersect(visitor.varsNeedingRefsInThisNode)
 }
 
+fun GNode.Decl.Func.clashableRecvTypeName() = recv.singleOrNull()?.type?.type.unnamedType()?.let { type ->
+    when {
+        // Non-pointer structs don't clash
+        type is GNode.Type.Named && type.underlying !is GNode.Type.Struct -> type.name().name
+        type is GNode.Type.Pointer && type.elem is GNode.Type.Named -> type.elem.name().name
+        else -> null
+    }
+}
+
 fun GNode.Package.defaultPackageName() = path.split('/').filter(String::isNotEmpty).let { pieces ->
     val first = pieces.first().let {
         val dotIndex = it.indexOf('.')
@@ -145,18 +154,10 @@ fun GNode.Type.Const.kotlinPrimitiveType() = type.kotlinPrimitiveType()?.let { p
     }
 }
 
-// No dupes on recursive
-fun GNode.Type.Interface.recursiveEmbedded(): List<GNode.Type.Named> {
-    fun embeds(v: GNode.Type, list: MutableList<GNode.Type.Named>) {
-        when (v) {
-            is GNode.Type.Interface -> v.embeddeds.forEach { embeds(it, list) }
-            is GNode.Type.Named -> if (!list.contains(v)) {
-                list.add(v)
-                embeds(v.underlying, list)
-            }
-        }
-    }
-    return mutableListOf<GNode.Type.Named>().also { embeds(this, it) }
+fun GNode.Type.Interface.allEmbedded(): List<Pair<String, GNode.Type.Interface>> = embeddeds.flatMap { embedded ->
+    embedded as GNode.Type.Named
+    // We can trust it's never circular
+    listOf(embedded.name().name to embedded.underlying as GNode.Type.Interface) + embedded.underlying.allEmbedded()
 }
 
 fun GNode.Type.Struct.toAnonType(): Context.AnonStructType = Context.AnonStructType(
@@ -168,28 +169,13 @@ fun GNode.Type.Struct.toAnonType(): Context.AnonStructType = Context.AnonStructT
     }
 ).also { it.raw = this }
 
-// Dereferences pointer as necessary, no dupes on recursive
-fun GNode.Type.Struct.embeddeds(recursive: Boolean = false): List<GNode.Type.Named> {
-    fun embeds(v: GNode.Type, list: MutableList<GNode.Type.Named>) {
-        when (v) {
-            is GNode.Type.Interface -> v.embeddeds.forEach { embeds(it, list) }
-            is GNode.Type.Named -> if (!list.contains(v)) {
-                list.add(v)
-                if (recursive) embeds(v.underlying, list)
-            }
-            is GNode.Type.Pointer -> embeds(v.elem, list)
-            is GNode.Type.Struct -> v.fields.forEach { if (it.embedded) embeds(it.type, list) }
-        }
-    }
-    return mutableListOf<GNode.Type.Named>().also { embeds(this, it) }
-}
-
 // Any available in package, doesn't include embedded ones
 fun GNode.Type.Struct.packageMethods(ctx: Context) = ctx.pkg.files.flatMap { file ->
     file.decls.mapNotNull { it as? GNode.Decl.Func }.filter { decl ->
-        var type = decl.recv.singleOrNull()?.type?.type
-        if (type is GNode.Type.Pointer) type = type.elem
-        if (type is GNode.Type.TypeName) type = type.type
-        type == this
+        val namedType = when (val type = decl.recv.singleOrNull()?.type?.type.unnamedType()) {
+            is GNode.Type.Pointer -> type.elem as? GNode.Type.Named
+            else -> type as? GNode.Type.Named
+        }
+        namedType?.underlying == this
     }
 }
