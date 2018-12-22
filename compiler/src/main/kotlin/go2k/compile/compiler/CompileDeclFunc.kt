@@ -27,10 +27,7 @@ fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
         }.orEmpty()
         compileDeclFuncBody(v.type, v.body).let { (params, returnType, stmts) ->
             func(
-                mods = anns + listOfNotNull(
-                    Node.Modifier.Keyword.SUSPEND.toMod(),
-                    Node.Modifier.Keyword.INTERNAL?.takeIf { v.name.first().isLowerCase() }?.toMod()
-                ),
+                mods = (anns + Node.Modifier.Keyword.SUSPEND.toMod()) + v.name.nameVisibilityMods(),
                 receiverType = v.recv.singleOrNull()?.let { compileType(it.type.type!!) },
                 name = v.name,
                 params = params,

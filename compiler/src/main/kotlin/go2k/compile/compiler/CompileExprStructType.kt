@@ -8,14 +8,12 @@ fun Context.compileExprStructType(name: String, v: GNode.Expr.StructType) =
     compileExprStructType(name, v.type.unnamedType() as GNode.Type.Struct)
 
 fun Context.compileExprStructType(name: String, v: GNode.Type.Struct) = structured(
-    mods = if (name.first().isUpperCase()) emptyList() else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
+    mods = name.nameVisibilityMods(),
     name = name,
     primaryConstructor = primaryConstructor(
         params = v.fields.map { field ->
             param(
-                mods =
-                    if (field.name.first().isUpperCase()) emptyList()
-                    else listOf(Node.Modifier.Keyword.INTERNAL.toMod()),
+                mods = field.name.nameVisibilityMods(),
                 readOnly = false,
                 name = field.name,
                 type = compileType(field.type),
@@ -56,21 +54,19 @@ fun Context.compileExprStructTypeEmbedForwards(v: GNode.Type.Struct): List<Node.
             if (member.pointer) embedFieldRef = embedFieldRef.ptrDeref()
             else embedFieldRef = compileExprUnaryAddressOfField(Node.Expr.This(null), member.name)
         }
-        val mods =
-            if (member.name.first().isUpperCase() && member.embedFieldName.first().isUpperCase()) emptyList()
-            else listOf(Node.Modifier.Keyword.INTERNAL.toMod())
+        val mods = member.embedFieldName.nameVisibilityMods().takeIf { member.name.first().isLowerCase() }.orEmpty()
         if (member.params == null) {
             property(
                 mods = mods,
                 vars = listOf(propVar(member.name)),
                 accessors = Node.Decl.Property.Accessors(
                     Node.Decl.Property.Accessor.Get(
-                        mods = listOf(Node.Modifier.Keyword.INLINE.toMod()),
+                        mods = emptyList(),
                         type = null,
                         body = embedFieldRef.dot(member.name).toFuncBody()
                     ),
                     Node.Decl.Property.Accessor.Set(
-                        mods = listOf(Node.Modifier.Keyword.INLINE.toMod()),
+                        mods = emptyList(),
                         paramMods = emptyList(),
                         paramName = "\$v",
                         paramType = null,

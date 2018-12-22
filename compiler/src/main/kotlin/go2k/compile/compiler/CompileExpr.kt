@@ -136,6 +136,8 @@ fun Context.compileExprIdent(v: GNode.Expr.Ident) = when {
 
 fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
     expr = compileExpr(v.x).let { xExpr ->
+        // If the xExpr is named, we need to access the underlying value
+        var xExpr = if (v.x.type.unnamedType() is GNode.Type.Named) xExpr.dot("\$v").nullDeref() else xExpr
         v.x.type.unnamedType().let { xType ->
             // Need to deref the pointer and deref nulls
             when {

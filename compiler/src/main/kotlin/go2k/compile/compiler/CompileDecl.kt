@@ -40,8 +40,20 @@ fun Context.compileDeclConst(v: GNode.Decl.Const) = v.specs.flatMap { spec ->
 fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
     if (spec.alias) TODO()
     when (spec.expr) {
+        // Just a simple inline class wrapping the single value
+        is GNode.Expr.ArrayType -> structured(
+            mods = spec.name.nameVisibilityMods() + Node.Modifier.Keyword.INLINE.toMod(),
+            name = spec.name,
+            primaryConstructor = primaryConstructor(
+                params = listOf(param(
+                    readOnly = true,
+                    name = "\$v",
+                    type = compileType(spec.expr.type!!)
+                ))
+            )
+        )
         is GNode.Expr.StructType -> compileExprStructType(spec.name, spec.expr)
-        else -> TODO()
+        else -> TODO(spec.expr.toString())
     }
 }
 

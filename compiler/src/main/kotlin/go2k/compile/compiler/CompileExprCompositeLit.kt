@@ -4,51 +4,20 @@ import go2k.compile.go.GNode
 import kastree.ast.Node
 import kotlin.math.max
 
-fun Context.compileExprCompositeLit(v: GNode.Expr.CompositeLit): Node.Expr = when (val type = v.type.unnamedType()) {
-    is GNode.Type.Array -> compileExprCompositeLitArray(type, v.elts)
-    // Struct type is anon struct
-    is GNode.Type.Struct-> {
-        val anonType = type.toAnonType()
-        val anonTypeName = anonStructTypes[anonType] ?: error("Unable to find struct type for $anonType")
-        call(
-            expr = anonTypeName.toDottedExpr(),
-            args = v.elts.map { elt ->
-                if (elt !is GNode.Expr.KeyValue) valueArg(compileExpr(elt))
-                else valueArg(name = (elt.key as GNode.Expr.Ident).name, expr = compileExpr(elt.value))
-            }
-        )
-    }
-    is GNode.Type.Map -> {
-        // Primitive types have defaults
-        val firstArg = (type.elem as? GNode.Type.Basic)?.let { valueArg(compileTypeZeroExpr(it)) }
-        call(
-            expr = "go2k.runtime.mapOf".toDottedExpr(),
-            typeArgs = listOf(compileType(type.key), compileType(type.elem)),
-            args = listOfNotNull(firstArg) + v.elts.map { elt ->
-                elt as GNode.Expr.KeyValue
-                valueArg(call(
-                    expr = "kotlin.Pair".toDottedExpr(),
-                    args = listOf(valueArg(compileExpr(elt.key)), valueArg(compileExpr(elt.value)))
-                ))
-            }
-        )
-    }
-    // Ident is struct lit
-    is GNode.Type.Named, is GNode.Type.Pointer -> {
-        val named = if (type is GNode.Type.Named) type else (type as GNode.Type.Pointer).elem as GNode.Type.Named
-        val create = call(
-            expr = named.name().name.toName(),
-            args = v.elts.map { elt ->
-                if (elt !is GNode.Expr.KeyValue) valueArg(compileExpr(elt))
-                else valueArg(name = (elt.key as GNode.Expr.Ident).name, expr = compileExpr(elt.value))
-            }
-        )
-        if (type !is GNode.Type.Pointer) create else call(
-            expr = GO_PTR_CLASS.ref().dot("lit"),
-            args = listOf(valueArg(create))
-        )
-    }
-    is GNode.Type.Slice -> compileExprCompositeLitSlice(type, v.elts)
+fun Context.compileExprCompositeLit(v: GNode.Expr.CompositeLit) =
+    compileExprCompositeLit(v.type.unnamedType()!!, v.elts)
+
+fun Context.compileExprCompositeLit(
+    type: GNode.Type,
+    elems: List<GNode.Expr>,
+    overrideStructName: String? = null
+): Node.Expr = when (type) {
+    is GNode.Type.Array -> compileExprCompositeLitArray(type, elems)
+    is GNode.Type.Map -> compileExprCompositeLitMap(type, elems)
+    is GNode.Type.Named -> compileExprCompositeLitNamed(type, elems)
+    is GNode.Type.Pointer -> compileExprCompositeLitPointer(type, elems)
+    is GNode.Type.Slice -> compileExprCompositeLitSlice(type, elems)
+    is GNode.Type.Struct -> compileExprCompositeLitStruct(overrideStructName, type, elems)
     else -> error("Unknown composite lit type: $type")
 }
 
@@ -112,7 +81,46 @@ fun Context.compileExprCompositeLitArrayCreate(elemType: GNode.Type, len: Int) =
     )
 }
 
+fun Context.compileExprCompositeLitMap(type: GNode.Type.Map, elems: List<GNode.Expr>): Node.Expr.Call {
+    // Primitive types have defaults
+    val firstArg = (type.elem as? GNode.Type.Basic)?.let { valueArg(compileTypeZeroExpr(it)) }
+    return call(
+        expr = "go2k.runtime.mapOf".toDottedExpr(),
+        typeArgs = listOf(compileType(type.key), compileType(type.elem)),
+        args = listOfNotNull(firstArg) + elems.map { elem ->
+            elem as GNode.Expr.KeyValue
+            valueArg(call(
+                expr = "kotlin.Pair".toDottedExpr(),
+                args = listOf(valueArg(compileExpr(elem.key)), valueArg(compileExpr(elem.value)))
+            ))
+        }
+    )
+}
+
+fun Context.compileExprCompositeLitPointer(type: GNode.Type.Pointer, elems: List<GNode.Expr>) = call(
+    expr = GO_PTR_CLASS.ref().dot("lit"),
+    args = listOf(valueArg(compileExprCompositeLit(type.elem, elems)))
+)
+
+fun Context.compileExprCompositeLitNamed(type: GNode.Type.Named, elems: List<GNode.Expr>) =
+    // Structs are just named, everything else is wrapped
+    compileExprCompositeLit(type.underlying, elems, type.name().name).let { lit ->
+        if (type.underlying is GNode.Type.Struct) lit
+        else call(expr = type.name().name.toName(), args = listOf(valueArg(lit)))
+    }
+
 fun Context.compileExprCompositeLitSlice(type: GNode.Type.Slice, elems: List<GNode.Expr>) = call(
     expr = "go2k.runtime.slice".toDottedExpr(),
     args = listOf(valueArg(compileExprCompositeLitArray(type.elem, null, elems)))
+)
+
+fun Context.compileExprCompositeLitStruct(dottedName: String?, type: GNode.Type.Struct, elems: List<GNode.Expr>) = call(
+    expr = run {
+        // Anon name if not given
+        dottedName ?: anonStructTypes[type.toAnonType()] ?: error("Unable to find anon struct for $type")
+    }.toDottedExpr(),
+    args = elems.map { elem ->
+        if (elem !is GNode.Expr.KeyValue) valueArg(compileExpr(elem))
+        else valueArg(name = (elem.key as GNode.Expr.Ident).name, expr = compileExpr(elem.value))
+    }
 )
