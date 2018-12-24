@@ -140,7 +140,7 @@ sealed class GNode {
             val x: Expr
         ) : Expr() {
             enum class Token {
-                ADD, AND, ARROW, DEC, INC, NOT, SUB, XOR
+                ADD, AND, ARROW, NOT, SUB, XOR
             }
         }
     }

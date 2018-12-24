@@ -29,12 +29,11 @@ fun GNode.childVarDefsNeedingRefs(): Set<String> {
                 v.x is GNode.Expr.Ident &&
                 !varDefsInOtherNodes.contains(v.x.name) &&
                 varDefsInThisNode.contains(v.x.name)) varsNeedingRefsInThisNode += v.x.name
-            // Selectors where the LHS is a non-pointer struct and the RHS is a method with a pointer
+            // Selectors where the LHS is a non-pointer named and the RHS is a method with a pointer
             // receiver are vars needing refs
             if (v is GNode.Expr.Selector && v.x is GNode.Expr.Ident) {
-                val lhsType = v.x.type.unnamedType() as? GNode.Type.Named
                 val rhsIsPointer = (v.sel.type.unnamedType() as? GNode.Type.Signature)?.recv?.type is GNode.Type.Pointer
-                if (lhsType?.underlying?.unnamedType() is GNode.Type.Struct && rhsIsPointer)
+                if (v.x.type.unnamedType() is GNode.Type.Named && rhsIsPointer)
                     varsNeedingRefsInThisNode += v.x.name
             }
             // Local var defs need to be marked
@@ -95,9 +94,10 @@ fun GNode.Type.derefed() = if (this is GNode.Type.Pointer) this.elem else this
 
 val GNode.Type.isArray get() = this is GNode.Type.Array
 val GNode.Type.isJavaPrimitive get() = this is GNode.Type.Basic && kind != GNode.Type.Basic.Kind.STRING
-val GNode.Type.isNullable get() = when (this) {
+val GNode.Type.isNullable get(): Boolean = when (this) {
     is GNode.Type.Chan, is GNode.Type.Func, is GNode.Type.Interface,
     is GNode.Type.Map, is GNode.Type.Pointer, is GNode.Type.Slice -> true
+    is GNode.Type.Named -> underlying.isNullable
     else -> false
 }
 

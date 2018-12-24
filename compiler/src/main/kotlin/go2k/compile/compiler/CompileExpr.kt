@@ -8,7 +8,8 @@ fun Context.compileExpr(
     v: GNode.Expr,
     coerceTo: GNode.Expr? = null,
     coerceToType: GNode.Type? = null,
-    byValue: Boolean = false
+    byValue: Boolean = false,
+    unfurl: Boolean = false
 ): Node.Expr = when (v) {
     is GNode.Expr.ArrayType -> TODO()
     is GNode.Expr.BasicLit -> compileExprBasicLit(v)
@@ -31,6 +32,15 @@ fun Context.compileExpr(
     is GNode.Expr.StructType -> TODO()
     is GNode.Expr.TypeAssert -> TODO()
     is GNode.Expr.Unary -> compileExprUnary(v)
+}.let { expr ->
+    // If requested, unfurl the wrapped type
+    if (!unfurl) expr else v.type.unnamedType().let { type ->
+        if (type is GNode.Type.Named &&
+            type.underlying !is GNode.Type.Struct &&
+            type.underlying !is GNode.Type.Interface
+        ) expr.dot("\$v")
+        else expr
+    }
 }.let { expr ->
     // Coerce type (does nothing if not necessary)
     coerceType(v, expr, coerceTo, coerceToType)
@@ -60,44 +70,55 @@ fun Context.compileExprBasicLit(v: GNode.Expr.BasicLit) =  when (v.kind) {
     }
 }
 
-fun Context.compileExprBinary(v: GNode.Expr.Binary) = when (v.op) {
-    GNode.Expr.Binary.Token.AND_NOT -> binaryOp(
-        lhs = compileExpr(v.x),
-        op = "and".toInfix(),
-        rhs = call(compileExpr(v.y, coerceTo = v.x).dot("inv"))
-    )
-    GNode.Expr.Binary.Token.EQL -> call(
-        expr = Ops::class.ref().dot("eql"),
-        args = listOf(valueArg(compileExpr(v.x)), valueArg(compileExpr(v.y, coerceTo = v.x)))
-    )
-    GNode.Expr.Binary.Token.NEQ -> call(
-        expr = Ops::class.ref().dot("neq"),
-        args = listOf(valueArg(compileExpr(v.x)), valueArg(compileExpr(v.y, coerceTo = v.x)))
-    )
-    else -> binaryOp(
-        lhs = compileExpr(v.x),
-        op = when (v.op) {
-            GNode.Expr.Binary.Token.ADD -> Node.Expr.BinaryOp.Token.ADD.toOper()
-            GNode.Expr.Binary.Token.AND -> "and".toInfix()
-            GNode.Expr.Binary.Token.GEQ -> Node.Expr.BinaryOp.Token.GTE.toOper()
-            GNode.Expr.Binary.Token.GTR -> Node.Expr.BinaryOp.Token.GT.toOper()
-            GNode.Expr.Binary.Token.LAND -> Node.Expr.BinaryOp.Token.AND.toOper()
-            GNode.Expr.Binary.Token.LEQ -> Node.Expr.BinaryOp.Token.LTE.toOper()
-            GNode.Expr.Binary.Token.LOR -> Node.Expr.BinaryOp.Token.OR.toOper()
-            GNode.Expr.Binary.Token.LSS -> Node.Expr.BinaryOp.Token.LT.toOper()
-            GNode.Expr.Binary.Token.MUL -> Node.Expr.BinaryOp.Token.MUL.toOper()
-            GNode.Expr.Binary.Token.OR -> "or".toInfix()
-            GNode.Expr.Binary.Token.QUO -> Node.Expr.BinaryOp.Token.DIV.toOper()
-            GNode.Expr.Binary.Token.REM -> Node.Expr.BinaryOp.Token.MOD.toOper()
-            GNode.Expr.Binary.Token.SHL -> "shl".toInfix()
-            GNode.Expr.Binary.Token.SHR -> "shr".toInfix()
-            GNode.Expr.Binary.Token.SUB -> Node.Expr.BinaryOp.Token.SUB.toOper()
-            GNode.Expr.Binary.Token.XOR -> "xor".toInfix()
-            // Handled above
-            GNode.Expr.Binary.Token.AND_NOT, GNode.Expr.Binary.Token.EQL, GNode.Expr.Binary.Token.NEQ -> TODO()
-        },
-        rhs = compileExpr(v.y, coerceTo = v.x)
-    )
+fun Context.compileExprBinary(v: GNode.Expr.Binary): Node.Expr {
+    var expr = when (v.op) {
+        GNode.Expr.Binary.Token.AND_NOT -> binaryOp(
+            lhs = compileExpr(v.x, unfurl = true),
+            op = "and".toInfix(),
+            rhs = call(compileExpr(v.y, coerceTo = v.x, unfurl = true).dot("inv"))
+        )
+        GNode.Expr.Binary.Token.EQL -> call(
+            expr = Ops::class.ref().dot("eql"),
+            args = listOf(
+                valueArg(compileExpr(v.x, unfurl = true)),
+                valueArg(compileExpr(v.y, coerceTo = v.x, unfurl = true))
+            )
+        )
+        GNode.Expr.Binary.Token.NEQ -> call(
+            expr = Ops::class.ref().dot("neq"),
+            args = listOf(
+                valueArg(compileExpr(v.x, unfurl = true)),
+                valueArg(compileExpr(v.y, coerceTo = v.x, unfurl = true))
+            )
+        )
+        else -> binaryOp(
+            lhs = compileExpr(v.x, unfurl = true),
+            op = when (v.op) {
+                GNode.Expr.Binary.Token.ADD -> Node.Expr.BinaryOp.Token.ADD.toOper()
+                GNode.Expr.Binary.Token.AND -> "and".toInfix()
+                GNode.Expr.Binary.Token.GEQ -> Node.Expr.BinaryOp.Token.GTE.toOper()
+                GNode.Expr.Binary.Token.GTR -> Node.Expr.BinaryOp.Token.GT.toOper()
+                GNode.Expr.Binary.Token.LAND -> Node.Expr.BinaryOp.Token.AND.toOper()
+                GNode.Expr.Binary.Token.LEQ -> Node.Expr.BinaryOp.Token.LTE.toOper()
+                GNode.Expr.Binary.Token.LOR -> Node.Expr.BinaryOp.Token.OR.toOper()
+                GNode.Expr.Binary.Token.LSS -> Node.Expr.BinaryOp.Token.LT.toOper()
+                GNode.Expr.Binary.Token.MUL -> Node.Expr.BinaryOp.Token.MUL.toOper()
+                GNode.Expr.Binary.Token.OR -> "or".toInfix()
+                GNode.Expr.Binary.Token.QUO -> Node.Expr.BinaryOp.Token.DIV.toOper()
+                GNode.Expr.Binary.Token.REM -> Node.Expr.BinaryOp.Token.MOD.toOper()
+                GNode.Expr.Binary.Token.SHL -> "shl".toInfix()
+                GNode.Expr.Binary.Token.SHR -> "shr".toInfix()
+                GNode.Expr.Binary.Token.SUB -> Node.Expr.BinaryOp.Token.SUB.toOper()
+                GNode.Expr.Binary.Token.XOR -> "xor".toInfix()
+                // Handled above
+                GNode.Expr.Binary.Token.AND_NOT, GNode.Expr.Binary.Token.EQL, GNode.Expr.Binary.Token.NEQ -> TODO()
+            },
+            rhs = compileExpr(v.y, coerceTo = v.x, unfurl = true)
+        )
+    }
+    // TODO: Ambiguities arise on "<", change when https://youtrack.jetbrains.com/issue/KT-25204 fixed
+    if (v.op == GNode.Expr.Binary.Token.LSS) expr = expr.paren()
+    return compileExprToNamed(expr, v.type)
 }
 
 fun Context.compileExprFuncLit(v: GNode.Expr.FuncLit): Node.Expr = withVarDefSet(v.childVarDefsNeedingRefs()) {
@@ -135,9 +156,7 @@ fun Context.compileExprIdent(v: GNode.Expr.Ident) = when {
 }
 
 fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
-    expr = compileExpr(v.x).let { xExpr ->
-        // If the xExpr is named, we need to access the underlying value
-        var xExpr = if (v.x.type.unnamedType() is GNode.Type.Named) xExpr.dot("\$v").nullDeref() else xExpr
+    expr = compileExpr(v.x, unfurl = true).let { xExpr ->
         v.x.type.unnamedType().let { xType ->
             // Need to deref the pointer and deref nulls
             when {
@@ -184,35 +203,42 @@ fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (val ut = v.x.type.unna
 
 fun Context.compileExprStar(v: GNode.Expr.Star) = compileExpr(v.x).nullDeref().dot("\$v")
 
-fun Context.compileExprUnary(v: GNode.Expr.Unary) = when (v.token) {
-    // An "AND" op is a pointer ref
-    GNode.Expr.Unary.Token.AND -> compileExprUnaryAddressOf(v.x)
-    // Receive from chan
-    GNode.Expr.Unary.Token.ARROW -> call(
-        // If the type is a tuple, it's the or-ok version
-        expr = (v.type.unnamedType() is GNode.Type.Tuple).let { withOk ->
-            if (withOk) "go2k.runtime.recvWithOk" else "go2k.runtime.recv"
-        }.toDottedExpr(),
-        args = listOf(
-            valueArg(compileExpr(v.x)),
-            // Needs zero value of chan element type
-            valueArg(compileTypeZeroExpr((v.x.type.unnamedType() as GNode.Type.Chan).elem))
+// Does nothing if not named or if named struct
+fun Context.compileExprToNamed(expr: Node.Expr, type: GNode.Type?) = type.unnamedType().let { type ->
+    if (type !is GNode.Type.Named || type.underlying is GNode.Type.Struct) expr
+    else call(expr = type.name().name.toName(), args = listOf(valueArg(expr)))
+}
+
+fun Context.compileExprUnary(v: GNode.Expr.Unary): Node.Expr {
+    val expr = when {
+        // An "AND" op is a pointer ref
+        v.token == GNode.Expr.Unary.Token.AND -> compileExprUnaryAddressOf(v.x)
+        // Receive from chan
+        v.token == GNode.Expr.Unary.Token.ARROW -> call(
+            // If the type is a tuple, it's the or-ok version
+            expr = (v.type.unnamedType() is GNode.Type.Tuple).let { withOk ->
+                if (withOk) "go2k.runtime.recvWithOk" else "go2k.runtime.recv"
+            }.toDottedExpr(),
+            args = listOf(
+                valueArg(compileExpr(v.x, unfurl = true)),
+                // Needs zero value of chan element type
+                valueArg(compileTypeZeroExpr((v.x.type.unnamedType() as GNode.Type.Chan).elem))
+            )
         )
-    )
-    // ^ is a bitwise complement
-    GNode.Expr.Unary.Token.XOR -> call(compileExpr(v.x).dot("inv"))
-    else -> unaryOp(
-        expr = compileExpr(v.x),
-        op = when (v.token) {
-            GNode.Expr.Unary.Token.ADD -> Node.Expr.UnaryOp.Token.POS
-            GNode.Expr.Unary.Token.DEC -> Node.Expr.UnaryOp.Token.DEC
-            GNode.Expr.Unary.Token.INC -> Node.Expr.UnaryOp.Token.INC
-            GNode.Expr.Unary.Token.NOT -> Node.Expr.UnaryOp.Token.NOT
-            GNode.Expr.Unary.Token.SUB -> Node.Expr.UnaryOp.Token.NEG
-            else -> error("Unrecognized unary op: ${v.token}")
-        },
-        prefix = v.token != GNode.Expr.Unary.Token.INC && v.token != GNode.Expr.Unary.Token.DEC
-    )
+        // ^ is a bitwise complement
+        v.token == GNode.Expr.Unary.Token.XOR -> call(compileExpr(v.x, unfurl = true).dot("inv"))
+        else -> unaryOp(
+            expr = compileExpr(v.x, unfurl = true),
+            op = when (v.token) {
+                GNode.Expr.Unary.Token.ADD -> Node.Expr.UnaryOp.Token.POS
+                GNode.Expr.Unary.Token.NOT -> Node.Expr.UnaryOp.Token.NOT
+                GNode.Expr.Unary.Token.SUB -> Node.Expr.UnaryOp.Token.NEG
+                else -> error("Unrecognized unary op: ${v.token}")
+            },
+            prefix = true
+        )
+    }
+    return compileExprToNamed(expr, v.type)
 }
 
 fun Context.compileExprUnaryAddressOf(v: GNode.Expr): Node.Expr = when (v) {

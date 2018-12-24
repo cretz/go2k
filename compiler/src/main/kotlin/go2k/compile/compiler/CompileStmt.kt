@@ -144,11 +144,24 @@ fun Context.compileStmtIf(v: GNode.Stmt.If): Node.Stmt.Expr = withVarDefSet(v.ch
     expr.toStmt()
 }
 
-fun Context.compileStmtIncDec(v: GNode.Stmt.IncDec) = Node.Expr.UnaryOp(
-    expr = compileExpr(v.x),
-    oper = Node.Expr.UnaryOp.Oper(if (v.inc) Node.Expr.UnaryOp.Token.INC else Node.Expr.UnaryOp.Token.DEC),
-    prefix = false
-).toStmt()
+fun Context.compileStmtIncDec(v: GNode.Stmt.IncDec): Node.Stmt {
+    // Named does a +/- 1
+    val expr =
+        if (v.x.type.unnamedType() is GNode.Type.Named) binaryOp(
+            lhs = compileExpr(v.x),
+            op = Node.Expr.BinaryOp.Token.ASSN,
+            rhs = compileExprToNamed(binaryOp(
+                lhs = compileExpr(v.x, unfurl = true),
+                op = if (v.inc) Node.Expr.BinaryOp.Token.ADD else Node.Expr.BinaryOp.Token.SUB,
+                rhs = coerceType(1.toConst(), GNode.Type.Basic("", GNode.Type.Basic.Kind.UNTYPED_INT), v.x.type!!)
+            ), v.x.type)
+        ) else unaryOp(
+            expr = compileExpr(v.x),
+            op = if (v.inc) Node.Expr.UnaryOp.Token.INC else Node.Expr.UnaryOp.Token.DEC,
+            prefix = false
+        )
+    return expr.toStmt()
+}
 
 fun Context.compileStmtLabeled(v: GNode.Stmt.Labeled): List<Node.Stmt> = when (v.stmt) {
     // Labels on some constructs mean certain things. Otherwise, the labels are handled in other areas.

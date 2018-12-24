@@ -63,7 +63,8 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
                     ).toStmt()))
                 )
             }
-            else -> error("Unable to convert $from to $to")
+            // Otherwise, just convert to the underlying
+            else -> coerceType(expr, from, toUt.underlying)
         }
         is GNode.Type.Nil -> expr
         is GNode.Type.Pointer -> {

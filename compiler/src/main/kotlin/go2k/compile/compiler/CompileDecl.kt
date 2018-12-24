@@ -1,6 +1,7 @@
 package go2k.compile.compiler
 
 import go2k.compile.go.GNode
+import go2k.runtime.GoSingleType
 import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -41,20 +42,29 @@ fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
     if (spec.alias) TODO()
     when (spec.expr) {
         // Just a simple inline class wrapping the single value
-        is GNode.Expr.ArrayType -> structured(
-            mods = spec.name.nameVisibilityMods() + Node.Modifier.Keyword.INLINE.toMod(),
-            name = spec.name,
-            primaryConstructor = primaryConstructor(
-                params = listOf(param(
-                    readOnly = true,
-                    name = "\$v",
-                    type = compileType(spec.expr.type!!)
-                ))
-            )
-        )
+        is GNode.Expr.ArrayType, is GNode.Expr.Ident -> compileDeclTypeSingle(spec, spec.expr.type.unnamedType()!!)
         is GNode.Expr.StructType -> compileExprStructType(spec.name, spec.expr)
         else -> TODO(spec.expr.toString())
     }
+}
+
+fun Context.compileDeclTypeSingle(spec: GNode.Spec.Type, underlying: GNode.Type) = compileType(underlying).let { type ->
+    structured(
+        mods = spec.name.nameVisibilityMods() + Node.Modifier.Keyword.INLINE.toMod(),
+        name = spec.name,
+        primaryConstructor = primaryConstructor(
+            params = listOf(param(
+                mods = listOf(Node.Modifier.Keyword.OVERRIDE.toMod()),
+                readOnly = true,
+                name = "\$v",
+                type = type
+            ))
+        ),
+        parents = listOf(Node.Decl.Structured.Parent.Type(
+            type = GoSingleType::class.toType(type).ref as Node.TypeRef.Simple,
+            by = null
+        ))
+    )
 }
 
 fun Context.compileDeclVar(v: GNode.Decl.Var, topLevel: Boolean) = v.specs.flatMap { spec ->

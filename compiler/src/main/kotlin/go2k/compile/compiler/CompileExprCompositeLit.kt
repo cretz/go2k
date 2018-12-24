@@ -104,10 +104,7 @@ fun Context.compileExprCompositeLitPointer(type: GNode.Type.Pointer, elems: List
 
 fun Context.compileExprCompositeLitNamed(type: GNode.Type.Named, elems: List<GNode.Expr>) =
     // Structs are just named, everything else is wrapped
-    compileExprCompositeLit(type.underlying, elems, type.name().name).let { lit ->
-        if (type.underlying is GNode.Type.Struct) lit
-        else call(expr = type.name().name.toName(), args = listOf(valueArg(lit)))
-    }
+    compileExprToNamed(compileExprCompositeLit(type.underlying, elems, type.name().name), type)
 
 fun Context.compileExprCompositeLitSlice(type: GNode.Type.Slice, elems: List<GNode.Expr>) = call(
     expr = "go2k.runtime.slice".toDottedExpr(),

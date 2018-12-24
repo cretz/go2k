@@ -4,11 +4,23 @@ import go2k.compile.go.GNode
 import kastree.ast.Node
 
 fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
-    // If the function is a const type but not a function, it's a conversion instead of a function call
-    val isConv = v.func.type is GNode.Type.Const &&
+    // If the function is a const type but not a function, it's an assertion instead of a function call
+    val isAssert = v.func.type is GNode.Type.Const &&
         (v.func.type as GNode.Type.Const).type.unnamedType() !is GNode.Type.Signature
+    if (isAssert) {
+        // Must be a singular arg, but it's the outside we expect will do the conversion
+        val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
+        return compileExpr(arg, coerceTo = v.func)
+    }
+    // If function is not a signature (named or otherwise), it's a conversion instead of a call
+    val isConv = v.func.type.unnamedType().let { funcType ->
+        var typeToCheck = funcType
+        if (typeToCheck is GNode.Type.Pointer) typeToCheck = typeToCheck.elem
+        if (typeToCheck is GNode.Type.Named) typeToCheck = typeToCheck.underlying
+        typeToCheck != null && typeToCheck !is GNode.Type.Signature && typeToCheck !is GNode.Type.BuiltIn
+    }
     if (isConv) {
-        // Must be a singular arg
+        // Must be a singular arg, but it's the outside we expect will do the conversion
         val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
         return compileExpr(arg, coerceTo = v.func)
     }
@@ -61,40 +73,56 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
 }
 
 fun Context.compileExprCallBuiltIn(v: GNode.Expr.Call, name: String) = when (name) {
-    "append" -> {
-        // First arg is the slice
-        val sliceType = v.args.first().type.unnamedType() as GNode.Type.Slice
-        // If ellipsis is present, only second arg is allowed and it's passed explicitly,
-        // otherwise a slice literal is created (TODO: kinda slow to create those unnecessarily)
-        val arg =
-            if (v.args.last() is GNode.Expr.Ellipsis) compileExpr(v.args.apply { require(size == 2) }.last())
-            else compileExprCompositeLitSlice(sliceType, v.args.drop(1))
-        call(
-            expr = "go2k.runtime.builtin.append".toDottedExpr(),
-            args = listOf(valueArg(compileExpr(v.args.first())), valueArg(arg))
-        )
-    }
-    "make" -> when (val argType = (v.args.first().type as GNode.Type.Const).type) {
+    "append" -> compileExprCallBuiltInAppend(v)
+    "make" -> compileExprCallBuiltInMake(v)
+    "recover" -> call(
+        // Use the outside-defer one if not in defer
+        expr = if (currFunc.inDefer) "recover".toName() else "go2k.runtime.builtin.recover".toDottedExpr()
+    )
+    else -> call(
+        expr = compileExpr(v.func),
+        args = v.args.map { valueArg(compileExpr(it, unfurl = true)) }
+    )
+}
+
+fun Context.compileExprCallBuiltInAppend(v: GNode.Expr.Call): Node.Expr {
+    val argType = v.args.first().type.unnamedType()
+    val sliceType = (if (argType is GNode.Type.Named) argType.underlying else argType) as GNode.Type.Slice
+    // If ellipsis is present, only second arg is allowed and it's passed explicitly,
+    // otherwise a slice literal is created (TODO: kinda slow to create those unnecessarily)
+    val arg =
+        if (v.args.last() is GNode.Expr.Ellipsis) compileExpr(v.args.apply { require(size == 2) }.last())
+        else compileExprCompositeLitSlice(sliceType, v.args.drop(1))
+    return compileExprToNamed(call(
+        expr = "go2k.runtime.builtin.append".toDottedExpr(),
+        args = listOf(valueArg(compileExpr(v.args.first(), unfurl = true)), valueArg(arg))
+    ), argType)
+}
+
+fun Context.compileExprCallBuiltInMake(v: GNode.Expr.Call): Node.Expr {
+    val argType = v.args.first().type.unnamedType()
+    val makeType = if (argType is GNode.Type.Named) argType.underlying.unnamedType() else argType
+    val makeCall = when (makeType) {
         is GNode.Type.Chan -> call(
             expr = "go2k.runtime.builtin.makeChan".toDottedExpr(),
-            typeArgs = listOf(compileType(argType.elem)),
+            typeArgs = listOf(compileType(makeType.elem)),
             args = v.args.getOrNull(1)?.let { listOf(valueArg(compileExpr(it))) } ?: emptyList()
         )
         is GNode.Type.Map -> {
             // Primitive means the first arg is the zero val
             val firstArgs =
-                if (argType.elem !is GNode.Type.Basic) emptyList()
-                else listOf(valueArg(expr = compileTypeZeroExpr(argType.elem)))
+                if (makeType.elem !is GNode.Type.Basic) emptyList()
+                else listOf(valueArg(expr = compileTypeZeroExpr(makeType.elem)))
             call(
                 expr = "go2k.runtime.builtin.makeMap".toDottedExpr(),
-                typeArgs = listOf(compileType(argType.key), compileType(argType.elem)),
+                typeArgs = listOf(compileType(makeType.key), compileType(makeType.elem)),
                 args = firstArgs +
                     if (v.args.size == 1) emptyList()
                     else listOf(valueArg(name = "size", expr = compileExpr(v.args[1])))
             )
         }
         is GNode.Type.Slice -> {
-            val elemType = argType.elem as GNode.Type.Basic
+            val elemType = makeType.elem as GNode.Type.Basic
             val createSliceFnName = when (elemType.kotlinPrimitiveType()) {
                 Char::class -> "makeCharSlice"
                 Double::class -> "makeDoubleSlice"
@@ -116,12 +144,6 @@ fun Context.compileExprCallBuiltIn(v: GNode.Expr.Call, name: String) = when (nam
         }
         else -> error("Unrecognized make for $argType")
     }
-    "recover" -> call(
-        // Use the outside-defer one if not in defer
-        expr = if (currFunc.inDefer) "recover".toName() else "go2k.runtime.builtin.recover".toDottedExpr()
-    )
-    else -> call(
-        expr = compileExpr(v.func),
-        args = v.args.map { valueArg(compileExpr(it)) }
-    )
+    // Wrap in the proper type if named
+    return compileExprToNamed(makeCall, argType)
 }

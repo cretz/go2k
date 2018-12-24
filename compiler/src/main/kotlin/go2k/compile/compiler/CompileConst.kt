@@ -5,7 +5,11 @@ import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
 
-fun Context.compileConst(v: GNode.Type.Const) = compileConst((v.type as GNode.Type.Basic).kind, v.value!!)
+fun Context.compileConst(v: GNode.Type.Const): Node.Expr {
+    val constType = v.type.unnamedType()!!
+    val basicType = ((constType as? GNode.Type.Named)?.underlying ?: constType) as GNode.Type.Basic
+    return compileExprToNamed(compileConst(basicType.kind, v.value!!), constType)
+}
 
 fun Context.compileConst(kind: GNode.Type.Basic.Kind, v: GNode.Const): Node.Expr {
     var value = v

@@ -148,8 +148,6 @@ class PbToGNode(val pkg: Package) {
                 Token.ADD -> GNode.Expr.Unary.Token.ADD
                 Token.AND -> GNode.Expr.Unary.Token.AND
                 Token.ARROW -> GNode.Expr.Unary.Token.ARROW
-                Token.DEC -> GNode.Expr.Unary.Token.DEC
-                Token.INC -> GNode.Expr.Unary.Token.INC
                 Token.NOT -> GNode.Expr.Unary.Token.NOT
                 Token.SUB -> GNode.Expr.Unary.Token.SUB
                 Token.XOR -> GNode.Expr.Unary.Token.XOR

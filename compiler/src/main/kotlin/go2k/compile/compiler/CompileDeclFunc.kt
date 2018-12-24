@@ -11,7 +11,9 @@ fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
             field.names.map { name ->
                 var expr: Node.Expr = Node.Expr.This(null)
                 // Receiver is copied if necessary
-                if (field.type.type.unnamedType() !is GNode.Type.Pointer) expr = call(expr.dot("\$copy"))
+                val recvType = field.type.type.unnamedType()
+                if (recvType is GNode.Type.Named && recvType.underlying is GNode.Type.Struct)
+                    expr = call(expr.dot("\$copy"))
                 // Receiver var becomes ref if necessary
                 if (markVarDef(name.name)) expr = call(
                     expr = "go2k.runtime.GoRef".toDottedExpr(),
@@ -25,9 +27,13 @@ fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
                 listOf(ann("kotlin.jvm.JvmName", listOf(valueArg(jvmName.toStringTmpl()))).toSet())
             }
         }.orEmpty()
+        val recvName = v.recv.singleOrNull()?.type?.type?.unnamedType().let { recvType ->
+            ((if (recvType is GNode.Type.Pointer) recvType.elem else recvType) as? GNode.Type.Named)?.
+                name?.invoke()?.name
+        }
         compileDeclFuncBody(v.type, v.body).let { (params, returnType, stmts) ->
             func(
-                mods = (anns + Node.Modifier.Keyword.SUSPEND.toMod()) + v.name.nameVisibilityMods(),
+                mods = (anns + Node.Modifier.Keyword.SUSPEND.toMod()) + v.name.nameVisibilityMods(recvName),
                 receiverType = v.recv.singleOrNull()?.let { compileType(it.type.type!!) },
                 name = v.name,
                 params = params,

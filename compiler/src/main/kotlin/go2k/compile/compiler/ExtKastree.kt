@@ -184,8 +184,10 @@ fun Node.Type.nullable() = copy(ref = Node.TypeRef.Nullable(ref))
 
 fun String.labelIdent() = "\$$this\$label"
 
-fun String.nameVisibilityMods() =
-    if (first().isLowerCase()) listOf(Node.Modifier.Keyword.INTERNAL.toMod()) else emptyList()
+fun String.nameVisibilityMods(vararg otherNames: String?) =
+    if (first().isLowerCase() || otherNames.any { it != null && it.first().isLowerCase() })
+        listOf(Node.Modifier.Keyword.INTERNAL.toMod())
+    else emptyList()
 
 // TODO: escaping and stuff
 fun String.toDottedExpr() = split('.').let {
