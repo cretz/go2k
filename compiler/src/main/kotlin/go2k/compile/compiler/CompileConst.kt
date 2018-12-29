@@ -62,6 +62,9 @@ fun Context.compileConst(kind: GNode.Type.Basic.Kind, v: GNode.Const): Node.Expr
                 )
             else -> error("Unrecognized basic int kind of $kind")
         }
-        is GNode.Const.String -> value.v.toStringTmpl()
+        is GNode.Const.String -> call(
+            expr = "go2k.runtime.GoString".toDottedExpr(),
+            args = listOf(valueArg(value.v.toStringTmpl()))
+        )
     }
 }

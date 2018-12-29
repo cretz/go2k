@@ -50,23 +50,19 @@ fun Context.compileExpr(
 }
 
 fun Context.compileExprBasicLit(v: GNode.Expr.BasicLit) =  when (v.kind) {
-    GNode.Expr.BasicLit.Kind.CHAR -> {
-        // Sometimes a char is used as an int (e.g. an array index), so if the type
-        // is int, we have to treat it as such.
-        val constType = v.type as GNode.Type.Const
-        val expectsInt = constType.type is GNode.Type.Basic &&
-            (constType.type.kind == GNode.Type.Basic.Kind.INT ||
-                constType.type.kind == GNode.Type.Basic.Kind.UNTYPED_INT)
-        if (expectsInt) compileConst(constType)
-        else (constType.value as GNode.Const.Int).v.toInt().toChar().toConst()
-    }
-    GNode.Expr.BasicLit.Kind.FLOAT, GNode.Expr.BasicLit.Kind.INT -> compileConst(v.type as GNode.Type.Const)
+    GNode.Expr.BasicLit.Kind.CHAR, GNode.Expr.BasicLit.Kind.FLOAT, GNode.Expr.BasicLit.Kind.INT ->
+        compileConst(v.type as GNode.Type.Const)
     GNode.Expr.BasicLit.Kind.IMAG -> TODO()
     GNode.Expr.BasicLit.Kind.STRING -> {
         val raw = v.value.startsWith('`')
-        ((v.type as GNode.Type.Const).value as GNode.Const.String).v.fold("") { str, char ->
+        val litExpr = ((v.type as GNode.Type.Const).value as GNode.Const.String).v.fold("") { str, char ->
             str + char.escape(str = true, raw = raw)
         }.toStringTmpl(raw)
+        val expr = call(
+            expr = "go2k.runtime.GoString".toDottedExpr(),
+            args = listOf(valueArg(litExpr))
+        )
+        compileExprToNamed(expr, v.type)
     }
 }
 
@@ -116,9 +112,26 @@ fun Context.compileExprBinary(v: GNode.Expr.Binary): Node.Expr {
             rhs = compileExpr(v.y, coerceTo = v.x, unfurl = true)
         )
     }
+    // In Kotlin's case, something like short + short = int so we need that back as a short
+    val isArithOp = v.op == GNode.Expr.Binary.Token.ADD || v.op == GNode.Expr.Binary.Token.MUL ||
+        v.op == GNode.Expr.Binary.Token.QUO || v.op == GNode.Expr.Binary.Token.REM ||
+        v.op == GNode.Expr.Binary.Token.SUB
+    if (isArithOp) expr = compileExprBinaryNarrowByteOrShort(expr, v.type)
     // TODO: Ambiguities arise on "<", change when https://youtrack.jetbrains.com/issue/KT-25204 fixed
     if (v.op == GNode.Expr.Binary.Token.LSS) expr = expr.paren()
     return compileExprToNamed(expr, v.type)
+}
+
+fun Context.compileExprBinaryNarrowByteOrShort(expr: Node.Expr, type: GNode.Type?): Node.Expr {
+    val toType = type.unnamedType().let { if (it is GNode.Type.Named) it.underlying else it }
+    return when (toType?.kotlinPrimitiveType()) {
+        Byte::class, Short::class ->
+            // TODO: Fix Kastree's writer to automatically put parens around these
+            coerceType(expr.paren(), GNode.Type.Basic("int", GNode.Type.Basic.Kind.INT), type)
+        UBYTE_CLASS, USHORT_CLASS ->
+            coerceType(expr.paren(), GNode.Type.Basic("uint", GNode.Type.Basic.Kind.UINT), type)
+        else -> expr
+    }
 }
 
 fun Context.compileExprFuncLit(v: GNode.Expr.FuncLit): Node.Expr = withVarDefSet(v.childVarDefsNeedingRefs()) {
@@ -188,17 +201,21 @@ fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
     return lhs.dot(compileExprIdent(v.sel))
 }
 
-fun Context.compileExprSlice(v: GNode.Expr.Slice) = when (val ut = v.x.type.unnamedType()) {
-    is GNode.Type.Array, is GNode.Type.Basic, is GNode.Type.Slice -> {
-        var subject = compileExpr(v.x)
-        if (ut is GNode.Type.Slice) subject = subject.nullDeref()
-        var args = listOf(valueArg(subject))
-        if (v.low != null) args += valueArg(name = "low", expr = compileExpr(v.low))
-        if (v.high != null) args += valueArg(name = "high", expr = compileExpr(v.high))
-        if (v.max != null) args += valueArg(name = "max", expr = compileExpr(v.max))
-        call(expr = "go2k.runtime.slice".toDottedExpr(), args = args)
+fun Context.compileExprSlice(v: GNode.Expr.Slice): Node.Expr {
+    val type = v.x.type.unnamedType().let { if (it is GNode.Type.Named) it.underlying else it }
+    val expr = when (type) {
+        is GNode.Type.Array, is GNode.Type.Basic, is GNode.Type.Slice -> {
+            var subject = compileExpr(v.x, unfurl = true)
+            if (type is GNode.Type.Slice) subject = subject.nullDeref()
+            var args = listOf(valueArg(subject))
+            if (v.low != null) args += valueArg(name = "low", expr = compileExpr(v.low, unfurl = true))
+            if (v.high != null) args += valueArg(name = "high", expr = compileExpr(v.high, unfurl = true))
+            if (v.max != null) args += valueArg(name = "max", expr = compileExpr(v.max, unfurl = true))
+            call(expr = "go2k.runtime.slice".toDottedExpr(), args = args)
+        }
+        else -> TODO()
     }
-    else -> TODO()
+    return compileExprToNamed(expr, v.type)
 }
 
 fun Context.compileExprStar(v: GNode.Expr.Star) = compileExpr(v.x).nullDeref().dot("\$v")
@@ -224,6 +241,17 @@ fun Context.compileExprUnary(v: GNode.Expr.Unary): Node.Expr {
                 // Needs zero value of chan element type
                 valueArg(compileTypeZeroExpr((v.x.type.unnamedType() as GNode.Type.Chan).elem))
             )
+        )
+        // + (i.e. positive) on unsigned is a noop
+        v.token == GNode.Expr.Unary.Token.ADD && v.type!!.isUnsigned -> compileExpr(v.x, unfurl = true)
+        // - (i.e. negation) on unsigned doesn't exist in Kotlin, have to mimic with "0 - x"
+        v.token == GNode.Expr.Unary.Token.SUB && v.type!!.isUnsigned -> compileExprBinaryNarrowByteOrShort(
+            expr = binaryOp(
+                lhs = coerceType(0.toConst(), GNode.Type.Basic("int", GNode.Type.Basic.Kind.INT), v.type),
+                op = Node.Expr.BinaryOp.Token.SUB,
+                rhs = compileExpr(v.x, unfurl = true)
+            ),
+            type = v.type
         )
         // ^ is a bitwise complement
         v.token == GNode.Expr.Unary.Token.XOR -> call(compileExpr(v.x, unfurl = true).dot("inv"))

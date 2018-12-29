@@ -2,6 +2,7 @@ package go2k.compile.compiler
 
 import go2k.compile.go.GNode
 import go2k.compile.go.GNodeVisitor
+import go2k.runtime.GoString
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
@@ -100,10 +101,19 @@ val GNode.Type.isNullable get(): Boolean = when (this) {
     is GNode.Type.Named -> underlying.isNullable
     else -> false
 }
+val GNode.Type.isUnsigned get(): Boolean = when (val t = unnamedType()) {
+    is GNode.Type.Basic ->
+        t.kind == GNode.Type.Basic.Kind.UINT || t.kind == GNode.Type.Basic.Kind.UINT_8 ||
+        t.kind == GNode.Type.Basic.Kind.UINT_16 || t.kind == GNode.Type.Basic.Kind.UINT_32 ||
+        t.kind == GNode.Type.Basic.Kind.UINT_64 || t.kind == GNode.Type.Basic.Kind.UINT_PTR
+    is GNode.Type.Named -> t.underlying.isUnsigned
+    else -> false
+}
 
 fun GNode.Type.kotlinPrimitiveType(): KClass<*>? = when (this) {
     is GNode.Type.Basic -> kotlinPrimitiveType()
     is GNode.Type.Const -> kotlinPrimitiveType()
+    is GNode.Type.TypeName -> type?.kotlinPrimitiveType()
     is GNode.Type.Var -> type.kotlinPrimitiveType()
     else -> null
 }
@@ -123,7 +133,7 @@ fun GNode.Type.Basic.kotlinPrimitiveType() = when (kind) {
     GNode.Type.Basic.Kind.INT -> Int::class
     GNode.Type.Basic.Kind.INT_8 -> Byte::class
     GNode.Type.Basic.Kind.INT_16 -> Short::class
-    GNode.Type.Basic.Kind.INT_32 -> if (name == "rune") Char::class else Int::class
+    GNode.Type.Basic.Kind.INT_32, GNode.Type.Basic.Kind.UNTYPED_RUNE -> Int::class
     GNode.Type.Basic.Kind.INT_64 -> Long::class
     GNode.Type.Basic.Kind.UINT, GNode.Type.Basic.Kind.UINT_32 -> UINT_CLASS
     GNode.Type.Basic.Kind.UINT_8 -> UBYTE_CLASS
@@ -133,9 +143,8 @@ fun GNode.Type.Basic.kotlinPrimitiveType() = when (kind) {
     GNode.Type.Basic.Kind.FLOAT_64 -> Double::class
     GNode.Type.Basic.Kind.COMPLEX_64 -> TODO()
     GNode.Type.Basic.Kind.COMPLEX_128, GNode.Type.Basic.Kind.UNTYPED_COMPLEX -> TODO()
-    GNode.Type.Basic.Kind.STRING, GNode.Type.Basic.Kind.UNTYPED_STRING -> String::class
+    GNode.Type.Basic.Kind.STRING, GNode.Type.Basic.Kind.UNTYPED_STRING -> GoString::class
     GNode.Type.Basic.Kind.UNTYPED_INT -> BigInteger::class
-    GNode.Type.Basic.Kind.UNTYPED_RUNE -> Char::class
     GNode.Type.Basic.Kind.UNTYPED_FLOAT -> BigDecimal::class
     GNode.Type.Basic.Kind.UNTYPED_NIL -> TODO()
     else -> error("Unrecognized type kind: $kind")

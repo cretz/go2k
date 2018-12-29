@@ -1,6 +1,7 @@
 package go2k.compile.compiler
 
 import go2k.compile.go.GNode
+import go2k.runtime.GoString
 import kastree.ast.Node
 
 fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
@@ -20,9 +21,11 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
         typeToCheck != null && typeToCheck !is GNode.Type.Signature && typeToCheck !is GNode.Type.BuiltIn
     }
     if (isConv) {
-        // Must be a singular arg, but it's the outside we expect will do the conversion
+        // Must be a singular arg
         val arg = v.args.singleOrNull() ?: error("Expecting single conversion arg")
-        return compileExpr(arg, coerceTo = v.func)
+        // If it's a const it will be already converted to the name, otherwise we convert it here
+        val expr = compileExpr(arg, coerceTo = v.func)
+        return if (arg.type is GNode.Type.Const) expr else compileExprToNamed(expr, v.type)
     }
     // Handle built-ins elsewhere
     if (v.func.type is GNode.Type.BuiltIn) return compileExprCallBuiltIn(v, (v.func.type as GNode.Type.BuiltIn).name)
@@ -124,13 +127,12 @@ fun Context.compileExprCallBuiltInMake(v: GNode.Expr.Call): Node.Expr {
         is GNode.Type.Slice -> {
             val elemType = makeType.elem as GNode.Type.Basic
             val createSliceFnName = when (elemType.kotlinPrimitiveType()) {
-                Char::class -> "makeCharSlice"
                 Double::class -> "makeDoubleSlice"
                 Float::class -> "makeFloatSlice"
+                GoString::class -> "makeStringSlice"
                 Int::class -> "makeIntSlice"
                 Long::class -> "makeLongSlice"
                 Short::class -> "makeShortSlice"
-                String::class -> "makeStringSlice"
                 UBYTE_CLASS -> "makeUByteSlice"
                 UINT_CLASS -> "makeUIntSlice"
                 ULONG_CLASS -> "makeULongSlice"

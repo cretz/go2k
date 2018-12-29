@@ -6,8 +6,11 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
 
-fun Context.coerceType(v: GNode.Expr, expr: Node.Expr, to: GNode.Expr?, toType: GNode.Type?) =
-    coerceType(expr, v.type, to?.type ?: toType)
+fun Context.coerceType(v: GNode.Expr, expr: Node.Expr, to: GNode.Expr?, toType: GNode.Type?): Node.Expr {
+    val properFromType = v.type ?: if (v is GNode.Expr.Ident) v.defType else null
+    val properToType = to?.let { it.type ?: if (it is GNode.Expr.Ident) it.defType else null } ?: toType
+    return coerceType(expr, properFromType, properToType)
+}
 
 fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Node.Expr {
     if (from == null || to == null) return expr
@@ -33,6 +36,10 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
                 op = Node.Expr.TypeOp.Token.AS,
                 rhs = compileType(to)
             )
+            is GNode.Type.Named -> when (fromUt.underlying) {
+                is GNode.Type.Basic -> coerceType(expr.dot("\$v"), fromUt.underlying, to)
+                else -> error("Unable to convert $from to $to")
+            }
             else -> error("Unable to convert $from to $to")
         }
         is GNode.Type.Chan -> when (fromUt) {
@@ -131,7 +138,6 @@ fun Context.coerceTypePrimitive(expr: Node.Expr, from: KClass<*>, to: KClass<*>)
     from -> expr
     Byte::class -> call(expr.dot("toByte"))
     Short::class -> call(expr.dot("toShort"))
-    Char::class -> call(expr.dot("toChar"))
     Int::class -> call(expr.dot("toInt"))
     Long::class -> call(expr.dot("toLong"))
     UBYTE_CLASS -> call(expr.dot("toUByte"))

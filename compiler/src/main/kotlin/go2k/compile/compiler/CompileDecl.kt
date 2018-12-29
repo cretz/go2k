@@ -50,20 +50,24 @@ fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
 
 fun Context.compileDeclTypeSingle(spec: GNode.Spec.Type, underlying: GNode.Type) = compileType(underlying).let { type ->
     structured(
-        mods = spec.name.nameVisibilityMods() + Node.Modifier.Keyword.INLINE.toMod(),
+        // TODO: Can't be inline yet because we want our methods callable from Java which methods w/ inline class
+        // params do not allow right now. Ref inline class docs and https://youtrack.jetbrains.com/issue/KT-28135
+        mods = spec.name.nameVisibilityMods(),
         name = spec.name,
         primaryConstructor = primaryConstructor(
             params = listOf(param(
-                mods = listOf(Node.Modifier.Keyword.OVERRIDE.toMod()),
+                // TODO: Cannot use parent interface right now due to https://youtrack.jetbrains.com/issue/KT-29075
+                // mods = listOf(Node.Modifier.Keyword.OVERRIDE.toMod()),
                 readOnly = true,
                 name = "\$v",
                 type = type
             ))
-        ),
-        parents = listOf(Node.Decl.Structured.Parent.Type(
-            type = GoSingleType::class.toType(type).ref as Node.TypeRef.Simple,
-            by = null
-        ))
+        )
+        // TODO: Same as override above
+        // parents = listOf(Node.Decl.Structured.Parent.Type(
+        //     type = GoSingleType::class.toType(type).ref as Node.TypeRef.Simple,
+        //     by = null
+        // ))
     )
 }
 

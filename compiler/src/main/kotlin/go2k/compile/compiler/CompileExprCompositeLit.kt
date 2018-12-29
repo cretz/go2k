@@ -73,7 +73,7 @@ fun Context.compileExprCompositeLitArrayCreate(elemType: GNode.Type, len: Int) =
     elemType.kind == GNode.Type.Basic.Kind.STRING -> call(
         expr = "kotlin.Array".toDottedExpr(),
         args = listOf(valueArg(len.toConst())),
-        lambda = trailLambda(listOf("".toStringTmpl().toStmt()))
+        lambda = trailLambda(listOf(call("go2k.runtime.GoString".toDottedExpr()).toStmt()))
     )
     else -> call(
         expr = elemType.kotlinPrimitiveType().primitiveArrayClass()!!.qualifiedName!!.toDottedExpr(),

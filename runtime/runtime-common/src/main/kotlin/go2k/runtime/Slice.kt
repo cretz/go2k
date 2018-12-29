@@ -2,7 +2,7 @@ package go2k.runtime
 
 var sliceFactory: Slice.Factory = Slice.ArrayBased
 
-suspend inline fun slice(s: String, low: Int = 0, high: Int = s.length) = s.substring(low, high)
+suspend fun slice(s: GoString, low: Int = 0, high: Int = go2k.runtime.builtin.len(s)) = s.slice(low, high)
 suspend inline fun <T> slice(s: Slice<T>, low: Int = 0, high: Int? = null, max: Int? = null) = s.slice(low, high, max)
 
 inline fun <T> slice(arr: Array<T>, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
@@ -29,8 +29,6 @@ inline fun slice(arr: DoubleArray, low: Int = 0, high: Int = arr.size, max: Int 
     sliceFactory.newDoubleSlice(arr, low, high, max)
 inline fun slice(arr: BooleanArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
     sliceFactory.newBooleanSlice(arr, low, high, max)
-inline fun slice(arr: CharArray, low: Int = 0, high: Int = arr.size, max: Int = arr.size) =
-    sliceFactory.newCharSlice(arr, low, high, max)
 
 // TODO
 data class PrimitiveSlicePtr<T>(val slice: Slice<T>, val v: T, val index: Int)
@@ -59,7 +57,6 @@ interface Slice<T> {
         fun newFloatSlice(arr: FloatArray, low: Int, high: Int, max: Int): Slice<Float>
         fun newDoubleSlice(arr: DoubleArray, low: Int, high: Int, max: Int): Slice<Double>
         fun newBooleanSlice(arr: BooleanArray, low: Int, high: Int, max: Int): Slice<Boolean>
-        fun newCharSlice(arr: CharArray, low: Int, high: Int, max: Int): Slice<Char>
     }
 
     abstract class ArrayBased<T, ARR : Any>(
@@ -138,8 +135,6 @@ interface Slice<T> {
                 DoubleArr(arr, low, high, max)
             override fun newBooleanSlice(arr: BooleanArray, low: Int, high: Int, max: Int) =
                 BooleanArr(arr, low, high, max)
-            override fun newCharSlice(arr: CharArray, low: Int, high: Int, max: Int) =
-                CharArr(arr, low, high, max)
         }
     }
 
@@ -285,17 +280,5 @@ interface Slice<T> {
         }
         override fun get(index: Int) = array[low + index]
         override fun set(index: Int, v: Boolean) { array[low + index] = v }
-    }
-
-    open class CharArr(array: CharArray, low: Int, high: Int, max: Int) :
-        ArrayBased<Char, CharArray>(array, low, high, max) {
-        override val arraySize get() = array.size
-        override fun newArray(size: Int) = CharArray(size)
-        override fun newInst(array: CharArray, low: Int, high: Int, max: Int) = CharArr(array, low, high, max)
-        override fun CharArray.copy(dest: CharArray, destOff: Int, start: Int, end: Int) {
-            copyInto(dest, destOff, start, end)
-        }
-        override fun get(index: Int) = array[low + index]
-        override fun set(index: Int, v: Char) { array[low + index] = v }
     }
 }

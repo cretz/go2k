@@ -18,13 +18,12 @@ inline fun cap(v: ULongArray) = v.size
 inline fun cap(v: FloatArray) = v.size
 inline fun cap(v: DoubleArray) = v.size
 inline fun cap(v: BooleanArray) = v.size
-inline fun cap(v: CharArray) = v.size
 suspend inline fun cap(v: Slice<*>?) = v?.cap() ?: 0
 
 suspend inline fun close(ch: Channel<*>?) { require(ch!!.close()) { "Channel already closed" } }
 
 suspend inline fun <T> copy(dst: Slice<T>?, src: Slice<T>?) = dst?.let { src?.copyTo(it) } ?: 0
-suspend inline fun copy(dst: Slice<Byte>?, src: String): Int = copy(dst, slice(Platform.stringToBytes(src)))
+suspend inline fun copy(dst: Slice<UByte>?, src: GoString): Int = copy(dst, slice(src.bytes.toUByteArray()))
 
 inline fun <K> delete(m: go2k.runtime.GoMap<K, *>, k: K) { m.remove(k) }
 
@@ -40,9 +39,8 @@ inline fun len(v: ULongArray) = v.size
 inline fun len(v: FloatArray) = v.size
 inline fun len(v: DoubleArray) = v.size
 inline fun len(v: BooleanArray) = v.size
-inline fun len(v: CharArray) = v.size
 suspend inline fun len(v: Slice<*>?) = v?.len() ?: 0
-inline fun len(v: String) = v.length
+inline fun len(v: GoString) = v.length
 inline fun len(v: go2k.runtime.GoMap<*, *>) = v.size
 
 inline fun <K, V> makeMap(defaultValue: V? = null, size: Int? = null) =
@@ -73,10 +71,8 @@ inline fun makeDoubleSlice(len: Int, cap: Int? = null) =
     slice(DoubleArray(cap ?: len), high = len)
 inline fun makeBooleanSlice(len: Int, cap: Int? = null) =
     slice(BooleanArray(cap ?: len), high = len)
-inline fun makeCharSlice(len: Int, cap: Int? = null) =
-    slice(CharArray(cap ?: len), high = len)
 inline fun makeStringSlice(len: Int, cap: Int? = null) =
-    slice(Array(cap ?: len) { "" }, high = len)
+    slice(Array<GoString>(cap ?: len) { GoString.Empty }, high = len)
 
 fun <T> makeChan(cap: Int = 0) = Channel<T>(cap)
 

@@ -120,6 +120,14 @@ func main() {
 	for range str {
 		println("for 27")
 	}
+	// String w/ unicode chars
+	str = "foo日本語bar🎄baz"
+	for _, v := range str {
+		println("for 28", v)
+	}
+	for k, v := range str {
+		println("for 29", k, v)
+	}
 
 	// TODO: chan
 	// TODO: labeled complex breaks and continues and gotos

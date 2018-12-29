@@ -145,17 +145,22 @@ fun Context.compileStmtIf(v: GNode.Stmt.If): Node.Stmt.Expr = withVarDefSet(v.ch
 }
 
 fun Context.compileStmtIncDec(v: GNode.Stmt.IncDec): Node.Stmt {
-    // Named does a +/- 1
+    // Named does a +/- 1 and may have to convert at the end
     val expr =
-        if (v.x.type.unnamedType() is GNode.Type.Named) binaryOp(
-            lhs = compileExpr(v.x),
-            op = Node.Expr.BinaryOp.Token.ASSN,
-            rhs = compileExprToNamed(binaryOp(
+        if (v.x.type.unnamedType() is GNode.Type.Named) {
+            var op: Node.Expr = binaryOp(
                 lhs = compileExpr(v.x, unfurl = true),
                 op = if (v.inc) Node.Expr.BinaryOp.Token.ADD else Node.Expr.BinaryOp.Token.SUB,
                 rhs = coerceType(1.toConst(), GNode.Type.Basic("", GNode.Type.Basic.Kind.UNTYPED_INT), v.x.type!!)
-            ), v.x.type)
-        ) else unaryOp(
+            )
+            // In Kotlin's case, something like short++ = int so we need that back as a short
+            op = compileExprBinaryNarrowByteOrShort(op, v.x.type)
+            binaryOp(
+                lhs = compileExpr(v.x),
+                op = Node.Expr.BinaryOp.Token.ASSN,
+                rhs = compileExprToNamed(op, v.x.type)
+            )
+        } else unaryOp(
             expr = compileExpr(v.x),
             op = if (v.inc) Node.Expr.UnaryOp.Token.INC else Node.Expr.UnaryOp.Token.DEC,
             prefix = false

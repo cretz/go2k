@@ -9,17 +9,21 @@ func main() {
 	close(a)
 	// Unbuffered chan and receive-only
 	a = make(chan int)
+	done := make(chan bool)
 	go func(ch <-chan int) {
 		println("chan 2", <-ch)
+		done <- true
 	}(a)
 	println("chan 3")
 	a <- 6
 	close(a)
 	<-a
+	<-done
 	println("chan 4")
+	close(done)
 	// Send-only chan
 	a = make(chan int)
-	done := make(chan bool)
+	done = make(chan bool)
 	go func(ch <-chan int) {
 		println("chan 5", <-ch)
 		done <- true

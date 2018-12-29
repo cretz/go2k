@@ -136,8 +136,6 @@ fun Char.escape(str: Boolean = false, raw: Boolean = false) =
             else "\\u00" + toInt().toString(16).toUpperCase().let { if (it.length == 2) it else "0$it" }
     }
 
-fun Char.toConst() = Node.Expr.Const("'${this.escape()}'", Node.Expr.Const.Form.CHAR)
-
 fun Int.toConst() = toString().toIntConst()
 
 fun KClass<*>.ref() = qualifiedName!!.toDottedExpr()
