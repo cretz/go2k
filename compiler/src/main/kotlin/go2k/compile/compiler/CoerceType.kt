@@ -58,9 +58,9 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             )
             else -> error("Unable to convert $from to $to")
         }
-        is GNode.Type.Named -> when (fromUt) {
+        is GNode.Type.Named -> when {
             // Anon struct assign to named struct
-            is GNode.Type.Struct -> {
+            fromUt is GNode.Type.Struct -> {
                 require(toUt.underlying is GNode.Type.Struct)
                 call(
                     expr = expr.dot("run"),
@@ -70,6 +70,10 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
                     ).toStmt()))
                 )
             }
+            // Though we'd usually solve it elsewhere, as a special case if it's from a "true" or "false" const,
+            // we need to convert to the named type here
+            expr is Node.Expr.Const && expr.form == Node.Expr.Const.Form.BOOLEAN ->
+                compileExprToNamed(expr, toUt)
             // Otherwise, just convert to the underlying
             else -> coerceType(expr, from, toUt.underlying)
         }

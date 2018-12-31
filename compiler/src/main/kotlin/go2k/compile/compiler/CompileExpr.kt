@@ -67,28 +67,43 @@ fun Context.compileExprBasicLit(v: GNode.Expr.BasicLit) =  when (v.kind) {
 }
 
 fun Context.compileExprBinary(v: GNode.Expr.Binary): Node.Expr {
+    // For bytes and shorts, shifts are only on ints in Kotlin, so convert each arg to int and we'll
+    // convert back later
+    val isByteOrShortShift = (v.op == GNode.Expr.Binary.Token.SHL || v.op == GNode.Expr.Binary.Token.SHR) &&
+        (v.type.unnamedType().let { if (it is GNode.Type.Named) it.underlying else it }?.kotlinPrimitiveType()).let {
+            it == Byte::class || it == Short::class || it == UBYTE_CLASS || it == USHORT_CLASS
+        }
+    val lhs: Node.Expr
+    val rhs: Node.Expr
+    if (!isByteOrShortShift) {
+        lhs = compileExpr(v.x, unfurl = true)
+        rhs = compileExpr(v.y, coerceTo = v.x, unfurl = true)
+    } else {
+        lhs = compileExpr(v.x, coerceToType = GNode.Type.Basic("int", GNode.Type.Basic.Kind.INT))
+        rhs = compileExpr(v.y, coerceToType = GNode.Type.Basic("int", GNode.Type.Basic.Kind.INT))
+    }
     var expr = when (v.op) {
         GNode.Expr.Binary.Token.AND_NOT -> binaryOp(
-            lhs = compileExpr(v.x, unfurl = true),
+            lhs = lhs,
             op = "and".toInfix(),
-            rhs = call(compileExpr(v.y, coerceTo = v.x, unfurl = true).dot("inv"))
+            rhs = call(rhs.dot("inv"))
         )
         GNode.Expr.Binary.Token.EQL -> call(
             expr = Ops::class.ref().dot("eql"),
             args = listOf(
-                valueArg(compileExpr(v.x, unfurl = true)),
-                valueArg(compileExpr(v.y, coerceTo = v.x, unfurl = true))
+                valueArg(lhs),
+                valueArg(rhs)
             )
         )
         GNode.Expr.Binary.Token.NEQ -> call(
             expr = Ops::class.ref().dot("neq"),
             args = listOf(
-                valueArg(compileExpr(v.x, unfurl = true)),
-                valueArg(compileExpr(v.y, coerceTo = v.x, unfurl = true))
+                valueArg(lhs),
+                valueArg(rhs)
             )
         )
         else -> binaryOp(
-            lhs = compileExpr(v.x, unfurl = true),
+            lhs = lhs,
             op = when (v.op) {
                 GNode.Expr.Binary.Token.ADD -> Node.Expr.BinaryOp.Token.ADD.toOper()
                 GNode.Expr.Binary.Token.AND -> "and".toInfix()
@@ -109,12 +124,13 @@ fun Context.compileExprBinary(v: GNode.Expr.Binary): Node.Expr {
                 // Handled above
                 GNode.Expr.Binary.Token.AND_NOT, GNode.Expr.Binary.Token.EQL, GNode.Expr.Binary.Token.NEQ -> TODO()
             },
-            rhs = compileExpr(v.y, coerceTo = v.x, unfurl = true)
+            rhs = rhs
         )
     }
     // In Kotlin's case, something like short + short = int so we need that back as a short
     val isArithOp = v.op == GNode.Expr.Binary.Token.ADD || v.op == GNode.Expr.Binary.Token.MUL ||
         v.op == GNode.Expr.Binary.Token.QUO || v.op == GNode.Expr.Binary.Token.REM ||
+        v.op == GNode.Expr.Binary.Token.SHL || v.op == GNode.Expr.Binary.Token.SHR ||
         v.op == GNode.Expr.Binary.Token.SUB
     if (isArithOp) expr = compileExprBinaryNarrowByteOrShort(expr, v.type)
     // TODO: Ambiguities arise on "<", change when https://youtrack.jetbrains.com/issue/KT-25204 fixed

@@ -1,7 +1,6 @@
 package go2k.compile.compiler
 
 import go2k.compile.go.GNode
-import go2k.runtime.GoSingleType
 import kastree.ast.Node
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -40,10 +39,18 @@ fun Context.compileDeclConst(v: GNode.Decl.Const) = v.specs.flatMap { spec ->
 
 fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
     if (spec.alias) TODO()
-    when (spec.expr) {
-        // Just a simple inline class wrapping the single value
-        is GNode.Expr.ArrayType, is GNode.Expr.Ident -> compileDeclTypeSingle(spec, spec.expr.type.unnamedType()!!)
-        is GNode.Expr.StructType -> compileExprStructType(spec.name, spec.expr)
+    when {
+        // When it's a type of a type of struct, we just use the underlying struct
+        spec.expr is GNode.Expr.Ident && spec.expr.type.unnamedType().let {
+            it is GNode.Type.Named && it.underlying is GNode.Type.Struct
+        } -> compileExprStructType(
+            spec.name,
+            (spec.expr.type.unnamedType() as GNode.Type.Named).underlying as GNode.Type.Struct
+        )
+        // Just a simple class wrapping the single value
+        spec.expr is GNode.Expr.ArrayType || spec.expr is GNode.Expr.Ident || spec.expr is GNode.Expr.Star ->
+            compileDeclTypeSingle(spec, spec.expr.type.unnamedType()!!)
+        spec.expr is GNode.Expr.StructType -> compileExprStructType(spec.name, spec.expr)
         else -> TODO(spec.expr.toString())
     }
 }
@@ -60,10 +67,11 @@ fun Context.compileDeclTypeSingle(spec: GNode.Spec.Type, underlying: GNode.Type)
                 // mods = listOf(Node.Modifier.Keyword.OVERRIDE.toMod()),
                 readOnly = true,
                 name = "\$v",
-                type = type
+                type = type,
+                default = compileTypeZeroExpr(underlying)
             ))
         )
-        // TODO: Same as override above
+        // TODO: See TODO for override above
         // parents = listOf(Node.Decl.Structured.Parent.Type(
         //     type = GoSingleType::class.toType(type).ref as Node.TypeRef.Simple,
         //     by = null
