@@ -36,6 +36,8 @@ fun Context.compileExprCompositeLitArray(elemType: GNode.Type, explicitLen: Int?
             // TODO: need to be better about compiling types here
             expr = ((elemType as? GNode.Type.Basic)?.kotlinPrimitiveType() ?: Any::class).
                 arrayOfQualifiedFunctionName().toDottedExpr(),
+            // If the type is nullable we need a type param
+            typeArgs = if (elemType.unnamedType()?.isNullable != true) emptyList() else listOf(compileType(elemType)),
             args = elems.map { valueArg(compileExpr(it, coerceToType = elemType)) }
         )
     } else {

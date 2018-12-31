@@ -89,7 +89,10 @@ fun Context.compileStmtRange(
     val (continueLabel, continueCalled) = currFunc.continuables.pop()
 
     var stmt = call(
-        expr = forEachFnName.toDottedExpr().let { if (forEachFnIsMember) compileExpr(v.x).dot(it) else it },
+        expr = forEachFnName.toDottedExpr().let {
+            if (forEachFnIsMember) compileExpr(v.x).dot(it, safe = v.x.type.unnamedType()?.isNullable == true)
+            else it
+        },
         args = if (forEachFnIsMember) emptyList() else listOf(valueArg(compileExpr(v.x))),
         lambda = trailLambda(
             label = continueLabel.takeIf { continueCalled },

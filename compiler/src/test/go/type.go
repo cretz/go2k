@@ -6,10 +6,11 @@ func main() {
 	println("type 1", a[0], a[1])
 	b := make(typeIntSlice, 5, 10)
 	b = append(b, 12, 13)
-	println("type 2", b[0], b[5], b[6], len(b), cap(b))
+	a = nil
+	println("type 2", b[0], b[5], b[6], len(b), cap(b), len(a), cap(a), len(append(a, 20)))
 	// Methods
 	c := typeIntSlice{1, 2}
-	println("type 3", c.Method1(1))
+	println("type 3", c.Method1(1), a.Method3())
 	c.Method2(5)
 	println("type 4", c.Method1(2))
 	// Pointer
@@ -77,6 +78,11 @@ func main() {
 	println("type 31", q.foo, r.foo, q.Method1())
 	r.Method2("test2")
 	println("type 32", r.foo)
+	// Type of struct pointer
+	var s typeStructPointer = &typeStructA{"test"}
+	println("type 33", s.foo)
+	s = nil
+	println("type 34", s == nil)
 
 	// TODO:
 	// nil slice
@@ -88,16 +94,16 @@ func main() {
 }
 
 type (
-	typeIntSlice []int
-	typeInt      int
-	typeUint16   uint16
-	typeString   string
-	typeRune     rune
-	typeIntArray [5]int
-	typeBool     bool
-	typeStructA  struct{ foo string }
-	typeStructB  typeStructA
-	// typeStructPointer *typeStructA
+	typeIntSlice      []int
+	typeInt           int
+	typeUint16        uint16
+	typeString        string
+	typeRune          rune
+	typeIntArray      [5]int
+	typeBool          bool
+	typeStructA       struct{ foo string }
+	typeStructB       typeStructA
+	typeStructPointer *typeStructA
 	// typeIntPointer    *int
 	// typeFunc          func(string) string
 	// typeMap           map[string]string
@@ -107,6 +113,7 @@ type (
 
 func (t typeIntSlice) Method1(index int) int { return t[index] }
 func (t *typeIntSlice) Method2(v int)        { *t = append(*t, v) }
+func (t typeIntSlice) Method3() int          { return len(t) }
 
 func (t typeInt) Method1() typeInt   { return t + 12 }
 func (t *typeInt) Method2(v typeInt) { *t = v }

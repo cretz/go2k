@@ -45,4 +45,6 @@ func main() {
 	// Keyed literal
 	foo := []string{2: "two", "three", 5: "five"}
 	println("lit 1", foo[0], foo[2], foo[3], foo[5], len(foo))
+
+	// TODO: nil
 }

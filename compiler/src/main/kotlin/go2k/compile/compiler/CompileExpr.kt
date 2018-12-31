@@ -38,7 +38,7 @@ fun Context.compileExpr(
         if (type is GNode.Type.Named &&
             type.underlying !is GNode.Type.Struct &&
             type.underlying !is GNode.Type.Interface
-        ) expr.dot("\$v")
+        ) expr.dot("\$v", safe = type.isNullable)
         else expr
     }
 }.let { expr ->
@@ -203,18 +203,21 @@ fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
 fun Context.compileExprParen(v: GNode.Expr.Paren) = Node.Expr.Paren(compileExpr(v.x))
 
 fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
+    val lhsIsPointer = v.x.type.unnamedType().let {
+        it is GNode.Type.Pointer || (it as? GNode.Type.Named)?.underlying is GNode.Type.Pointer
+    }
     val lhs = when {
         // Take different approach for pointer receiver methods
         (v.sel.type.unnamedType() as? GNode.Type.Signature)?.recv?.type is GNode.Type.Pointer ->
             // If the LHS is a non-pointer and the RHS is a method w/ a pointer receiver,
             // we have to wrap the LHS in a pointer.
-            if (v.x.type.unnamedType() !is GNode.Type.Pointer) compileExprUnaryAddressOf(v.x)
+            if (!lhsIsPointer) compileExprUnaryAddressOf(v.x)
             else compileExpr(v.x)
         // If the LHS is pointer we deref
-        v.x.type.unnamedType() is GNode.Type.Pointer -> compileExpr(v.x).ptrDeref()
+        lhsIsPointer -> compileExpr(v.x, unfurl = true).ptrDeref()
         else -> compileExpr(v.x)
     }
-    return lhs.dot(compileExprIdent(v.sel))
+    return lhs.dot(compileExprIdent(v.sel), safe = v.x.type?.isNullable == true)
 }
 
 fun Context.compileExprSlice(v: GNode.Expr.Slice): Node.Expr {

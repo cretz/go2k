@@ -4,7 +4,7 @@ import go2k.runtime.*
 import kotlinx.coroutines.channels.Channel
 
 suspend inline fun <T> append(slice: Slice<T>?, elems: Slice<T>?) =
-    slice?.append(elems!!) ?: elems?.slice(0, null, null)
+    slice?.append(elems!!) ?: elems!!.slice(0, null, null)
 
 inline fun cap(v: Array<*>) = v.size
 inline fun cap(v: ByteArray) = v.size

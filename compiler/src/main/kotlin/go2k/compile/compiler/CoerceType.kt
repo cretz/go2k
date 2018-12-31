@@ -74,29 +74,22 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             // we need to convert to the named type here
             expr is Node.Expr.Const && expr.form == Node.Expr.Const.Form.BOOLEAN ->
                 compileExprToNamed(expr, toUt)
+            // Named pointers need to be set as named here
+            fromUt is GNode.Type.Pointer ->
+                compileExprToNamed(expr, toUt)
             // Otherwise, just convert to the underlying
             else -> coerceType(expr, from, toUt.underlying)
         }
         is GNode.Type.Nil -> expr
         is GNode.Type.Pointer -> {
-            // For interfaces - expr?.v ?: null
-            val lhs = if (fromUt !is GNode.Type.Interface) expr else binaryOp(
+            if (fromUt !is GNode.Type.Interface) expr else binaryOp(
                 lhs = expr.paren().dot("v", safe = true),
                 op = Node.Expr.BinaryOp.Token.ELVIS,
                 rhs = NullConst
             )
-            typeOp(
-                lhs = lhs,
-                op = Node.Expr.TypeOp.Token.AS,
-                rhs = compileType(to)
-            )
         }
         is GNode.Type.Slice -> when (fromUt) {
-            GNode.Type.Nil -> typeOp(
-                lhs = expr,
-                op = Node.Expr.TypeOp.Token.AS,
-                rhs = compileType(to)
-            )
+            GNode.Type.Nil -> expr
             else -> TODO()
         }
         is GNode.Type.Struct -> {

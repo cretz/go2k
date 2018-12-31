@@ -45,6 +45,15 @@ fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
             currFunc.newTempVar(ident.name).also { identsUsingTemps += ident.name to it }
         } else ident.name
     }
+    val neededIdentTypes = v.lhs.map { ident ->
+        ident as GNode.Expr.Ident
+        // We only need types if not multi-define-single-rhs and they're nullable
+        if (multiDefineSingleRhs || ident.defType.unnamedType()?.isNullable != true) null else {
+            val type = compileType(ident.defType!!)
+            // Could need to be a ref
+            if (!varDefWillBeRef(ident.name)) type else "go2k.runtime.GoRef".toDottedType(type)
+        }
+    }
     val stmts = v.rhs.mapIndexed { index, expr ->
         when {
             // If the ident is an underscore, we only do the RHS
@@ -60,8 +69,11 @@ fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
             // Otherwise, just a property
             else -> property(
                 vars =
-                    if (multiDefineSingleRhs) idents.map { if (it == "_") null else propVar(it) }
-                    else listOf(propVar(idents[index])),
+                    if (multiDefineSingleRhs) idents.mapIndexed { lhsIndex, ident ->
+                        if (ident == "_") null
+                        else propVar(ident, neededIdentTypes[lhsIndex])
+                    }
+                    else listOf(propVar(idents[index], neededIdentTypes[index])),
                 expr =
                     if (multiDefineSingleRhs) compileExpr(expr)
                     else rhsAsRef(v.lhs[index], compileExpr(expr, coerceTo = v.lhs[index], byValue = true))
@@ -110,7 +122,9 @@ fun Context.compileStmtAssignMulti(v: GNode.Stmt.Assign): List<Node.Stmt> {
                         rhs = compileExpr(lhs.index)
                     )
                     assignLambdaParams = listOf(listOf("\$lhs", "\$index"), listOf("\$rhs"))
-                    assignLambdaLhsExpr = "\$lhs".toName().index("\$index".toName())
+                    var properLhs: Node.Expr = "\$lhs".toName()
+                    if (lhs.x.type.unnamedType()?.isNullable == true) properLhs = properLhs.nullDeref()
+                    assignLambdaLhsExpr = properLhs.index("\$index".toName())
                 }
                 // For the rest, there is no eager LHS
                 else -> {

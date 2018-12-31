@@ -5,10 +5,10 @@ interface GoPtr<T> {
     var `$v`: T
 
     companion object {
-        fun <T> lit(v: T): GoPtr<T>? = ref(GoRef(v))
-        fun <T> ref(v: GoRef<T>?): GoPtr<T>? = Ref(v)
-        fun <T> index(v: Array<T>, index: Int): GoPtr<T>? = Arr.ObjectArr(v, index)
-        fun <S, T> field(v: S, get: (S) -> T, set: (S, T) -> Unit): GoPtr<T>? = Field(v, get, set)
+        fun <T> lit(v: T): GoPtr<T> = ref(GoRef(v))
+        fun <T> ref(v: GoRef<T>?): GoPtr<T> = Ref(v)
+        fun <T> index(v: Array<T>, index: Int): GoPtr<T> = Arr.ObjectArr(v, index)
+        fun <S, T> field(v: S, get: (S) -> T, set: (S, T) -> Unit): GoPtr<T> = Field(v, get, set)
         fun index(v: ByteArray, index: Int): GoPtr<Byte>? = Arr.ByteArr(v, index)
         fun index(v: UByteArray, index: Int): GoPtr<UByte>? = Arr.UByteArr(v, index)
         fun index(v: ShortArray, index: Int): GoPtr<Short>? = Arr.ShortArr(v, index)

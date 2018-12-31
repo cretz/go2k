@@ -56,6 +56,10 @@ fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
 }
 
 fun Context.compileDeclTypeSingle(spec: GNode.Spec.Type, underlying: GNode.Type) = compileType(underlying).let { type ->
+    // For nullable types, the wrapped item is not nullable
+    val (properType, default) =
+        if (type.ref !is Node.TypeRef.Nullable) type to compileTypeZeroExpr(underlying)
+        else type.copy(ref = (type.ref as Node.TypeRef.Nullable).type) to null
     structured(
         // TODO: Can't be inline yet because we want our methods callable from Java which methods w/ inline class
         // params do not allow right now. Ref inline class docs and https://youtrack.jetbrains.com/issue/KT-28135
@@ -67,8 +71,8 @@ fun Context.compileDeclTypeSingle(spec: GNode.Spec.Type, underlying: GNode.Type)
                 // mods = listOf(Node.Modifier.Keyword.OVERRIDE.toMod()),
                 readOnly = true,
                 name = "\$v",
-                type = type,
-                default = compileTypeZeroExpr(underlying)
+                type = properType,
+                default = default
             ))
         )
         // TODO: See TODO for override above

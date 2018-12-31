@@ -17,7 +17,7 @@ fun Context.compileType(v: GNode.Type): Node.Type = when (v) {
     is GNode.Type.Func -> TODO()
     is GNode.Type.Interface -> compileTypeInterface(v)
     is GNode.Type.Label -> TODO()
-    is GNode.Type.Map -> TODO()
+    is GNode.Type.Map -> compileTypeMap(v)
     is GNode.Type.Named -> compileTypeNamed(v)
     GNode.Type.Nil -> TODO()
     is GNode.Type.Package -> TODO()
@@ -55,6 +55,9 @@ fun Context.compileTypeInterface(v: GNode.Type.Interface): Node.Type {
     return GoInterface.Empty::class.toType().nullable()
 }
 
+fun Context.compileTypeMap(v: GNode.Type.Map) =
+    "go2k.runtime.GoMap".toDottedType(compileType(v.key), compileType(v.elem)).nullable()
+
 fun Context.compileTypeMultiResult(fields: List<GNode.Field>): Node.Type? {
     val types = fields.flatMap {
         val type = compileType(it.type.type!!)
@@ -67,7 +70,9 @@ fun Context.compileTypeMultiResult(fields: List<GNode.Field>): Node.Type? {
     }
 }
 
-fun Context.compileTypeNamed(v: GNode.Type.Named) = v.name().name.toDottedType()
+fun Context.compileTypeNamed(v: GNode.Type.Named) = v.name().name.toDottedType().let { type ->
+    if (v.underlying.isNullable) type.nullable() else type
+}
 
 // For now all pointers are boxed
 fun Context.compileTypePointer(v: GNode.Type.Pointer) = GO_PTR_CLASS.toType(compileType(v.elem)).nullable()
