@@ -120,9 +120,17 @@ func main() {
 	println("type 47", z["baz"], len(z), z.Method1("baz"))
 	z.Method2("blah")
 	println("type 48", z["foo"], len(z))
+	// Type of chan
+	aa := make(typeChan, 1)
+	aa <- "foo"
+	println("type 49", <-aa)
+	close(aa)
+	aa.Method2("bar")
+	println("type 50", aa.Method1())
+	close(aa)
 
 	// TODO:
-	// other types: int, uint16, string, rune array, bool, other struct, pointer, func, other iface, map, and chan
+	// other types: iface
 	// as consts, params, returns, chan subjects, map subjects, array subjects, slice subjects
 	// local types
 	// aliases
@@ -143,7 +151,7 @@ type (
 	typeIntPointer    *int
 	typeFunc          func(string) string
 	typeMap           map[string]string
-	// typeChan chan string
+	typeChan          chan string
 )
 
 func (t typeIntSlice) Method1(index int) int { return t[index] }
@@ -181,3 +189,9 @@ func (t *typeFunc) Method2(v string)       { *t = func(subV string) string { ret
 
 func (t typeMap) Method1(v string) string { return t[v] }
 func (t *typeMap) Method2(v string)       { *t = typeMap{"foo": v} }
+
+func (t typeChan) Method1() string { return <-t }
+func (t *typeChan) Method2(v string) {
+	*t = make(typeChan, 1)
+	*t <- v
+}

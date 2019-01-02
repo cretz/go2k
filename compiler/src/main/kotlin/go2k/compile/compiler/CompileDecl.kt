@@ -48,7 +48,7 @@ fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
             (spec.expr.type.nonEntityType() as GNode.Type.Named).underlying as GNode.Type.Struct
         )
         // Just a simple class wrapping the single value
-        spec.expr is GNode.Expr.ArrayType || spec.expr is GNode.Expr.FuncType ||
+        spec.expr is GNode.Expr.ArrayType || spec.expr is GNode.Expr.ChanType || spec.expr is GNode.Expr.FuncType ||
             spec.expr is GNode.Expr.Ident || spec.expr is GNode.Expr.MapType || spec.expr is GNode.Expr.Star ->
             compileDeclTypeSingle(spec, underlying!!)
         spec.expr is GNode.Expr.StructType -> compileExprStructType(spec.name, spec.expr)

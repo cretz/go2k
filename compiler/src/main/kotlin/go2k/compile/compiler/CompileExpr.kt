@@ -260,7 +260,7 @@ fun Context.compileExprUnary(v: GNode.Expr.Unary): Node.Expr {
             args = listOf(
                 valueArg(compileExpr(v.x, unfurl = true)),
                 // Needs zero value of chan element type
-                valueArg(compileTypeZeroExpr((v.x.type.nonEntityType() as GNode.Type.Chan).elem))
+                valueArg(compileTypeZeroExpr((v.x.type.namedUnderlyingType() as GNode.Type.Chan).elem))
             )
         )
         // + (i.e. positive) on unsigned is a noop

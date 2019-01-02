@@ -1,0 +1,5 @@
+
+* General code refactoring and cleanup
+  * The places where things are coerced and unfurled are confusing, fix
+* Change the wrapper classes to include all of their own operators and the like
+* Be smarter about naming wrt imports and clashes (i.e. either contextual state, ahead-of-time ident capture, or after-the-fact optimizer)
