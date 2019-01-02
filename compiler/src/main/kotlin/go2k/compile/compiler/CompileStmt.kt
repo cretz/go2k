@@ -145,9 +145,9 @@ fun Context.compileStmtIf(v: GNode.Stmt.If): Node.Stmt.Expr = withVarDefSet(v.ch
 }
 
 fun Context.compileStmtIncDec(v: GNode.Stmt.IncDec): Node.Stmt {
-    // Named does a +/- 1 and may have to convert at the end
+    // Named or deref'd does a +/- 1 and may have to convert at the end
     val expr =
-        if (v.x.type.nonEntityType() is GNode.Type.Named) {
+        if (v.x is GNode.Expr.Star || v.x.type.nonEntityType() is GNode.Type.Named) {
             var op: Node.Expr = binaryOp(
                 lhs = compileExpr(v.x, unfurl = true),
                 op = if (v.inc) Node.Expr.BinaryOp.Token.ADD else Node.Expr.BinaryOp.Token.SUB,

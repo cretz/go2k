@@ -17,7 +17,8 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
     val isConv = v.func.type.nonEntityType().let { funcType ->
         var typeToCheck = funcType
         if (typeToCheck is GNode.Type.Pointer) typeToCheck = typeToCheck.elem
-        if (typeToCheck is GNode.Type.Named) typeToCheck = typeToCheck.underlying
+        // Named funcs are usually not conversions unless the type is a TypeName which means funcType(funcLit) conv
+        if (typeToCheck is GNode.Type.Named && v.func.type !is GNode.Type.TypeName) typeToCheck = typeToCheck.underlying
         typeToCheck != null && typeToCheck !is GNode.Type.Signature && typeToCheck !is GNode.Type.BuiltIn
     }
     if (isConv) {
@@ -31,7 +32,7 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
     if (v.func.type is GNode.Type.BuiltIn) return compileExprCallBuiltIn(v, (v.func.type as GNode.Type.BuiltIn).name)
 
     var preStmt: Node.Stmt? = null
-    val sigType = v.func.type.nonEntityType() as GNode.Type.Signature
+    val sigType = v.func.type.namedUnderlyingType() as GNode.Type.Signature
     // As a special case, if it's a single arg call w/ multi-return, we break it up in temp vars
     val singleArgCallType = (v.args.singleOrNull() as? GNode.Expr.Call)?.func?.type?.nonEntityType() as? GNode.Type.Signature
     var args =
@@ -64,8 +65,14 @@ fun Context.compileExprCall(v: GNode.Expr.Call): Node.Expr {
             )
         }
     }
+    var expr = compileExpr(v.func, unfurl = true)
+    // If the func is a var then nullderef it and call invoke
+    if (v.func.type is GNode.Type.Var) expr = expr.nullDeref().dot("invoke")
+    // If the expr is a double-colon ref, make it a regular dot call
+    if (expr is Node.Expr.DoubleColonRef.Callable)
+        expr = (expr.recv as Node.Expr.DoubleColonRef.Recv.Expr).expr.dot(expr.name)
     val callExpr = call(
-        expr = compileExpr(v.func),
+        expr = expr,
         args = args.map { valueArg(it) }
     )
     // If a pre-stmt exists, this becomes a run expr, otherwise just a call

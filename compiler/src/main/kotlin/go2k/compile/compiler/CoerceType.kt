@@ -24,9 +24,22 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
     // Use unnamed types to compare with
     val fromUt = from.nonEntityType()
     val toUt = to.nonEntityType()
-    return when (toUt) {
-        fromUt -> expr
-        is GNode.Type.Basic -> when (fromUt) {
+    return when {
+        // Needs to be a func ref
+        toUt is GNode.Type.Signature && fromUt is GNode.Type.Signature && from is GNode.Type.Func -> {
+            require(toUt.isSame(fromUt))
+            when {
+                expr is Node.Expr.Name ->
+                    expr.name.funcRef()
+                expr is Node.Expr.BinaryOp && expr.oper == Node.Expr.BinaryOp.Token.DOT.toOper() &&
+                    expr.rhs is Node.Expr.Name ->
+                    (expr.rhs as Node.Expr.Name).name.funcRef(expr.lhs)
+                else -> error("Unable to get func ref from expr $expr")
+            }
+        }
+        // Same type means no change
+        toUt == fromUt -> expr
+        toUt is GNode.Type.Basic -> when (fromUt) {
             is GNode.Type.Interface -> typeOp(
                 lhs = binaryOp(
                     lhs = expr.paren().dot("v", safe = true),
@@ -42,11 +55,11 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             }
             else -> error("Unable to convert $from to $to")
         }
-        is GNode.Type.Chan -> when (fromUt) {
+        toUt is GNode.Type.Chan -> when (fromUt) {
             is GNode.Type.Chan -> expr
             else -> TODO()
         }
-        is GNode.Type.Interface -> when (fromUt) {
+        toUt is GNode.Type.Interface -> when (fromUt) {
             is GNode.Type.Interface, GNode.Type.Nil -> typeOp(
                 lhs = expr,
                 op = Node.Expr.TypeOp.Token.AS,
@@ -58,7 +71,7 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             )
             else -> error("Unable to convert $from to $to")
         }
-        is GNode.Type.Named -> when {
+        toUt is GNode.Type.Named -> when {
             // Anon struct assign to named struct
             fromUt is GNode.Type.Struct -> {
                 require(toUt.underlying is GNode.Type.Struct)
@@ -77,22 +90,30 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             // Named pointers need to be set as named here
             fromUt is GNode.Type.Pointer ->
                 compileExprToNamed(expr, toUt)
+            // Named signatures need to be set as named here
+            fromUt is GNode.Type.Signature ->
+                compileExprToNamed(coerceType(expr, from, toUt.underlying), toUt)
             // Otherwise, just convert to the underlying
             else -> coerceType(expr, from, toUt.underlying)
         }
-        is GNode.Type.Nil -> expr
-        is GNode.Type.Pointer -> {
+        toUt is GNode.Type.Nil -> expr
+        toUt is GNode.Type.Pointer -> {
             if (fromUt !is GNode.Type.Interface) expr else binaryOp(
                 lhs = expr.paren().dot("v", safe = true),
                 op = Node.Expr.BinaryOp.Token.ELVIS,
                 rhs = NullConst
             )
         }
-        is GNode.Type.Slice -> when (fromUt) {
+        toUt is GNode.Type.Signature -> when {
+            // They are the same if recv, param, and return types are the same ignoring names
+            fromUt is GNode.Type.Signature && toUt.isSame(fromUt) -> expr
+            else -> error("Unable to convert $from to $to")
+        }
+        toUt is GNode.Type.Slice -> when (fromUt) {
             GNode.Type.Nil -> expr
             else -> TODO()
         }
-        is GNode.Type.Struct -> {
+        toUt is GNode.Type.Struct -> {
             val anonType = toUt.toAnonType()
             val anonTypeName = anonStructTypes[anonType] ?: error("Missing struct for $anonType")
             // If from is the same, we anon type, we don't need to do any convert

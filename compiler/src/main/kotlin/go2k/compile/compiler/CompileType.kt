@@ -102,7 +102,7 @@ fun Context.compileTypeSignature(v: GNode.Type.Signature) = Node.Type(
             else compileType(it.singleOrNull() ?: TODO())
         }
     )
-)
+).nullable()
 
 fun Context.compileTypeSlice(v: GNode.Type.Slice) = Slice::class.toType(compileType(v.elem)).nullable()
 
@@ -143,6 +143,7 @@ fun Context.compileTypeZeroExpr(v: GNode.Type): Node.Expr = when (v) {
     is GNode.Type.Named -> call(v.name().name.toName())
     is GNode.Type.Nil -> NullConst
     is GNode.Type.Pointer -> NullConst
+    is GNode.Type.Signature -> NullConst
     is GNode.Type.Slice -> NullConst
     // This is an anon struct, so just instantiate the anon struct name
     is GNode.Type.Struct ->

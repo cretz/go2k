@@ -83,9 +83,30 @@ func main() {
 	println("type 33", s.foo)
 	s = nil
 	println("type 34", s == nil)
-	// Type of type
+	// Type of type of int
 	var t typeTypeInt = 45
-	println("type 35", t)
+	u := typeTypeInt(19)
+	t++
+	println("type 35", t, t+5, t-6, t|7, t^8, t*9, t/10, t%11, t<<12, t>>13, t&14, t&^15)
+	println("type 36", t+u, t-u, t|u, t^u, t*u, t/u, t%u, t&u, t&^u)
+	println("type 37", t == 46, t < 100, t > -1, t == u, t != u, t < u, t > u, t <= u, t >= u)
+	u = -17
+	println("type 38", -u, +u, -t, +t, ^t)
+	u.Method2(37)
+	println("type 39", t.Method1(), u)
+	println("type 40", int(t), uint16(u))
+	// Type of int pointer
+	v := 44
+	var w typeIntPointer = &v
+	*w++
+	println("type 41", *w, *w**w)
+	// Type of func
+	x := typeFunc(func(s string) string { return "testfunc1-" + s })
+	var y typeFunc = func(s string) string { return "testfunc2-" + s }
+	println("type 42", x("foo"), y("bar"))
+	x = typeStructA{"baz"}.Method1
+	println("type 43", x("qux"))
+	// TODO: methods on func
 
 	// TODO:
 	// nil slice
@@ -108,8 +129,8 @@ type (
 	typeStructB       typeStructA
 	typeStructPointer *typeStructA
 	typeTypeInt       typeInt
-	// typeIntPointer    *int
-	// typeFunc          func(string) string
+	typeIntPointer    *int
+	typeFunc          func(string) string
 	// typeMap           map[string]string
 	// typeChan          chan string
 	// typeTypeInt  typeInt
@@ -137,5 +158,10 @@ func (t *typeIntArray) Method2(v int)        { *t = typeIntArray{3: v} }
 func (t typeBool) Method1() typeBool   { return !t }
 func (t *typeBool) Method2(v typeBool) { *t = v }
 
+func (t typeStructA) Method1(v string) string { return "method-1-" + t.foo + "-" + v }
+
 func (t typeStructB) Method1() string   { return "method-1-" + t.foo }
 func (t *typeStructB) Method2(v string) { *t = typeStructB{foo: v} }
+
+func (t typeTypeInt) Method1() typeTypeInt   { return t + 13 }
+func (t *typeTypeInt) Method2(v typeTypeInt) { *t = v + 4 }

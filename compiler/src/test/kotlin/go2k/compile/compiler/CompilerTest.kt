@@ -5,18 +5,20 @@ import go2k.compile.TestUnit
 import go2k.compile.go.Parser
 import go2k.compile.jvm.JvmCompiler
 import kastree.ast.Writer
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import java.util.*
+import kotlin.test.assertEquals
 
 @ExperimentalUnsignedTypes
-class CompilerTest : TestBase() {
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("unitProvider")
-    fun testCompiler(unit: TestUnit) {
+@RunWith(Parameterized::class)
+class CompilerTest(val unit: TestUnit) : TestBase() {
+
+    @Test
+    fun testCompiler() {
         debug { "Compiling ${unit.mainFilePath}" }
         debug { "Go output: ${unit.goRunOutput}" }
         // Parse
@@ -61,8 +63,7 @@ class CompilerTest : TestBase() {
         val externalCompiler = JvmCompiler.External(printNonError = debug)
         val embeddedCompiler = JvmCompiler.Embedded(printNonError = debug)
 
-        @JvmStatic
-        @Suppress("unused")
-        fun unitProvider() = TestUnit.localUnits//.filter { it.toString() == "switch.go" }
+        @JvmStatic @Parameterized.Parameters(name = "{0}")
+        fun data() = TestUnit.localUnits//.filter { it.toString() == "type.go" }
     }
 }

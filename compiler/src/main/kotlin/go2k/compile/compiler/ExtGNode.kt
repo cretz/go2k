@@ -97,7 +97,7 @@ val GNode.Type.isArray get() = this is GNode.Type.Array
 val GNode.Type.isJavaPrimitive get() = this is GNode.Type.Basic && kind != GNode.Type.Basic.Kind.STRING
 val GNode.Type.isNullable get(): Boolean = when (this) {
     is GNode.Type.Chan, is GNode.Type.Func, is GNode.Type.Interface,
-    is GNode.Type.Map, is GNode.Type.Pointer, is GNode.Type.Slice -> true
+    is GNode.Type.Map, is GNode.Type.Pointer, is GNode.Type.Signature, is GNode.Type.Slice -> true
     is GNode.Type.Named -> underlying.isNullable
     else -> false
 }
@@ -124,7 +124,11 @@ fun GNode.Type.pointerIsBoxed() = when (val type = nonEntityType()) {
     else -> true
 }
 
-// The type not specific to the current name
+// The underlying type of a non-entity named type
+fun GNode.Type?.namedUnderlyingType(): GNode.Type? =
+    nonEntityType().let { if (it is GNode.Type.Named) it.underlying.namedUnderlyingType() else it }
+
+// The type not specific to the current named entity
 fun GNode.Type?.nonEntityType(): GNode.Type? =
     if (this is GNode.Type.NamedEntity) type?.nonEntityType() else this
 
@@ -168,6 +172,12 @@ fun GNode.Type.Interface.allEmbedded(): List<Pair<String, GNode.Type.Interface>>
     // We can trust it's never circular
     listOf(embedded.name().name to embedded.underlying as GNode.Type.Interface) + embedded.underlying.allEmbedded()
 }
+
+fun GNode.Type.Signature.isSame(other: GNode.Type.Signature) =
+    recv?.type == other.recv?.type &&
+    params.map { it.type } == other.params.map { it.type } &&
+    results.map { it.type } == other.results.map { it.type } &&
+    variadic == other.variadic
 
 fun GNode.Type.Struct.toAnonType(): Context.AnonStructType = Context.AnonStructType(
     fields = fields.map { field ->

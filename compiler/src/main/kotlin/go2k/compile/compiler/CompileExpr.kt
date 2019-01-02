@@ -217,6 +217,8 @@ fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
         lhsIsPointer -> compileExpr(v.x, unfurl = true).ptrDeref()
         else -> compileExpr(v.x)
     }
+    // If the rhs is a func ident, it's a double colon ref (changed back by the call expr converter)
+    if (v.sel.type is GNode.Type.Func) return v.sel.name.funcRef(lhs)
     return lhs.dot(compileExprIdent(v.sel), safe = v.x.type?.isNullable == true)
 }
 
@@ -237,7 +239,7 @@ fun Context.compileExprSlice(v: GNode.Expr.Slice): Node.Expr {
     return compileExprToNamed(expr, v.type)
 }
 
-fun Context.compileExprStar(v: GNode.Expr.Star) = compileExpr(v.x).nullDeref().dot("\$v")
+fun Context.compileExprStar(v: GNode.Expr.Star) = compileExpr(v.x, unfurl = true).nullDeref().dot("\$v")
 
 // Does nothing if not named or if named struct
 fun Context.compileExprToNamed(expr: Node.Expr, type: GNode.Type?) = type.nonEntityType().let { type ->

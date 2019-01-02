@@ -178,7 +178,15 @@ fun Node.Modifier.AnnotationSet.Annotation.toSet(target: Node.Modifier.Annotatio
 
 fun Node.Modifier.Keyword.toMod() = Node.Modifier.Lit(this)
 
-fun Node.Type.nullable() = copy(ref = Node.TypeRef.Nullable(ref))
+fun Node.Type.nullable() = Node.Type(emptyList(), Node.TypeRef.Nullable(
+    // Mods and funcs go inside the nullable ref as parens
+    if (mods.isNotEmpty() || ref is Node.TypeRef.Func) Node.TypeRef.Paren(mods, ref) else ref
+))
+
+fun String.funcRef(recv: Node.Expr? = null) = Node.Expr.DoubleColonRef.Callable(
+    recv = recv?.let { Node.Expr.DoubleColonRef.Recv.Expr(it) },
+    name = this
+)
 
 fun String.labelIdent() = "\$$this\$label"
 

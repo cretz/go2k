@@ -29,6 +29,8 @@ func main() {
 	fn := func(str string) string { return str + "-anon-1" }
 	println("func 12", fn("foo"))
 	println("func 13", func(str string) string { return str + "-anon-2" }("foo"))
+	fn = funcOneReturn
+	println("func 14", fn("baz"))
 }
 
 func funcNoReturn(v string) {

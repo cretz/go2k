@@ -13,6 +13,8 @@ buildscript {
 allprojects {
     repositories {
         mavenCentral()
+        // For Kastree snapshot, remove when on stable
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
     }
 }
 project(':compiler') {
@@ -33,7 +35,7 @@ project(':compiler') {
         compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
         compile 'org.jetbrains.kotlin:kotlin-reflect'
         compile 'org.jetbrains.kotlin:kotlin-compiler-embeddable'
-        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.3.0'
+        compile 'com.github.cretz.kastree:kastree-ast-jvm:0.4.0-SNAPSHOT'
         compile 'com.github.cretz.pbandk:pbandk-runtime-jvm:0.3.0'
         // TODO: Move to JUnit 5 when https://github.com/gradle/gradle/issues/5975 is fixed
         testCompile 'junit:junit:4.12'
