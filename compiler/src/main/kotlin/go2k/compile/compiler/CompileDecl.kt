@@ -49,7 +49,7 @@ fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
         )
         // Just a simple class wrapping the single value
         spec.expr is GNode.Expr.ArrayType || spec.expr is GNode.Expr.FuncType ||
-            spec.expr is GNode.Expr.Ident || spec.expr is GNode.Expr.Star ->
+            spec.expr is GNode.Expr.Ident || spec.expr is GNode.Expr.MapType || spec.expr is GNode.Expr.Star ->
             compileDeclTypeSingle(spec, underlying!!)
         spec.expr is GNode.Expr.StructType -> compileExprStructType(spec.name, spec.expr)
         else -> TODO(spec.expr.toString())

@@ -106,13 +106,24 @@ func main() {
 	println("type 42", x("foo"), y("bar"))
 	x = typeStructA{"baz"}.Method1
 	println("type 43", x("qux"))
-	// TODO: methods on func
+	x = y
+	println("type 44", x.Method1("bar"))
+	x.Method2("another-test")
+	println("type 45", x("foo"))
+	// Type of map
+	z := typeMap{"foo": "1", "bar": "2"}
+	println("type 46", z["foo"], z["notthere"], len(z))
+	delete(z, "foo")
+	println("type 47", z["foo"], len(z))
+	z = make(typeMap, 300)
+	z["baz"] = "7"
+	println("type 47", z["baz"], len(z), z.Method1("baz"))
+	z.Method2("blah")
+	println("type 48", z["foo"], len(z))
 
 	// TODO:
-	// nil slice
 	// other types: int, uint16, string, rune array, bool, other struct, pointer, func, other iface, map, and chan
-	// as consts, params, returns
-	// operations, including across types of same underlying type
+	// as consts, params, returns, chan subjects, map subjects, array subjects, slice subjects
 	// local types
 	// aliases
 }
@@ -131,9 +142,8 @@ type (
 	typeTypeInt       typeInt
 	typeIntPointer    *int
 	typeFunc          func(string) string
-	// typeMap           map[string]string
-	// typeChan          chan string
-	// typeTypeInt  typeInt
+	typeMap           map[string]string
+	// typeChan chan string
 )
 
 func (t typeIntSlice) Method1(index int) int { return t[index] }
@@ -165,3 +175,9 @@ func (t *typeStructB) Method2(v string) { *t = typeStructB{foo: v} }
 
 func (t typeTypeInt) Method1() typeTypeInt   { return t + 13 }
 func (t *typeTypeInt) Method2(v typeTypeInt) { *t = v + 4 }
+
+func (t typeFunc) Method1(v string) string { return "method-1-" + t(v) }
+func (t *typeFunc) Method2(v string)       { *t = func(subV string) string { return v + subV } }
+
+func (t typeMap) Method1(v string) string { return t[v] }
+func (t *typeMap) Method2(v string)       { *t = typeMap{"foo": v} }
