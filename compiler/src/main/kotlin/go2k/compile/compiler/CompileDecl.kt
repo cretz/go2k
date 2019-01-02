@@ -39,17 +39,18 @@ fun Context.compileDeclConst(v: GNode.Decl.Const) = v.specs.flatMap { spec ->
 
 fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
     if (spec.alias) TODO()
+    // We only want the non-named underlying type
+    var underlyingExprType = spec.expr.type.nonEntityType()
+    while (underlyingExprType is GNode.Type.Named) underlyingExprType = underlyingExprType.underlying.nonEntityType()
     when {
         // When it's a type of a type of struct, we just use the underlying struct
-        spec.expr is GNode.Expr.Ident && spec.expr.type.unnamedType().let {
-            it is GNode.Type.Named && it.underlying is GNode.Type.Struct
-        } -> compileExprStructType(
+        spec.expr is GNode.Expr.Ident && underlyingExprType is GNode.Type.Struct -> compileExprStructType(
             spec.name,
-            (spec.expr.type.unnamedType() as GNode.Type.Named).underlying as GNode.Type.Struct
+            (spec.expr.type.nonEntityType() as GNode.Type.Named).underlying as GNode.Type.Struct
         )
         // Just a simple class wrapping the single value
         spec.expr is GNode.Expr.ArrayType || spec.expr is GNode.Expr.Ident || spec.expr is GNode.Expr.Star ->
-            compileDeclTypeSingle(spec, spec.expr.type.unnamedType()!!)
+            compileDeclTypeSingle(spec, underlyingExprType!!)
         spec.expr is GNode.Expr.StructType -> compileExprStructType(spec.name, spec.expr)
         else -> TODO(spec.expr.toString())
     }

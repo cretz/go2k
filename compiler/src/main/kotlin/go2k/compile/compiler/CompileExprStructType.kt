@@ -5,7 +5,7 @@ import go2k.runtime.GoStruct
 import kastree.ast.Node
 
 fun Context.compileExprStructType(name: String, v: GNode.Expr.StructType) =
-    compileExprStructType(name, v.type.unnamedType() as GNode.Type.Struct)
+    compileExprStructType(name, v.type.nonEntityType() as GNode.Type.Struct)
 
 fun Context.compileExprStructType(name: String, v: GNode.Type.Struct) = structured(
     mods = name.nameVisibilityMods(),
@@ -38,7 +38,7 @@ fun Context.compileExprStructTypeCopyMethod(name: String, type: GNode.Type.Struc
         args = type.fields.map { field ->
             valueArg(field.name.toName().let {
                 // Deep copy if field type is struct
-                val type = field.type.unnamedType()
+                val type = field.type.nonEntityType()
                 if (type is GNode.Type.Named && type.underlying is GNode.Type.Struct) call(it.dot("\$copy"))
                 else it
             })
@@ -129,7 +129,7 @@ fun Context.compileExprStructTypeGetEmbedMembers(
             embedFieldName = structName,
             pointer = pointer,
             name = method.name,
-            recvPointer = method.recv.singleOrNull()?.type?.type.unnamedType() is GNode.Type.Pointer,
+            recvPointer = method.recv.singleOrNull()?.type?.type.nonEntityType() is GNode.Type.Pointer,
             params = method.type.params.flatMap { field ->
                 field.names.map { it.name to field.type.type!! }
             }

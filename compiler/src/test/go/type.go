@@ -83,6 +83,9 @@ func main() {
 	println("type 33", s.foo)
 	s = nil
 	println("type 34", s == nil)
+	// Type of type
+	var t typeTypeInt = 45
+	println("type 35", t)
 
 	// TODO:
 	// nil slice
@@ -104,6 +107,7 @@ type (
 	typeStructA       struct{ foo string }
 	typeStructB       typeStructA
 	typeStructPointer *typeStructA
+	typeTypeInt       typeInt
 	// typeIntPointer    *int
 	// typeFunc          func(string) string
 	// typeMap           map[string]string

@@ -22,8 +22,8 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
     if (from is GNode.Type.Var) return coerceType(expr, from.type, to)
     if (to is GNode.Type.Var) return coerceType(expr, from, to.type)
     // Use unnamed types to compare with
-    val fromUt = from.unnamedType()
-    val toUt = to.unnamedType()
+    val fromUt = from.nonEntityType()
+    val toUt = to.nonEntityType()
     return when (toUt) {
         fromUt -> expr
         is GNode.Type.Basic -> when (fromUt) {
@@ -118,7 +118,7 @@ fun Context.coerceTypeForByValueCopy(v: GNode.Expr, expr: Node.Expr) =
 
 fun Context.coerceTypeForByValueCopy(t: GNode.Type?, expr: Node.Expr): Node.Expr {
     // If the type is a struct and the expr is not a call instantiating it, we have to copy it
-    val type = t.unnamedType()
+    val type = t.nonEntityType()
     val structName = when {
         // Anon is just struct
         type is GNode.Type.Struct -> anonStructTypes[type.toAnonType()] ?: error("Can't find anon for $type")

@@ -48,7 +48,7 @@ fun Context.compileStmtAssignDefine(v: GNode.Stmt.Assign): List<Node.Stmt> {
     val neededIdentTypes = v.lhs.map { ident ->
         ident as GNode.Expr.Ident
         // We only need types if not multi-define-single-rhs and they're nullable
-        if (multiDefineSingleRhs || ident.defType.unnamedType()?.isNullable != true) null else {
+        if (multiDefineSingleRhs || ident.defType.nonEntityType()?.isNullable != true) null else {
             val type = compileType(ident.defType!!)
             // Could need to be a ref
             if (!varDefWillBeRef(ident.name)) type else "go2k.runtime.GoRef".toDottedType(type)
@@ -123,7 +123,7 @@ fun Context.compileStmtAssignMulti(v: GNode.Stmt.Assign): List<Node.Stmt> {
                     )
                     assignLambdaParams = listOf(listOf("\$lhs", "\$index"), listOf("\$rhs"))
                     var properLhs: Node.Expr = "\$lhs".toName()
-                    if (lhs.x.type.unnamedType()?.isNullable == true) properLhs = properLhs.nullDeref()
+                    if (lhs.x.type.nonEntityType()?.isNullable == true) properLhs = properLhs.nullDeref()
                     assignLambdaLhsExpr = properLhs.index("\$index".toName())
                 }
                 // For the rest, there is no eager LHS

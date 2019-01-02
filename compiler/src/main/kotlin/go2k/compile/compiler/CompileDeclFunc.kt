@@ -11,7 +11,7 @@ fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
             field.names.map { name ->
                 var expr: Node.Expr = Node.Expr.This(null)
                 // Receiver is copied if necessary
-                val recvType = field.type.type.unnamedType()
+                val recvType = field.type.type.nonEntityType()
                 if (recvType is GNode.Type.Named && recvType.underlying is GNode.Type.Struct)
                     expr = call(expr.dot("\$copy"))
                 // Receiver var becomes ref if necessary
@@ -27,7 +27,7 @@ fun Context.compileDeclFunc(v: GNode.Decl.Func) = withFunc(v.type) {
                 listOf(ann("kotlin.jvm.JvmName", listOf(valueArg(jvmName.toStringTmpl()))).toSet())
             }
         }.orEmpty()
-        val recvName = v.recv.singleOrNull()?.type?.type?.unnamedType().let { recvType ->
+        val recvName = v.recv.singleOrNull()?.type?.type?.nonEntityType().let { recvType ->
             ((if (recvType is GNode.Type.Pointer) recvType.elem else recvType) as? GNode.Type.Named)?.
                 name?.invoke()?.name
         }

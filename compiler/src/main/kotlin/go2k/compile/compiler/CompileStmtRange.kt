@@ -16,7 +16,7 @@ fun Context.compileStmtRange(
     val keyValDestructured: Boolean
     val forEachFnName: String
     val forEachFnIsMember: Boolean
-    when (v.x.type.unnamedType()) {
+    when (v.x.type.nonEntityType()) {
         is GNode.Type.Array, is GNode.Type.Basic -> {
             forEachFnName = if (hasKeyParam) "forEachIndexed" else "forEach"
             forEachFnIsMember = true
@@ -90,7 +90,7 @@ fun Context.compileStmtRange(
 
     var stmt = call(
         expr = forEachFnName.toDottedExpr().let {
-            if (forEachFnIsMember) compileExpr(v.x).dot(it, safe = v.x.type.unnamedType()?.isNullable == true)
+            if (forEachFnIsMember) compileExpr(v.x).dot(it, safe = v.x.type.nonEntityType()?.isNullable == true)
             else it
         },
         args = if (forEachFnIsMember) emptyList() else listOf(valueArg(compileExpr(v.x))),

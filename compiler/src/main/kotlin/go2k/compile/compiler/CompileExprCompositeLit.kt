@@ -5,7 +5,7 @@ import kastree.ast.Node
 import kotlin.math.max
 
 fun Context.compileExprCompositeLit(v: GNode.Expr.CompositeLit) =
-    compileExprCompositeLit(v.type.unnamedType()!!, v.elts)
+    compileExprCompositeLit(v.type.nonEntityType()!!, v.elts)
 
 fun Context.compileExprCompositeLit(
     type: GNode.Type,
@@ -37,7 +37,7 @@ fun Context.compileExprCompositeLitArray(elemType: GNode.Type, explicitLen: Int?
             expr = ((elemType as? GNode.Type.Basic)?.kotlinPrimitiveType() ?: Any::class).
                 arrayOfQualifiedFunctionName().toDottedExpr(),
             // If the type is nullable we need a type param
-            typeArgs = if (elemType.unnamedType()?.isNullable != true) emptyList() else listOf(compileType(elemType)),
+            typeArgs = if (elemType.nonEntityType()?.isNullable != true) emptyList() else listOf(compileType(elemType)),
             args = elems.map { valueArg(compileExpr(it, coerceToType = elemType)) }
         )
     } else {

@@ -33,8 +33,8 @@ fun GNode.childVarDefsNeedingRefs(): Set<String> {
             // Selectors where the LHS is a non-pointer named and the RHS is a method with a pointer
             // receiver are vars needing refs
             if (v is GNode.Expr.Selector && v.x is GNode.Expr.Ident) {
-                val rhsIsPointer = (v.sel.type.unnamedType() as? GNode.Type.Signature)?.recv?.type is GNode.Type.Pointer
-                if (v.x.type.unnamedType() is GNode.Type.Named && rhsIsPointer)
+                val rhsIsPointer = (v.sel.type.nonEntityType() as? GNode.Type.Signature)?.recv?.type is GNode.Type.Pointer
+                if (v.x.type.nonEntityType() is GNode.Type.Named && rhsIsPointer)
                     varsNeedingRefsInThisNode += v.x.name
             }
             // Local var defs need to be marked
@@ -74,7 +74,7 @@ fun GNode.childVarDefsNeedingRefs(): Set<String> {
     return visitor.varDefsInThisNode.intersect(visitor.varsNeedingRefsInThisNode)
 }
 
-fun GNode.Decl.Func.clashableRecvTypeName() = recv.singleOrNull()?.type?.type.unnamedType()?.let { type ->
+fun GNode.Decl.Func.clashableRecvTypeName() = recv.singleOrNull()?.type?.type.nonEntityType()?.let { type ->
     when {
         // Non-pointer structs don't clash
         type is GNode.Type.Named && type.underlying !is GNode.Type.Struct -> type.name().name
@@ -101,7 +101,7 @@ val GNode.Type.isNullable get(): Boolean = when (this) {
     is GNode.Type.Named -> underlying.isNullable
     else -> false
 }
-val GNode.Type.isUnsigned get(): Boolean = when (val t = unnamedType()) {
+val GNode.Type.isUnsigned get(): Boolean = when (val t = nonEntityType()) {
     is GNode.Type.Basic ->
         t.kind == GNode.Type.Basic.Kind.UINT || t.kind == GNode.Type.Basic.Kind.UINT_8 ||
         t.kind == GNode.Type.Basic.Kind.UINT_16 || t.kind == GNode.Type.Basic.Kind.UINT_32 ||
@@ -118,15 +118,15 @@ fun GNode.Type.kotlinPrimitiveType(): KClass<*>? = when (this) {
     else -> null
 }
 
-fun GNode.Type.pointerIsBoxed() = when (val type = unnamedType()) {
+fun GNode.Type.pointerIsBoxed() = when (val type = nonEntityType()) {
     is GNode.Type.Named -> type.underlying !is GNode.Type.Struct
     is GNode.Type.Struct -> false
     else -> true
 }
 
 // The type not specific to the current name
-fun GNode.Type?.unnamedType(): GNode.Type? =
-    if (this is GNode.Type.NamedEntity) type?.unnamedType() else this
+fun GNode.Type?.nonEntityType(): GNode.Type? =
+    if (this is GNode.Type.NamedEntity) type?.nonEntityType() else this
 
 fun GNode.Type.Basic.kotlinPrimitiveType() = when (kind) {
     GNode.Type.Basic.Kind.BOOL, GNode.Type.Basic.Kind.UNTYPED_BOOL -> Boolean::class
@@ -181,7 +181,7 @@ fun GNode.Type.Struct.toAnonType(): Context.AnonStructType = Context.AnonStructT
 // Any available in package, doesn't include embedded ones
 fun GNode.Type.Struct.packageMethods(ctx: Context) = ctx.pkg.files.flatMap { file ->
     file.decls.mapNotNull { it as? GNode.Decl.Func }.filter { decl ->
-        val namedType = when (val type = decl.recv.singleOrNull()?.type?.type.unnamedType()) {
+        val namedType = when (val type = decl.recv.singleOrNull()?.type?.type.nonEntityType()) {
             is GNode.Type.Pointer -> type.elem as? GNode.Type.Named
             else -> type as? GNode.Type.Named
         }

@@ -6,7 +6,7 @@ import java.math.BigDecimal
 import java.math.BigInteger
 
 fun Context.compileConst(v: GNode.Type.Const): Node.Expr {
-    val constType = v.type.unnamedType()!!
+    val constType = v.type.nonEntityType()!!
     val basicType = ((constType as? GNode.Type.Named)?.underlying ?: constType) as GNode.Type.Basic
     return compileExprToNamed(compileConst(basicType.kind, v.value!!), constType)
 }

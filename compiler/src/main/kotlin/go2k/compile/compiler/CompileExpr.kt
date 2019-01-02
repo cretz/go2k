@@ -34,7 +34,7 @@ fun Context.compileExpr(
     is GNode.Expr.Unary -> compileExprUnary(v)
 }.let { expr ->
     // If requested, unfurl the wrapped type
-    if (!unfurl) expr else v.type.unnamedType().let { type ->
+    if (!unfurl) expr else v.type.nonEntityType().let { type ->
         if (type is GNode.Type.Named &&
             type.underlying !is GNode.Type.Struct &&
             type.underlying !is GNode.Type.Interface
@@ -70,7 +70,7 @@ fun Context.compileExprBinary(v: GNode.Expr.Binary): Node.Expr {
     // For bytes and shorts, shifts are only on ints in Kotlin, so convert each arg to int and we'll
     // convert back later
     val isByteOrShortShift = (v.op == GNode.Expr.Binary.Token.SHL || v.op == GNode.Expr.Binary.Token.SHR) &&
-        (v.type.unnamedType().let { if (it is GNode.Type.Named) it.underlying else it }?.kotlinPrimitiveType()).let {
+        (v.type.nonEntityType().let { if (it is GNode.Type.Named) it.underlying else it }?.kotlinPrimitiveType()).let {
             it == Byte::class || it == Short::class || it == UBYTE_CLASS || it == USHORT_CLASS
         }
     val lhs: Node.Expr
@@ -139,7 +139,7 @@ fun Context.compileExprBinary(v: GNode.Expr.Binary): Node.Expr {
 }
 
 fun Context.compileExprBinaryNarrowByteOrShort(expr: Node.Expr, type: GNode.Type?): Node.Expr {
-    val toType = type.unnamedType().let { if (it is GNode.Type.Named) it.underlying else it }
+    val toType = type.nonEntityType().let { if (it is GNode.Type.Named) it.underlying else it }
     return when (toType?.kotlinPrimitiveType()) {
         Byte::class, Short::class ->
             // TODO: Fix Kastree's writer to automatically put parens around these
@@ -186,11 +186,11 @@ fun Context.compileExprIdent(v: GNode.Expr.Ident) = when {
 
 fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
     expr = compileExpr(v.x, unfurl = true).let { xExpr ->
-        v.x.type.unnamedType().let { xType ->
+        v.x.type.nonEntityType().let { xType ->
             // Need to deref the pointer and deref nulls
             when {
                 xType is GNode.Type.Pointer -> xExpr.ptrDeref().let { xExpr ->
-                    if (xType.elem.unnamedType()?.isNullable == true) xExpr.nullDeref() else xExpr
+                    if (xType.elem.nonEntityType()?.isNullable == true) xExpr.nullDeref() else xExpr
                 }
                 xType?.isNullable == true -> xExpr.nullDeref()
                 else -> xExpr
@@ -203,12 +203,12 @@ fun Context.compileExprIndex(v: GNode.Expr.Index) = Node.Expr.ArrayAccess(
 fun Context.compileExprParen(v: GNode.Expr.Paren) = Node.Expr.Paren(compileExpr(v.x))
 
 fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
-    val lhsIsPointer = v.x.type.unnamedType().let {
+    val lhsIsPointer = v.x.type.nonEntityType().let {
         it is GNode.Type.Pointer || (it as? GNode.Type.Named)?.underlying is GNode.Type.Pointer
     }
     val lhs = when {
         // Take different approach for pointer receiver methods
-        (v.sel.type.unnamedType() as? GNode.Type.Signature)?.recv?.type is GNode.Type.Pointer ->
+        (v.sel.type.nonEntityType() as? GNode.Type.Signature)?.recv?.type is GNode.Type.Pointer ->
             // If the LHS is a non-pointer and the RHS is a method w/ a pointer receiver,
             // we have to wrap the LHS in a pointer.
             if (!lhsIsPointer) compileExprUnaryAddressOf(v.x)
@@ -221,7 +221,7 @@ fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
 }
 
 fun Context.compileExprSlice(v: GNode.Expr.Slice): Node.Expr {
-    val type = v.x.type.unnamedType().let { if (it is GNode.Type.Named) it.underlying else it }
+    val type = v.x.type.nonEntityType().let { if (it is GNode.Type.Named) it.underlying else it }
     val expr = when (type) {
         is GNode.Type.Array, is GNode.Type.Basic, is GNode.Type.Slice -> {
             var subject = compileExpr(v.x, unfurl = true)
@@ -240,7 +240,7 @@ fun Context.compileExprSlice(v: GNode.Expr.Slice): Node.Expr {
 fun Context.compileExprStar(v: GNode.Expr.Star) = compileExpr(v.x).nullDeref().dot("\$v")
 
 // Does nothing if not named or if named struct
-fun Context.compileExprToNamed(expr: Node.Expr, type: GNode.Type?) = type.unnamedType().let { type ->
+fun Context.compileExprToNamed(expr: Node.Expr, type: GNode.Type?) = type.nonEntityType().let { type ->
     if (type !is GNode.Type.Named || type.underlying is GNode.Type.Struct) expr
     else call(expr = type.name().name.toName(), args = listOf(valueArg(expr)))
 }
@@ -252,13 +252,13 @@ fun Context.compileExprUnary(v: GNode.Expr.Unary): Node.Expr {
         // Receive from chan
         v.token == GNode.Expr.Unary.Token.ARROW -> call(
             // If the type is a tuple, it's the or-ok version
-            expr = (v.type.unnamedType() is GNode.Type.Tuple).let { withOk ->
+            expr = (v.type.nonEntityType() is GNode.Type.Tuple).let { withOk ->
                 if (withOk) "go2k.runtime.recvWithOk" else "go2k.runtime.recv"
             }.toDottedExpr(),
             args = listOf(
                 valueArg(compileExpr(v.x, unfurl = true)),
                 // Needs zero value of chan element type
-                valueArg(compileTypeZeroExpr((v.x.type.unnamedType() as GNode.Type.Chan).elem))
+                valueArg(compileTypeZeroExpr((v.x.type.nonEntityType() as GNode.Type.Chan).elem))
             )
         )
         // + (i.e. positive) on unsigned is a noop
