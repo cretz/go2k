@@ -188,6 +188,17 @@ fun String.funcRef(recv: Node.Expr? = null) = Node.Expr.DoubleColonRef.Callable(
     name = this
 )
 
+fun String.funcRef(recv: Node.TypeRef) = Node.Expr.DoubleColonRef.Callable(
+    recv = when (recv) {
+        is Node.TypeRef.Nullable -> Node.Expr.DoubleColonRef.Recv.Type(
+            type = recv.type as Node.TypeRef.Simple,
+            questionMarks = 1
+        )
+        else -> Node.Expr.DoubleColonRef.Recv.Type(recv as Node.TypeRef.Simple, 0)
+    },
+    name = this
+)
+
 fun String.labelIdent() = "\$$this\$label"
 
 fun String.nameVisibilityMods(vararg otherNames: String?) =

@@ -215,6 +215,8 @@ fun Context.compileExprSelector(v: GNode.Expr.Selector): Node.Expr {
             else compileExpr(v.x)
         // If the LHS is pointer we deref
         lhsIsPointer -> compileExpr(v.x, unfurl = true).ptrDeref()
+        // If the LHS is an interface we null deref
+        v.x.type.namedUnderlyingType() is GNode.Type.Interface -> compileExpr(v.x).nullDeref()
         else -> compileExpr(v.x)
     }
     // If the rhs is a func ident, it's a double colon ref (changed back by the call expr converter)
@@ -243,8 +245,10 @@ fun Context.compileExprStar(v: GNode.Expr.Star) = compileExpr(v.x, unfurl = true
 
 // Does nothing if not named or if named struct
 fun Context.compileExprToNamed(expr: Node.Expr, type: GNode.Type?) = type.nonEntityType().let { type ->
-    if (type !is GNode.Type.Named || type.underlying is GNode.Type.Struct) expr
-    else call(expr = type.name().name.toName(), args = listOf(valueArg(expr)))
+    when {
+        type !is GNode.Type.Named || type.underlying is GNode.Type.Struct -> expr
+        else -> call(expr = type.name().name.toName(), args = listOf(valueArg(expr)))
+    }
 }
 
 fun Context.compileExprUnary(v: GNode.Expr.Unary): Node.Expr {

@@ -75,9 +75,10 @@ fun GNode.childVarDefsNeedingRefs(): Set<String> {
 }
 
 fun GNode.Decl.Func.clashableRecvTypeName() = recv.singleOrNull()?.type?.type.nonEntityType()?.let { type ->
+    // All named/pointer methods clash because we do delegation from even pointer to non-pointer
     when {
-        // Non-pointer structs don't clash
-        type is GNode.Type.Named && type.underlying !is GNode.Type.Struct -> type.name().name
+        // Even non-pointers clash because we make pointer versions that delegate
+        type is GNode.Type.Named -> type.name().name
         type is GNode.Type.Pointer && type.elem is GNode.Type.Named -> type.elem.name().name
         else -> null
     }
@@ -172,6 +173,9 @@ fun GNode.Type.Interface.allEmbedded(): List<Pair<String, GNode.Type.Interface>>
     // We can trust it's never circular
     listOf(embedded.name().name to embedded.underlying as GNode.Type.Interface) + embedded.underlying.allEmbedded()
 }
+
+// Guaranteed alphabetical
+fun GNode.Type.Interface.allMethods() = (allEmbedded().flatMap { it.second.methods } + methods).sortedBy { it.name }
 
 fun GNode.Type.Signature.isSame(other: GNode.Type.Signature) =
     recv?.type == other.recv?.type &&

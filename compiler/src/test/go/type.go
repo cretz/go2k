@@ -6,7 +6,10 @@ func main() {
 	println("type 1", a[0], a[1])
 	b := make(typeIntSlice, 5, 10)
 	b = append(b, 12, 13)
-	a = nil
+	// TODO: if (true) is a workaround for https://youtrack.jetbrains.com/issue/KT-24355
+	if true {
+		a = nil
+	}
 	println("type 2", b[0], b[5], b[6], len(b), cap(b), len(a), cap(a), len(append(a, 20)))
 	// Methods
 	c := typeIntSlice{1, 2}

@@ -59,14 +59,17 @@ fun Context.compileTypeMap(v: GNode.Type.Map) =
     "go2k.runtime.GoMap".toDottedType(compileType(v.key), compileType(v.elem)).nullable()
 
 fun Context.compileTypeMultiResult(fields: List<GNode.Field>): Node.Type? {
-    val types = fields.flatMap {
-        val type = compileType(it.type.type!!)
-        List(if (it.names.isEmpty()) 1 else it.names.size) { type }
-    }
+    return compileTypeMultiResultTypes(fields.flatMap { field ->
+        List(if (field.names.isEmpty()) 1 else field.names.size) { field.type.type!! }
+    })
+}
+
+fun Context.compileTypeMultiResultTypes(types: List<GNode.Type>): Node.Type? {
+    val compiledTypes = types.map { compileType(it) }
     // Just use TupleN if N > 1
     return when (types.size) {
-        0, 1 -> types.singleOrNull()
-        else -> "go2k.runtime.Tuple${types.size}".toDottedType(*types.toTypedArray())
+        0, 1 -> compiledTypes.singleOrNull()
+        else -> "go2k.runtime.Tuple${types.size}".toDottedType(*compiledTypes.toTypedArray())
     }
 }
 
@@ -89,10 +92,14 @@ fun Context.compileTypeRefExpr(v: GNode.Type): Node.Expr = when (v) {
     else -> TODO()
 }
 
-fun Context.compileTypeSignature(v: GNode.Type.Signature) = Node.Type(
+fun Context.compileTypeSignature(
+    v: GNode.Type.Signature,
+    receiverType: Node.Type? = null,
+    nullable: Boolean = true
+) = Node.Type(
     mods = listOf(Node.Modifier.Keyword.SUSPEND.toMod()),
     ref = Node.TypeRef.Func(
-        receiverType = null,
+        receiverType = receiverType,
         params = v.params.map {
             // TODO: could check if namedType is Named and use the name in the type here if present
             Node.TypeRef.Func.Param(null, compileType(it))
@@ -102,7 +109,7 @@ fun Context.compileTypeSignature(v: GNode.Type.Signature) = Node.Type(
             else compileType(it.singleOrNull() ?: TODO())
         }
     )
-).nullable()
+).let { if (nullable) it.nullable() else it }
 
 fun Context.compileTypeSlice(v: GNode.Type.Slice) = Slice::class.toType(compileType(v.elem)).nullable()
 

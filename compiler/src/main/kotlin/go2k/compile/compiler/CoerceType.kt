@@ -42,7 +42,7 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
         toUt is GNode.Type.Basic -> when (fromUt) {
             is GNode.Type.Interface -> typeOp(
                 lhs = binaryOp(
-                    lhs = expr.paren().dot("v", safe = true),
+                    lhs = expr.paren().dot("\$v", safe = true),
                     op = Node.Expr.BinaryOp.Token.ELVIS,
                     rhs = NullConst
                 ).paren(),
@@ -72,6 +72,7 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
             else -> error("Unable to convert $from to $to")
         }
         toUt is GNode.Type.Named -> when {
+            toUt.underlying is GNode.Type.Interface -> coerceTypeToInterface(expr, from, toUt)
             // Anon struct assign to named struct
             fromUt is GNode.Type.Struct -> {
                 require(toUt.underlying is GNode.Type.Struct)
@@ -99,7 +100,7 @@ fun Context.coerceType(expr: Node.Expr, from: GNode.Type?, to: GNode.Type?): Nod
         toUt is GNode.Type.Nil -> expr
         toUt is GNode.Type.Pointer -> {
             if (fromUt !is GNode.Type.Interface) expr else binaryOp(
-                lhs = expr.paren().dot("v", safe = true),
+                lhs = expr.paren().dot("\$v", safe = true),
                 op = Node.Expr.BinaryOp.Token.ELVIS,
                 rhs = NullConst
             )
@@ -167,4 +168,15 @@ fun Context.coerceTypePrimitive(expr: Node.Expr, from: KClass<*>, to: KClass<*>)
     Double::class -> call(expr.dot("toDouble"))
     BigDecimal::class -> call(expr.dot("toBigDecimal"))
     else -> error("Unable to convert to $to")
+}
+
+fun Context.coerceTypeToInterface(expr: Node.Expr, from: GNode.Type, to: GNode.Type.Named): Node.Expr {
+    to.underlying as GNode.Type.Interface
+    val recvType = compileType(from).ref
+    return call(
+        expr = to.name().name.toDottedExpr().dot("Impl"),
+        args = listOf(valueArg(expr)) + to.underlying.allMethods().map { method ->
+            valueArg(method.name.funcRef(recvType))
+        }
+    )
 }

@@ -7,7 +7,7 @@ import java.math.BigInteger
 
 fun Context.compileDecl(v: GNode.Decl, topLevel: Boolean = false): List<Node.Decl> = when (v) {
     is GNode.Decl.Const -> compileDeclConst(v)
-    is GNode.Decl.Func -> listOf(compileDeclFunc(v))
+    is GNode.Decl.Func -> listOfNotNull(compileDeclFunc(v), compileDeclFuncPointerVersion(v))
     is GNode.Decl.Import -> TODO()
     is GNode.Decl.Type -> compileDeclType(v)
     is GNode.Decl.Var -> compileDeclVar(v, topLevel)
@@ -51,6 +51,8 @@ fun Context.compileDeclType(v: GNode.Decl.Type) = v.specs.map { spec ->
         spec.expr is GNode.Expr.ArrayType || spec.expr is GNode.Expr.ChanType || spec.expr is GNode.Expr.FuncType ||
             spec.expr is GNode.Expr.Ident || spec.expr is GNode.Expr.MapType || spec.expr is GNode.Expr.Star ->
             compileDeclTypeSingle(spec, underlying!!)
+        spec.expr is GNode.Expr.InterfaceType ->
+            compileExprInterfaceType(spec.name, spec.expr)
         spec.expr is GNode.Expr.StructType -> compileExprStructType(spec.name, spec.expr)
         else -> TODO(spec.expr.toString())
     }

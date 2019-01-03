@@ -63,18 +63,10 @@ fun Context.compileDeclFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Blo
             ).toStmt()
         }
     }
+    val (params, resultType) = compileDeclFuncSignature(type)
     return DeclFuncBody(
-        params = type.params.flatMap { field ->
-            field.names.map { name ->
-                // An ellipsis expr means a slice vararg
-                if (field.type is GNode.Expr.Ellipsis) param(
-                    name = name.name,
-                    type = Slice::class.toType(compileType(field.type.elt!!.type!!)).nullable(),
-                    default = NullConst
-                ) else param(name = name.name, type = compileType(field.type.type!!))
-            }
-        },
-        resultType = compileTypeMultiResult(type.results),
+        params = params,
+        resultType = resultType,
         // If there are defer statements, we need to wrap the body in a withDefers
         stmts = preStmts +
             if (!currFunc.hasDefer) compileStmtBlock(block).stmts
@@ -84,6 +76,46 @@ fun Context.compileDeclFuncBody(type: GNode.Expr.FuncType, block: GNode.Stmt.Blo
             ).toStmt())
     )
 }
+
+fun Context.compileDeclFuncPointerVersion(v: GNode.Decl.Func): Node.Decl.Func? {
+    // Must have non-pointer receiver
+    val recvType = v.recv.singleOrNull()?.type?.type?.nonEntityType()
+    if (recvType == null || recvType is GNode.Type.Pointer) return null
+    val recvName = (recvType as? GNode.Type.Named)?.name?.invoke()?.name
+    // Same JVM overload but with Ptr added (TODO: clash issue)
+    val anns: List<Node.Modifier> = v.clashableRecvTypeName()?.let { clashTypeName ->
+        methodNameClashes[Context.MethodNameClash(clashTypeName, v.name)]?.let { jvmName ->
+            listOf(ann("kotlin.jvm.JvmName", listOf(valueArg((jvmName + "Ptr").toStringTmpl()))).toSet())
+        }
+    }.orEmpty()
+    val (params, resultType) = compileDeclFuncSignature(v.type)
+    // Just defer to the pointer one
+    return func(
+        mods = (anns + Node.Modifier.Keyword.SUSPEND.toMod()) + v.name.nameVisibilityMods(recvName),
+        receiverType = GO_PTR_CLASS.toType(compileType(recvType)).nullable(),
+        name = v.name,
+        params = params,
+        type = resultType,
+        body = call(
+            expr = Node.Expr.This(null).nullDeref().dot("\$v").dot(v.name),
+            args = params.map { valueArg(it.name.toName()) }
+        ).toFuncBody()
+    )
+}
+
+fun Context.compileDeclFuncSignature(type: GNode.Expr.FuncType) = Pair(
+    type.params.flatMap { field ->
+        field.names.map { name ->
+            // An ellipsis expr means a slice vararg
+            if (field.type is GNode.Expr.Ellipsis) param(
+                name = name.name,
+                type = Slice::class.toType(compileType(field.type.elt!!.type!!)).nullable(),
+                default = NullConst
+            ) else param(name = name.name, type = compileType(field.type.type!!))
+        }
+    },
+    compileTypeMultiResult(type.results)
+)
 
 data class DeclFuncBody(
     val params: List<Node.Decl.Func.Param>,

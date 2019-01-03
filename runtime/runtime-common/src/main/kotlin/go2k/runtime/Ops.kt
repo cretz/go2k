@@ -5,8 +5,8 @@ object Ops {
         // TODO: optimize of course
         if (lhs is GoStruct && rhs is GoStruct) return lhs.`$eql`(rhs)
         // TODO: interfaces containing nil items need to fail when compared to nil
-        if (lhs is GoInterface) return eql(lhs.v, rhs)
-        if (rhs is GoInterface) return eql(lhs, rhs.v)
+        if (lhs is GoInterface) return eql(lhs.`$v`, rhs)
+        if (rhs is GoInterface) return eql(lhs, rhs.`$v`)
         if (lhs == rhs) return true
         if (lhs == null || rhs == null) return false
         // TODO: lots of checks required here...

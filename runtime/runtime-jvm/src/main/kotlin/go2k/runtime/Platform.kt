@@ -4,7 +4,7 @@ import kotlinx.coroutines.runBlocking
 
 actual object Platform {
     internal fun printableArg(arg: Any?): Any? = when (arg) {
-        is GoInterface -> printableArg(arg.v)
+        is GoInterface -> printableArg(arg.`$v`)
         is GoString -> arg.string
         else -> arg
     }
