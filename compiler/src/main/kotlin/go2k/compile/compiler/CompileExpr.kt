@@ -30,7 +30,7 @@ fun Context.compileExpr(
     is GNode.Expr.Slice -> compileExprSlice(v)
     is GNode.Expr.Star -> compileExprStar(v)
     is GNode.Expr.StructType -> TODO()
-    is GNode.Expr.TypeAssert -> TODO()
+    is GNode.Expr.TypeAssert -> compileExprTypeAssert(v)
     is GNode.Expr.Unary -> compileExprUnary(v)
 }.let { expr ->
     // If requested, unfurl the wrapped type
@@ -248,6 +248,28 @@ fun Context.compileExprToNamed(expr: Node.Expr, type: GNode.Type?) = type.nonEnt
     when {
         type !is GNode.Type.Named || type.underlying is GNode.Type.Struct -> expr
         else -> call(expr = type.name().name.toName(), args = listOf(valueArg(expr)))
+    }
+}
+
+fun Context.compileExprTypeAssert(v: GNode.Expr.TypeAssert): Node.Expr {
+    // TODO: ok/safe form
+    val named = v.assertType?.type.nonEntityType() as? GNode.Type.Named
+    return if (named?.underlying is GNode.Type.Interface) {
+        call(
+            expr = compileExpr(v.x).nullDeref().dot("let"),
+            lambda = trailLambda(
+                params = listOf(listOf("\$v")),
+                stmts = listOf(call(
+                    expr = named.name().name.toDottedExpr().dot("Impl").dot("\$fromOther"),
+                    args = listOf(
+                        valueArg("\$v".toName().dot("\$v")),
+                        valueArg("\$v".toName().dot("\$methodLookup").nullDeref())
+                    )
+                ).nullDeref().toStmt())
+            )
+        )
+    } else {
+        typeOp(compileExpr(v.x).dot("\$v"), Node.Expr.TypeOp.Token.AS, compileType(v.type!!)).paren()
     }
 }
 

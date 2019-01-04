@@ -11,6 +11,11 @@ interface GoStruct {
         }
     }
 
+    interface MethodLookup {
+        fun lookupMethod(nameAndSig: String): Function<*>?
+        fun lookupPointerMethod(nameAndSig: String): Function<*>?
+    }
+
     object Empty {
         fun `$copy`() = this
     }

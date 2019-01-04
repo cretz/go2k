@@ -170,7 +170,8 @@ fun Context.compileStmtAssignMulti(v: GNode.Stmt.Assign): List<Node.Stmt> {
 fun Context.compileStmtAssignSingle(v: GNode.Stmt.Assign): List<Node.Stmt> {
     // For cases where we have non-arith-binary-op assigns, just unwrap it to regular assign
     fun unwrapRhs(newOp: GNode.Expr.Binary.Token) =
-        GNode.Stmt.Assign.Token.ASSIGN to v.lhs.zip(v.rhs) { lhs, rhs -> GNode.Expr.Binary(null, lhs, newOp, rhs) }
+        // TODO: what if lhs is complex, e.g. foo.Bar().baz += 5, foo gets run twice which is no good
+        GNode.Stmt.Assign.Token.ASSIGN to v.lhs.zip(v.rhs) { lhs, rhs -> GNode.Expr.Binary(lhs.type, lhs, newOp, rhs) }
     val (tok, rhs) = when (v.tok) {
         GNode.Stmt.Assign.Token.AND -> unwrapRhs(GNode.Expr.Binary.Token.AND)
         GNode.Stmt.Assign.Token.OR -> unwrapRhs(GNode.Expr.Binary.Token.OR)
@@ -178,7 +179,15 @@ fun Context.compileStmtAssignSingle(v: GNode.Stmt.Assign): List<Node.Stmt> {
         GNode.Stmt.Assign.Token.SHL -> unwrapRhs(GNode.Expr.Binary.Token.SHL)
         GNode.Stmt.Assign.Token.SHR -> unwrapRhs(GNode.Expr.Binary.Token.SHR)
         GNode.Stmt.Assign.Token.AND_NOT -> unwrapRhs(GNode.Expr.Binary.Token.AND_NOT)
-        else -> v.tok to v.rhs
+        // Even with arith binary op assigns, we have to unwrap for named types
+        else -> if (v.lhs.single().type.nonEntityType() !is GNode.Type.Named) v.tok to v.rhs else when (v.tok) {
+            GNode.Stmt.Assign.Token.ADD -> unwrapRhs(GNode.Expr.Binary.Token.ADD)
+            GNode.Stmt.Assign.Token.SUB -> unwrapRhs(GNode.Expr.Binary.Token.SUB)
+            GNode.Stmt.Assign.Token.MUL -> unwrapRhs(GNode.Expr.Binary.Token.MUL)
+            GNode.Stmt.Assign.Token.QUO -> unwrapRhs(GNode.Expr.Binary.Token.QUO)
+            GNode.Stmt.Assign.Token.REM -> unwrapRhs(GNode.Expr.Binary.Token.REM)
+            else -> v.tok to v.rhs
+        }
     }
 
     return listOf(compileStmtAssignBinaryOp(

@@ -172,11 +172,15 @@ fun Context.coerceTypePrimitive(expr: Node.Expr, from: KClass<*>, to: KClass<*>)
 
 fun Context.coerceTypeToInterface(expr: Node.Expr, from: GNode.Type, to: GNode.Type.Named): Node.Expr {
     to.underlying as GNode.Type.Interface
-    val recvType = compileType(from).ref
+    val (namedType, lookupMethodName) = from.nonEntityType().let { fromType ->
+        if (fromType is GNode.Type.Named) fromType to "lookupMethod"
+        else (fromType as GNode.Type.Pointer).elem as GNode.Type.Named to "lookupPointerMethod"
+    }
     return call(
-        expr = to.name().name.toDottedExpr().dot("Impl"),
-        args = listOf(valueArg(expr)) + to.underlying.allMethods().map { method ->
-            valueArg(method.name.funcRef(recvType))
-        }
-    )
+        expr = to.name().name.toDottedExpr().dot("Impl").dot("\$fromOther"),
+        args = listOf(
+            valueArg(expr),
+            valueArg(lookupMethodName.funcRef(namedType.name().name.toDottedExpr().dot("Companion")))
+        )
+    ).nullDeref()
 }

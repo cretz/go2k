@@ -1,6 +1,7 @@
 package go2k.compile.compiler
 
 import kastree.ast.Node
+import kastree.ast.Writer
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
@@ -151,6 +152,8 @@ fun KClass<*>.toType(vararg typeParams: Node.Type?) = Node.Type(
     )
 )
 
+fun Node.write() = Writer.write(this)
+
 fun Node.Block.toFuncBody() = Node.Decl.Func.Body.Block(this)
 
 fun Node.Decl.toStmt() = Node.Stmt.Decl(this)
@@ -182,6 +185,8 @@ fun Node.Type.nullable() = Node.Type(emptyList(), Node.TypeRef.Nullable(
     // Mods and funcs go inside the nullable ref as parens
     if (mods.isNotEmpty() || ref is Node.TypeRef.Func) Node.TypeRef.Paren(mods, ref) else ref
 ))
+
+fun Node.Type.paren() = Node.Type(emptyList(), Node.TypeRef.Paren(mods = mods, type = ref))
 
 fun String.funcRef(recv: Node.Expr? = null) = Node.Expr.DoubleColonRef.Callable(
     recv = recv?.let { Node.Expr.DoubleColonRef.Recv.Expr(it) },

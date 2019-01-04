@@ -84,6 +84,8 @@ fun GNode.Decl.Func.clashableRecvTypeName() = recv.singleOrNull()?.type?.type.no
     }
 }
 
+fun GNode.Expr.ellipsisSafeType() = if (this is GNode.Expr.Ellipsis) GNode.Type.Slice(elt!!.type!!) else type
+
 fun GNode.Package.defaultPackageName() = path.split('/').filter(String::isNotEmpty).let { pieces ->
     val first = pieces.first().let {
         val dotIndex = it.indexOf('.')
@@ -193,12 +195,12 @@ fun GNode.Type.Struct.toAnonType(): Context.AnonStructType = Context.AnonStructT
 ).also { it.raw = this }
 
 // Any available in package, doesn't include embedded ones
-fun GNode.Type.Struct.packageMethods(ctx: Context) = ctx.pkg.files.flatMap { file ->
+fun GNode.Type.Struct.packageMethods(pkg: GNode.Package, mustMatchStructName: String?) = pkg.files.flatMap { file ->
     file.decls.mapNotNull { it as? GNode.Decl.Func }.filter { decl ->
         val namedType = when (val type = decl.recv.singleOrNull()?.type?.type.nonEntityType()) {
             is GNode.Type.Pointer -> type.elem as? GNode.Type.Named
             else -> type as? GNode.Type.Named
         }
-        namedType?.underlying == this
+        namedType?.underlying == this && (mustMatchStructName == null || mustMatchStructName == namedType.name().name)
     }
 }

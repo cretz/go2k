@@ -112,6 +112,17 @@ fun Context.compileExprStructTypeFieldValsMethod(v: GNode.Type.Struct) = func(
 fun Context.compileExprStructTypeGetEmbedMembers(
     v: GNode.Type.Struct,
     structName: String? = null,
+    mustMatchStructName: String? = null,
+    pointer: Boolean = false,
+    alreadySeen: Set<GNode.Type.Named> = emptySet()
+): List<ExprStructTypeEmbedMember> =
+    compileExprStructTypeGetEmbedMembers(pkg, v, structName, mustMatchStructName, pointer, alreadySeen)
+
+fun compileExprStructTypeGetEmbedMembers(
+    pkg: GNode.Package,
+    v: GNode.Type.Struct,
+    structName: String? = null,
+    mustMatchStructName: String? = null,
     pointer: Boolean = false,
     alreadySeen: Set<GNode.Type.Named> = emptySet()
 ): List<ExprStructTypeEmbedMember> {
@@ -124,14 +135,17 @@ fun Context.compileExprStructTypeGetEmbedMembers(
             name = field.name,
             recvPointer = field.type is GNode.Type.Pointer
         )
-    } + v.packageMethods(this).map { method ->
+    } + v.packageMethods(pkg, mustMatchStructName).map { method ->
         ExprStructTypeEmbedMember(
             embedFieldName = structName,
             pointer = pointer,
             name = method.name,
             recvPointer = method.recv.singleOrNull()?.type?.type.nonEntityType() is GNode.Type.Pointer,
             params = method.type.params.flatMap { field ->
-                field.names.map { it.name to field.type.type!! }
+                field.names.map { it.name to field.type.ellipsisSafeType()!! }
+            },
+            results = method.type.results.flatMap { field ->
+                List(field.names.size.let { if (it == 0) 1 else it }) { field.type.type!! }
             }
         )
     }
@@ -152,14 +166,15 @@ fun Context.compileExprStructTypeGetEmbedMembers(
                             pointer = fieldPointer,
                             name = method.name,
                             recvPointer = false,
-                            params = method.type.params.map { it.name to it.type }
+                            params = method.type.params.map { it.name to it.type },
+                            results = method.type.results.map { it.type }
                         )
                     }
                 }
                 // Structs call recursively
                 is GNode.Type.Struct ->
-                    compileExprStructTypeGetEmbedMembers(type, fieldStructName, fieldPointer, alreadySeen)
-                else -> error("Not iface or strct")
+                    compileExprStructTypeGetEmbedMembers(pkg, type, fieldStructName, fieldStructName, fieldPointer, alreadySeen)
+                else -> error("Not iface or struct")
             }
         }
     }
@@ -178,7 +193,8 @@ data class ExprStructTypeEmbedMember(
     val name: String,
     val recvPointer: Boolean,
     // Null if field
-    val params: List<Pair<String, GNode.Type>>? = null
+    val params: List<Pair<String, GNode.Type>>? = null,
+    val results: List<GNode.Type>? = null
 ) {
     val self get() = embedFieldName == null
 }

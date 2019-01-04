@@ -128,9 +128,22 @@ fun compilePackageMethodNameClashes(v: GNode.Package): Map<Context.MethodNameCla
     // Keyed by method name
     var clashableMethods = emptyMap<String, List<String>>()
     v.files.forEach { file ->
-        file.decls.mapNotNull { it as? GNode.Decl.Func }.forEach { func ->
-            func.clashableRecvTypeName()?.also { typeName ->
-                clashableMethods += func.name to (clashableMethods[func.name].orEmpty() + typeName)
+        file.decls.forEach {
+            if (it is GNode.Decl.Func) {
+                it.clashableRecvTypeName()?.also { typeName ->
+                    clashableMethods += it.name to (clashableMethods[it.name].orEmpty() + typeName)
+                }
+            } else if (it is GNode.Decl.Type) it.specs.forEach { spec ->
+                val structType = when {
+                    spec.expr is GNode.Expr.StructType -> spec.expr.type.nonEntityType() as GNode.Type.Struct
+                    spec.expr is GNode.Expr.Ident -> spec.expr.type.namedUnderlyingType() as? GNode.Type.Struct
+                    else -> null
+                } ?: return@forEach
+                compileExprStructTypeGetEmbedMembers(v, structType).forEach { member ->
+                    if (!member.self && member.params != null) {
+                        clashableMethods += member.name to (clashableMethods[member.name].orEmpty() + spec.name)
+                    }
+                }
             }
         }
     }
